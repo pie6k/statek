@@ -1,9 +1,8 @@
-import { observable } from './observable';
+import { lazyCreateObservable } from './observable';
 import { observableToRawMap, rawToObservableMap } from './internals';
 import {
   handleObservableReadOperation,
   handleObservableMutationOperation,
-  hasRunningReaction,
 } from './reactionRunner';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
 
@@ -30,36 +29,26 @@ export const baseProxyHandlers: ProxyHandler<object> = {
     handleObservableReadOperation({
       target,
       key,
-      receiver,
       type: 'get',
     });
+
+    // do not violate the none-configurable none-writable prop get handler invariant
+    // fall back to none reactive mode in this case, instead of letting the Proxy throw a TypeError
+    const descriptor = Reflect.getOwnPropertyDescriptor(target, key);
+
+    if (descriptor?.writable === false && descriptor.configurable === false) {
+      return result;
+    }
+
     // if we are inside a reaction and observable.prop is an object wrap it in an observable too
     // this is needed to intercept property access on that object too (dynamic observable tree)
-    const observableResult = rawToObservableMap.get(result);
-
-    if (hasRunningReaction() && typeof result === 'object' && result !== null) {
-      if (observableResult) {
-        return observableResult;
-      }
-      // do not violate the none-configurable none-writable prop get handler invariant
-      // fall back to none reactive mode in this case, instead of letting the Proxy throw a TypeError
-      const descriptor = Reflect.getOwnPropertyDescriptor(target, key);
-      if (
-        !descriptor ||
-        !(descriptor.writable === false && descriptor.configurable === false)
-      ) {
-        return observable(result);
-      }
-    }
-    // otherwise return the observable wrapper if it is already created and cached or the raw object
-    return observableResult || result;
+    return lazyCreateObservable(result);
   },
 
   has(target, key) {
-    const result = Reflect.has(target, key);
     // register and save (observable.prop -> runningReaction)
     handleObservableReadOperation({ target, key, type: 'has' });
-    return result;
+    return Reflect.has(target, key);
   },
 
   ownKeys(target) {
@@ -79,27 +68,29 @@ export const baseProxyHandlers: ProxyHandler<object> = {
     const oldValue = (target as any)[key];
     // execute the set operation before running any reaction
     const result = Reflect.set(target, key, value, receiver);
+
     // do not queue reactions if the target of the operation is not the raw receiver
     // (possible because of prototypal inheritance)
     if (target !== observableToRawMap.get(receiver)) {
       return result;
     }
+
     // queue a reaction if it's a new property or its value changed
     if (!hadKey) {
       handleObservableMutationOperation({
         target,
         key,
         value,
-        receiver,
         type: 'add',
       });
-    } else if (value !== oldValue) {
+      return result;
+    }
+
+    if (value !== oldValue) {
       handleObservableMutationOperation({
         target,
         key,
         value,
-        oldValue,
-        receiver,
         type: 'set',
       });
     }
@@ -109,15 +100,14 @@ export const baseProxyHandlers: ProxyHandler<object> = {
   deleteProperty(target, key) {
     // save if the object had the key
     const hadKey = hasOwnProperty.call(target, key);
-    const oldValue = (target as any)[key];
     // execute the delete operation before running any reaction
     const result = Reflect.deleteProperty(target, key);
+
     // only queue reactions for delete operations which resulted in an actual change
     if (hadKey) {
       handleObservableMutationOperation({
         target,
         key,
-        oldValue,
         type: 'delete',
       });
     }

@@ -4,7 +4,7 @@ import {
   isReaction,
   ReactionOptions,
   Callback,
-  registerReaction,
+  registerNewReaction,
   getReactionData,
 } from './store';
 import { callWithReaction } from './reactionRunner';
@@ -13,7 +13,7 @@ export type ObseringReactionCallback = ReactionCallback & {
   unsubscribe(): void;
 };
 
-export function observe(
+export function autoRun(
   callback: ReactionCallback,
   options: ReactionOptions = {},
 ): ObseringReactionCallback {
@@ -24,7 +24,7 @@ export function observe(
     return callWithReaction(reactionCallback, callback);
   }
 
-  const reactionData = registerReaction(reactionCallback, options);
+  const reactionData = registerNewReaction(reactionCallback, options);
 
   reactionData.isSubscribed = true;
 
@@ -43,27 +43,3 @@ export function observe(
 
   return reactionCallback;
 }
-
-// export function autoRun(
-//   callbackOrExistingReaction: CallbackOrReaction<any, any>,
-//   options: ReactionOptions = {},
-// ): Reaction<[], void> {
-//   const reaction = maybeCreateReaction<[], void>(
-//     callbackOrExistingReaction,
-//     options,
-//   );
-//   function wrappedCallback(): void {
-//     return callWithReaction(reaction, callbackOrExistingReaction, []);
-//   }
-
-//   if (!options.lazy) {
-//     wrappedCallback();
-//   }
-
-//   const wrappedReaction = maybeCreateReaction<[], void>(
-//     wrappedCallback,
-//     options,
-//   );
-
-//   return wrappedReaction;
-// }

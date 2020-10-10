@@ -1,7 +1,8 @@
 import { observableToRawMap, rawToObservableMap } from './internals';
 import { registerNewObservable, MutationOperationInfo } from './store';
-import { getProxyHandlers, shouldInstrument } from './builtIns';
+import { getBuiltInTypeProxyHandlers, canWrapInProxy } from './builtIns';
 import { baseProxyHandlers } from './handlers';
+import { isAnyReactionRunning } from './reactionRunner';
 
 export function observable<T extends object>(initialStateOrObservable: T): T {
   if (!initialStateOrObservable) {
@@ -11,22 +12,49 @@ export function observable<T extends object>(initialStateOrObservable: T): T {
   if (observableToRawMap.has(initialStateOrObservable)) {
     return initialStateOrObservable;
   }
-  if (!shouldInstrument(initialStateOrObservable as any)) {
+
+  if (!canWrapInProxy(initialStateOrObservable)) {
     return initialStateOrObservable;
   }
+
   // if it already has a cached observable wrapper, return it
   // otherwise create a new observable
   return (
-    rawToObservableMap.get(initialStateOrObservable as object) ||
+    rawToObservableMap.get(initialStateOrObservable) ||
     createObservable(initialStateOrObservable)
   );
 }
 
+export function lazyCreateObservable(rawObject: object) {
+  const observableObj = rawToObservableMap.get(rawObject);
+
+  // If we have observable already created - always return it
+  if (observableObj) {
+    return observableObj;
+  }
+
+  // Observable is not yet created.
+
+  // If we're not during reaction - no point in creating observable. Return raw object.
+  if (!isAnyReactionRunning()) {
+    return rawObject;
+  }
+
+  // If it's possible to create observable (it's not primitive) - create it.
+  if (typeof rawObject === 'object' && rawObject !== null) {
+    return observable(rawObject);
+  }
+
+  // Value is primitive - return raw value.
+  return rawObject;
+}
+
 function createObservable<T extends object>(rawObject: T): T {
   // if it is a complex built-in object or a normal object, wrap it
-  const handlers = getProxyHandlers(rawObject) ?? baseProxyHandlers;
+  const proxyHandlers =
+    getBuiltInTypeProxyHandlers(rawObject) ?? baseProxyHandlers;
 
-  const observable = new Proxy(rawObject, handlers);
+  const observable = new Proxy(rawObject, proxyHandlers);
   // save these to switch between the raw object and the wrapped object with ease later
   rawToObservableMap.set(rawObject, observable);
   observableToRawMap.set(observable, rawObject);
@@ -46,5 +74,6 @@ export function getObservableRaw<T extends object>(obj: T): T {
       'trying to get raw object from input that is not observable',
     );
   }
-  return observableToRawMap.get(obj as any)!;
+
+  return observableToRawMap.get(obj)!;
 }

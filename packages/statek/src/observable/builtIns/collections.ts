@@ -1,33 +1,22 @@
-import { observable } from '../observable';
+import { observable, lazyCreateObservable } from '../observable';
 import {
   handleObservableReadOperation,
   handleObservableMutationOperation,
-  hasRunningReaction,
+  isAnyReactionRunning,
 } from '../reactionRunner';
 import { observableToRawMap, rawToObservableMap } from '../internals';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-function findObservable(obj: object) {
-  const observableObj = rawToObservableMap.get(obj);
-  if (hasRunningReaction() && typeof obj === 'object' && obj !== null) {
-    if (observableObj) {
-      return observableObj;
-    }
-    return observable(obj);
-  }
-  return observableObj || obj;
-}
-
-function patchIterator(iterator: any, isEntries: boolean) {
+function proxifyIterator(iterator: any, isEntries: boolean) {
   const originalNext = iterator.next;
   iterator.next = () => {
     let { done, value } = originalNext.call(iterator);
     if (!done) {
       if (isEntries) {
-        value[1] = findObservable(value[1]);
+        value[1] = lazyCreateObservable(value[1]);
       } else {
-        value = findObservable(value);
+        value = lazyCreateObservable(value);
       }
     }
     return { done, value };
@@ -49,7 +38,7 @@ const instrumentations = {
     const proto = Reflect.getPrototypeOf(this) as Iterable;
 
     handleObservableReadOperation({ target, key, type: 'get' });
-    return findObservable(proto.get.apply(target, arguments as any));
+    return lazyCreateObservable(proto.get.apply(target, arguments as any));
   },
   add(key: string) {
     const target = observableToRawMap.get(this);
@@ -81,7 +70,6 @@ const instrumentations = {
         target,
         key,
         value,
-        oldValue,
         type: 'set',
       });
     }
@@ -91,14 +79,12 @@ const instrumentations = {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
-    const oldValue = proto.get ? proto.get.call(target, key) : undefined;
     // forward the operation before queueing reactions
     const result = proto.delete.apply(target, arguments as any);
     if (hadKey) {
       handleObservableMutationOperation({
         target,
         key,
-        oldValue,
         type: 'delete',
       });
     }
@@ -108,23 +94,22 @@ const instrumentations = {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadItems = target.size !== 0;
-    const oldTarget = target instanceof Map ? new Map(target) : new Set(target);
     // forward the operation before queueing reactions
     const result = proto.clear.apply(target, arguments as any);
     if (hadItems) {
-      handleObservableMutationOperation({ target, oldTarget, type: 'clear' });
+      handleObservableMutationOperation({ target, type: 'clear' });
     }
     return result;
   },
-  forEach(cb: any, ...args: any[]) {
+  forEach(callback: any, ...args: any[]) {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     // swap out the raw values with their observable pairs
     // before passing them to the callback
-    const wrappedCb = (value: any, ...rest: [any]) =>
-      cb(findObservable(value), ...rest);
-    return proto.forEach.call(target, wrappedCb, ...args);
+    const wrappedCallback = (value: any, ...rest: [any]) =>
+      callback(lazyCreateObservable(value), ...rest);
+    return proto.forEach.call(target, wrappedCallback, ...args);
   },
   keys() {
     const target = observableToRawMap.get(this);
@@ -137,21 +122,21 @@ const instrumentations = {
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto.values.apply(target, arguments as any);
-    return patchIterator(iterator, false);
+    return proxifyIterator(iterator, false);
   },
   entries() {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto.entries.apply(target, arguments as any);
-    return patchIterator(iterator, true);
+    return proxifyIterator(iterator, true);
   },
   [Symbol.iterator]() {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto[Symbol.iterator].apply(target, arguments as any);
-    return patchIterator(iterator, target instanceof Map);
+    return proxifyIterator(iterator, target instanceof Map);
   },
   get size(): number {
     const target = observableToRawMap.get(this);
@@ -161,12 +146,18 @@ const instrumentations = {
   },
 };
 
-export default {
+export const collectionProxyHandlers = {
+  // Instead of creating entire map of handlers - it'll be dynamic.
+  // When trying to get each proxy handler.
+  // If we're able to cover it - use 'proxy-like' version. Otherwise - return normal callback from
+  // native object.
   get(target: any, key: string, receiver: any) {
+    // get proxy method either from instrumentations, or if not avaliable - from target element.
     // instrument methods and property accessors to be reactive
     target = hasOwnProperty.call(instrumentations, key)
       ? instrumentations
       : target;
+
     return Reflect.get(target, key, receiver);
   },
 };

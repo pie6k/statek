@@ -92,15 +92,10 @@ function debugOperation(
   reaction: ReactionCallback,
   operation: MutationOperationInfo | ReadOperationInfo,
 ) {
-  const { options } = getReactionData(reaction);
-  if (!options.debug) {
-    return;
-  }
-
-  options.debug(operation);
+  getReactionData(reaction).options.debug?.(operation);
 }
 
-export function hasRunningReaction() {
+export function isAnyReactionRunning() {
   return watchingReactionsStack.length > 0;
 }
 

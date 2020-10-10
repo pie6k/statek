@@ -1,4 +1,4 @@
-import collectionHandlers from './collections';
+import { collectionProxyHandlers } from './collections';
 
 const globalObj =
   typeof window === 'object' ? window : (Function('return this')() as Window);
@@ -7,11 +7,11 @@ const globalObj =
 // their methods expect the object instance as the 'this' instead of the Proxy wrapper
 // complex objects are wrapped with a Proxy of instrumented methods
 // which switch the proxy to the raw object and to add reactive wiring
-const handlers = new Map<any, any>([
-  [Map, collectionHandlers],
-  [Set, collectionHandlers],
-  [WeakMap, collectionHandlers],
-  [WeakSet, collectionHandlers],
+const supportedBuiltInTypes = new Map<object, any>([
+  [Map, collectionProxyHandlers],
+  [Set, collectionProxyHandlers],
+  [WeakMap, collectionProxyHandlers],
+  [WeakSet, collectionProxyHandlers],
   [Object, null],
   [Array, null],
   [Int8Array, null],
@@ -25,26 +25,25 @@ const handlers = new Map<any, any>([
   [Float64Array, null],
 ]);
 
-export function getIsBuiltIn(input: { constructor: any }) {
+export function canWrapInProxy(input: { constructor: any }) {
   if (!input) {
     return false;
   }
 
   const { constructor } = input;
+
+  if (supportedBuiltInTypes.has(constructor)) {
+    return true;
+  }
+
   const isBuiltIn =
     typeof constructor === 'function' &&
     constructor.name in globalObj &&
     globalObj[constructor.name] === constructor;
 
-  return isBuiltIn || handlers.has(constructor);
+  return !isBuiltIn;
 }
 
-export function shouldInstrument(input: { constructor: any }) {
-  const isBuiltIn = getIsBuiltIn(input);
-
-  return !isBuiltIn || handlers.has(input.constructor);
-}
-
-export function getProxyHandlers(obj: any) {
-  return handlers.get(obj.constructor);
+export function getBuiltInTypeProxyHandlers(obj: any) {
+  return supportedBuiltInTypes.get(obj.constructor);
 }

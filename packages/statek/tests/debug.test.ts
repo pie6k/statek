@@ -17,7 +17,6 @@ describe('debugger', () => {
       type: 'get',
       target: rawCounter,
       key: 'num',
-      receiver: counter,
     });
   });
 
@@ -83,7 +82,6 @@ describe('debugger', () => {
       target: rawCounter,
       key: 'num',
       value: 12,
-      receiver: counter,
     });
   });
 
@@ -106,8 +104,6 @@ describe('debugger', () => {
       target: rawCounter,
       key: 'num',
       value: 12,
-      oldValue: 0,
-      receiver: counter,
     });
   });
 
@@ -129,7 +125,6 @@ describe('debugger', () => {
       type: 'delete',
       target: rawCounter,
       key: 'num',
-      oldValue: 0,
     });
   });
 
@@ -152,7 +147,6 @@ describe('debugger', () => {
     expect(debugSpy).toHaveBeenNthCalledWith(2, {
       type: 'clear',
       target: rawMap,
-      oldTarget: oldMap,
     });
   });
 
