@@ -1,5 +1,5 @@
 type TargetKey = string | number | Symbol | undefined;
-type ReactionsMapForKeys = Map<TargetKey, Set<Reaction>>;
+type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
 
 const connectionStore = new WeakMap<object, ReactionsMapForKeys>();
 
@@ -26,13 +26,17 @@ export interface ReadOperationInfo {
   type: ReadOperationType;
 }
 
+export type OperationInfo = ReadOperationInfo | MutationOperationInfo;
+
+// registeredInPropsGroups
+
 export function registerNewObservable(rawObject: object) {
   // this will be used to save (obj.key -> reaction) connections later
   connectionStore.set(rawObject, new Map());
 }
 
 export function registerReactionReadOperation(
-  reaction: Reaction,
+  reaction: ReactionCallback,
   { target, key, type }: ReadOperationInfo,
 ) {
   if (type === 'iterate') {
@@ -48,11 +52,13 @@ export function registerReactionReadOperation(
     reactionsPropsMapForTarget.set(key, reactionsForKey);
   }
 
+  const reactionData = getReactionData(reaction);
+
   // save the fact that the key is used by the reaction during its current run
   if (!reactionsForKey.has(reaction)) {
     reactionsForKey.add(reaction);
 
-    reaction.registeredInPropsGroups.add(reactionsForKey);
+    reactionData.linkedForProps.add(reactionsForKey);
   }
 }
 
@@ -61,7 +67,7 @@ export function getImpactedReactions({
   key,
   type,
 }: MutationOperationInfo) {
-  const impactedReactions = new Set<Reaction>();
+  const impactedReactions = new Set<ReactionCallback>();
   const targetReactionsMap = connectionStore.get(target)!;
 
   const reactionsForKey = targetReactionsMap.get(key);
@@ -84,53 +90,69 @@ export function getImpactedReactions({
   return impactedReactions;
 }
 
-export function releaseReaction(reaction: Reaction) {
-  reaction.registeredInPropsGroups.forEach(targetPropReactionsGroup => {
+export function releaseReaction(reaction: ReactionCallback) {
+  const reactionData = getReactionData(reaction);
+
+  reactionData.linkedForProps.forEach(targetPropReactionsGroup => {
     targetPropReactionsGroup.delete(reaction);
   });
-  reaction.registeredInPropsGroups.clear();
+
+  reactionData.linkedForProps.clear();
+
+  reactionData.isSubscribed = false;
 }
 
-const IS_REACTION_SYMBOL = Symbol('is reaction');
+export type ReactionScheduler = (reaction: ReactionCallback) => void;
 
-export interface Reaction<A extends any[] = any, R = any>
-  extends ReactionOptions {
-  (...args: A): R;
-  registeredInPropsGroups: Set<Set<Reaction>>;
-  unobserved: boolean;
-  [IS_REACTION_SYMBOL]: boolean;
+export type ReactionCallback = () => void;
+
+interface ReactionData {
+  options: ReactionOptions;
+  linkedForProps: Set<Set<ReactionCallback>>;
+  isSubscribed: boolean;
 }
 
-export type ReactionScheduler = ((reaction: Reaction) => void) | Set<Reaction>;
+const reactionsOptionsMap = new WeakMap<ReactionCallback, ReactionData>();
 
 export interface ReactionOptions {
-  requireParams?: boolean;
   scheduler?: ReactionScheduler;
-  debugger?: any;
+  debug?: (operation: OperationInfo) => {};
   lazy?: boolean;
   context?: any;
 }
 
-export function isReaction(input: any): input is Reaction {
-  return input && input[IS_REACTION_SYMBOL] === true;
+export function isReaction(input: ReactionCallback) {
+  return reactionsOptionsMap.has(input);
 }
 
 export type Callback<A extends any[], R> = (...args: A) => R;
 
-export function createReaction<A extends any[], R>(
-  callback: Callback<A, R>,
-  options?: ReactionOptions,
-): Reaction<A, R> {
-  const reaction = (callback as any) as Reaction;
-  reaction.registeredInPropsGroups = new Set();
-  reaction.unobserved = false;
-  reaction.scheduler = options?.scheduler;
-  reaction.debugger = options?.debugger;
-  reaction.lazy = options?.lazy;
+export function registerReaction(
+  callback: ReactionCallback,
+  options: ReactionOptions = {},
+): ReactionData {
+  if (reactionsOptionsMap.has(callback)) {
+    throw new Error('This reactions is already registered');
+  }
 
-  reaction[IS_REACTION_SYMBOL] = true;
+  const reactionData: ReactionData = {
+    options,
+    linkedForProps: new Set(),
+    isSubscribed: false,
+  };
+  reactionsOptionsMap.set(callback, reactionData);
 
-  return reaction;
+  return reactionData;
+}
+
+export function getReactionData(callback: ReactionCallback): ReactionData {
+  const data = reactionsOptionsMap.get(callback);
+
+  if (!data) {
+    throw new Error('Callback is not an reaction');
+  }
+
+  return data;
 }
 
 function appendSet<T>(set: Set<T>, itemsToAddSet: Set<T>) {

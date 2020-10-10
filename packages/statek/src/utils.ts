@@ -18,3 +18,19 @@ export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
 export function isSymbol(t: any): t is Symbol {
   return typeof t === 'symbol';
 }
+
+export function mapGetOrCreate<K, V>(
+  map: Map<K, V> | (K extends object ? WeakMap<K, V> : never),
+  key: K,
+  value: () => V,
+): V {
+  if (map.has(key)) {
+    return map.get(key)!;
+  }
+
+  const newValue = value();
+
+  map.set(key, newValue);
+
+  return newValue;
+}

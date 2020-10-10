@@ -1,4 +1,4 @@
-import { observable, observe, unobserve } from '../src/observable';
+import { observable, observe } from '../src/observable';
 import { spy } from './utils';
 
 describe('unobserve', () => {
@@ -13,7 +13,7 @@ describe('unobserve', () => {
     counter.num = 'Hello';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');
-    unobserve(reaction);
+    reaction.unsubscribe();
     // @ts-expect-error
     counter.num = 'World';
     expect(counterSpy.callCount).toBe(2);
@@ -30,7 +30,7 @@ describe('unobserve', () => {
     user.name.name = 'Dave';
     expect(nameSpy.callCount).toBe(2);
     expect(dummy).toBe('Dave');
-    unobserve(reaction);
+    reaction.unsubscribe();
     user.name.name = 'Ann';
     expect(nameSpy.callCount).toBe(2);
     expect(dummy).toBe('Dave');
@@ -45,9 +45,9 @@ describe('unobserve', () => {
     const reaction3 = observe(() => (dummy = counter.num));
 
     expect(dummy).toBe(0);
-    unobserve(reaction1);
-    unobserve(reaction2);
-    unobserve(reaction3);
+    reaction1.unsubscribe();
+    reaction2.unsubscribe();
+    reaction3.unsubscribe();
     counter.num++;
     expect(dummy).toBe(0);
   });
@@ -59,7 +59,7 @@ describe('unobserve', () => {
     const reaction = observe(() => (dummy = obj.prop));
 
     expect(dummy).toBe(undefined);
-    unobserve(reaction);
+    reaction.unsubscribe();
     reaction();
     obj.prop = 12;
     expect(dummy).toBe(undefined);
@@ -75,22 +75,11 @@ describe('unobserve', () => {
     counter.num = 'Hello';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');
-    unobserve(reaction);
-    unobserve(reaction);
-    unobserve(reaction);
+    reaction.unsubscribe();
+    reaction.unsubscribe();
+    reaction.unsubscribe();
     counter.num = 'World';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');
-  });
-
-  it('should call scheduler.delete', () => {
-    const counter = observable({ num: 0 });
-    const fn = spy(() => counter.num);
-    const scheduler = { add: () => {}, delete: spy(() => {}) };
-    const reaction = observe(fn, { scheduler } as any);
-
-    counter.num++;
-    unobserve(reaction);
-    expect(scheduler.delete.callCount).toBe(1);
   });
 });

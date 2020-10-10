@@ -1,12 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import {
-  observable,
-  observe,
-  getObservableRaw,
-  unobserve,
-} from '../src/observable';
+import { observable, observe, getObservableRaw } from '../src/observable';
 
 import { spy } from './utils';
 
@@ -38,7 +33,7 @@ describe('observe', () => {
     expect(spy).toBeCalledTimes(1);
     counter.num = 7;
     expect(spy).toBeCalledTimes(2);
-    unobserve(reaction);
+    reaction.unsubscribe();
 
     counter.num = 14;
     expect(spy).toBeCalledTimes(2);
@@ -330,7 +325,7 @@ describe('observe', () => {
   });
 
   it('should avoid implicit infinite recursive loops with itself', () => {
-    const counter = observable<any>({ num: 0 });
+    const counter = observable({ num: 0 });
 
     const counterSpy = spy(() => counter.num++);
     observe(counterSpy);
@@ -393,18 +388,19 @@ describe('observe', () => {
   });
 
   it('should wrap the passed function seamlessly', () => {
-    function greet(name: any) {
-      return `Hello ${name}!`;
+    function greet() {
+      return `Hello`;
     }
     const reaction = observe(greet, { lazy: true });
-    expect(reaction('World')).toBe('Hello World!');
+    expect(reaction()).toBe('Hello');
   });
 
   it('should discover new branches while running automatically', () => {
-    let dummy;
-    const obj = observable<any>({ prop: 'value', run: false });
+    let dummy: string = '';
+    const obj = observable({ prop: 'value', run: false });
 
     const conditionalSpy = spy(() => {
+      console.log('run');
       dummy = obj.run ? obj.prop : 'other';
     });
     observe(conditionalSpy);
@@ -441,8 +437,8 @@ describe('observe', () => {
   });
 
   it('should not be triggered by mutating a property, which is used in an inactive branch', () => {
-    let dummy;
-    const obj = observable<any>({ prop: 'value', run: true });
+    let dummy: string = '';
+    const obj = observable({ prop: 'value', run: true });
 
     const conditionalSpy = spy(() => {
       dummy = obj.run ? obj.prop : 'other';
@@ -545,26 +541,8 @@ describe('options', () => {
       counter.num++;
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(1);
-      // @ts-ignore
+
       expect(scheduler).toHaveBeenLastCalledWith(reaction);
-    });
-
-    it('should call scheduler.add with the reaction instead of running it sync', () => {
-      const counter = observable<any>({ num: 0 });
-      const reactionSpy = jest.fn(() => counter.num);
-      // const fn = spy(() => counter.num);
-      const schedulerAddSpy = jest.fn(() => {});
-      const scheduler = { add: schedulerAddSpy, delete: () => {} };
-
-      const reaction = observe(reactionSpy, { scheduler } as any);
-
-      expect(reactionSpy).toBeCalledTimes(1);
-      expect(schedulerAddSpy).toBeCalledTimes(0);
-      counter.num++;
-      expect(reactionSpy).toBeCalledTimes(1);
-      expect(schedulerAddSpy).toBeCalledTimes(1);
-      // @ts-ignore
-      expect(schedulerAddSpy).toHaveBeenLastCalledWith(reaction);
     });
   });
 

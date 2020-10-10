@@ -6,48 +6,44 @@ describe('debugger', () => {
     let dummy;
     const rawCounter = { num: 0 };
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = counter.num), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe(0);
-    expect(debugSpy.callCount).toBe(1);
-    expect(debugSpy.lastArgs).toEqual([
-      {
-        type: 'get',
-        target: rawCounter,
-        key: 'num',
-        receiver: counter,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(1);
+    expect(debugSpy).toHaveBeenLastCalledWith({
+      type: 'get',
+      target: rawCounter,
+      key: 'num',
+      receiver: counter,
+    });
   });
 
   it('should debug has operations', () => {
     let dummy;
     const rawCounter = {};
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = 'num' in counter), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe(false);
-    expect(debugSpy.callCount).toBe(1);
-    expect(debugSpy.lastArgs).toEqual([
-      {
-        type: 'has',
-        target: rawCounter,
-        key: 'num',
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(1);
+    expect(debugSpy).toHaveBeenLastCalledWith({
+      type: 'has',
+      target: rawCounter,
+      key: 'num',
+    });
   });
 
   it('should debug iteration operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(
       () => {
         for (const key in counter) {
@@ -55,93 +51,86 @@ describe('debugger', () => {
         }
       },
       {
-        debugger: debugSpy,
+        debug: debugSpy,
       },
     );
 
     expect(dummy).toBe('num');
-    expect(debugSpy.callCount).toBe(1);
-    expect(debugSpy.lastArgs).toEqual([
-      {
-        type: 'iterate',
-        target: rawCounter,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(1);
+    expect(debugSpy).toHaveBeenLastCalledWith({
+      type: 'iterate',
+      target: rawCounter,
+    });
   });
 
   it('should debug add operations', () => {
     let dummy;
     const rawCounter = {};
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = counter.num), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe(undefined);
-    expect(debugSpy.callCount).toBe(1);
+    expect(debugSpy).toBeCalledTimes(1);
     counter.num = 12;
     expect(dummy).toBe(12);
-    expect(debugSpy.callCount).toBe(3);
-    expect(debugSpy.args[1]).toEqual([
-      {
-        type: 'add',
-        target: rawCounter,
-        key: 'num',
-        value: 12,
-        receiver: counter,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(3);
+
+    expect(debugSpy).toHaveBeenNthCalledWith(2, {
+      type: 'add',
+      target: rawCounter,
+      key: 'num',
+      value: 12,
+      receiver: counter,
+    });
   });
 
   it('should debug set operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = counter.num), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe(0);
-    expect(debugSpy.callCount).toBe(1);
+    expect(debugSpy).toBeCalledTimes(1);
     counter.num = 12;
     expect(dummy).toBe(12);
-    expect(debugSpy.callCount).toBe(3);
-    expect(debugSpy.args[1]).toEqual([
-      {
-        type: 'set',
-        target: rawCounter,
-        key: 'num',
-        value: 12,
-        oldValue: 0,
-        receiver: counter,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(3);
+    expect(debugSpy).toHaveBeenNthCalledWith(2, {
+      type: 'set',
+      target: rawCounter,
+      key: 'num',
+      value: 12,
+      oldValue: 0,
+      receiver: counter,
+    });
   });
 
   it('should debug delete operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
     const counter = observable<any>(rawCounter);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = counter.num), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe(0);
-    expect(debugSpy.callCount).toBe(1);
+    expect(debugSpy).toBeCalledTimes(1);
     delete counter.num;
     expect(dummy).toBe(undefined);
-    expect(debugSpy.callCount).toBe(3);
-    expect(debugSpy.args[1]).toEqual([
-      {
-        type: 'delete',
-        target: rawCounter,
-        key: 'num',
-        oldValue: 0,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(3);
+    expect(debugSpy).toHaveBeenNthCalledWith(2, {
+      type: 'delete',
+      target: rawCounter,
+      key: 'num',
+      oldValue: 0,
+    });
   });
 
   it('should debug clear operations', () => {
@@ -149,36 +138,32 @@ describe('debugger', () => {
     const rawMap = new Map();
     rawMap.set('key', 'value');
     const map = observable<any>(rawMap);
-    const debugSpy = spy(() => {});
+    const debugSpy = jest.fn();
     observe(() => (dummy = map.get('key')), {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
     expect(dummy).toBe('value');
-    expect(debugSpy.callCount).toBe(1);
+    expect(debugSpy).toBeCalledTimes(1);
     const oldMap = new Map(rawMap);
     map.clear();
     expect(dummy).toBe(undefined);
-    expect(debugSpy.callCount).toBe(3);
-    expect(debugSpy.args[1]).toEqual([
-      {
-        type: 'clear',
-        target: rawMap,
-        oldTarget: oldMap,
-      },
-    ]);
+    expect(debugSpy).toBeCalledTimes(3);
+    expect(debugSpy).toHaveBeenNthCalledWith(2, {
+      type: 'clear',
+      target: rawMap,
+      oldTarget: oldMap,
+    });
   });
 
   it('should not cause infinite loops', () => {
-    let receiverDummy;
     const rawCounter = { num: 0 };
-    const counter = observable<any>(rawCounter);
-    const debugSpy = spy(({ receiver }: any) => (receiverDummy = receiver.num));
+    const counter = observable(rawCounter);
+    const debugSpy = jest.fn();
     observe(() => counter.num, {
-      debugger: debugSpy,
+      debug: debugSpy,
     });
 
-    expect(receiverDummy).toBe(0);
-    expect(debugSpy.callCount).toBe(1);
+    expect(debugSpy).toBeCalledTimes(1);
   });
 });
