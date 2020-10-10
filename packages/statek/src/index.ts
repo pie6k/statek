@@ -5,7 +5,7 @@ export { autoEffect } from './autoEffect';
 export { batch } from './batch';
 export {
   useStoreEffect,
-  useStatefulStoreEffect as useStoreEffectFactory,
+  useStatefulStoreEffect,
   useStoreSelector,
   useDebouncedStoreSelector,
 } from './hooks';

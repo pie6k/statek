@@ -1,5 +1,5 @@
 import { observable } from './observable';
-import { registeredObservablesMap, rawToObservableMap } from './internals';
+import { observableToRawMap, rawToObservableMap } from './internals';
 import {
   handleObservableReadOperation,
   handleObservableMutationOperation,
@@ -71,7 +71,7 @@ export const baseProxyHandlers: ProxyHandler<object> = {
   set(target, key, value, receiver) {
     // make sure to do not pollute the raw object with observables
     if (typeof value === 'object' && value !== null) {
-      value = registeredObservablesMap.get(value) || value;
+      value = observableToRawMap.get(value) || value;
     }
     // save if the object had a descriptor for this key
     const hadKey = hasOwnProperty.call(target, key);
@@ -81,7 +81,7 @@ export const baseProxyHandlers: ProxyHandler<object> = {
     const result = Reflect.set(target, key, value, receiver);
     // do not queue reactions if the target of the operation is not the raw receiver
     // (possible because of prototypal inheritance)
-    if (target !== registeredObservablesMap.get(receiver)) {
+    if (target !== observableToRawMap.get(receiver)) {
       return result;
     }
     // queue a reaction if it's a new property or its value changed

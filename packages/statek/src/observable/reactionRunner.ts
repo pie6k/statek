@@ -1,18 +1,16 @@
 import { warnIfAccessingInNonReactiveComponent } from '../view';
 import {
   getReactionData,
-  getImpactedReactions,
+  getMutationImpactedReactions,
   MutationOperationInfo,
   ReactionCallback,
   ReadOperationInfo,
   registerReactionReadOperation,
-  releaseReaction,
+  cleanReactionReadData,
 } from './store';
 
 // reactions can call each other and form a call stack
 const watchingReactionsStack: ReactionCallback[] = [];
-
-let isDebugging = true;
 
 export function callWithReaction(
   reactionCallback: ReactionCallback,
@@ -25,25 +23,13 @@ export function callWithReaction(
     return Reflect.apply(functionToCall, context, []);
   }
 
-  // do not build reactive relations, if the reaction is unobserved
-  // if (callbackRerunReaction.unobserved) {
-  //   return Reflect.apply(
-  //     callbackToRun,
-  //     callbackRerunReaction.context ?? null,
-  //     args,
-  //   ) as R;
-  // }
-
   if (watchingReactionsStack.includes(reactionCallback)) {
     return;
   }
 
-  // only run the reaction if it is not already in the reaction stack
-  // TODO: improve this to allow explicitly recursive reactions
-
   // release the (obj -> key -> reactions) connections
   // and reset the cleaner connections
-  releaseReaction(reactionCallback);
+  cleanReactionReadData(reactionCallback);
 
   try {
     // set the reaction as the currently running one
@@ -68,17 +54,19 @@ export function handleObservableReadOperation(
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction();
 
-  if (runningReaction) {
-    debugOperation(runningReaction, readOperation);
-    registerReactionReadOperation(runningReaction, readOperation);
+  if (!runningReaction) {
+    return;
   }
+
+  debugOperation(runningReaction, readOperation);
+  registerReactionReadOperation(runningReaction, readOperation);
 }
 
 export function handleObservableMutationOperation(
   mutationOperation: MutationOperationInfo,
 ) {
   // iterate and queue every reaction, which is triggered by obj.key mutation
-  const impactedReactions = getImpactedReactions(mutationOperation);
+  const impactedReactions = getMutationImpactedReactions(mutationOperation);
 
   impactedReactions.forEach(reaction => {
     enqueueReactionCall(mutationOperation, reaction);

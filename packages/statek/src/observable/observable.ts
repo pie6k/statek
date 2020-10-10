@@ -1,4 +1,4 @@
-import { registeredObservablesMap, rawToObservableMap } from './internals';
+import { observableToRawMap, rawToObservableMap } from './internals';
 import { registerNewObservable, MutationOperationInfo } from './store';
 import { getProxyHandlers, shouldInstrument } from './builtIns';
 import { baseProxyHandlers } from './handlers';
@@ -8,7 +8,7 @@ export function observable<T extends object>(initialStateOrObservable: T): T {
     throw new Error('Observable source must by an object');
   }
   // if it is already an observable or it should not be wrapped, return it
-  if (registeredObservablesMap.has(initialStateOrObservable)) {
+  if (observableToRawMap.has(initialStateOrObservable)) {
     return initialStateOrObservable;
   }
   if (!shouldInstrument(initialStateOrObservable as any)) {
@@ -29,7 +29,7 @@ function createObservable<T extends object>(rawObject: T): T {
   const observable = new Proxy(rawObject, handlers);
   // save these to switch between the raw object and the wrapped object with ease later
   rawToObservableMap.set(rawObject, observable);
-  registeredObservablesMap.set(observable, rawObject);
+  observableToRawMap.set(observable, rawObject);
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections
   registerNewObservable(rawObject);
 
@@ -37,7 +37,7 @@ function createObservable<T extends object>(rawObject: T): T {
 }
 
 export function isObservable(obj: object) {
-  return registeredObservablesMap.has(obj);
+  return observableToRawMap.has(obj);
 }
 
 export function getObservableRaw<T extends object>(obj: T): T {
@@ -46,5 +46,5 @@ export function getObservableRaw<T extends object>(obj: T): T {
       'trying to get raw object from input that is not observable',
     );
   }
-  return registeredObservablesMap.get(obj as any)!;
+  return observableToRawMap.get(obj as any)!;
 }

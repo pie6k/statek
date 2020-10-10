@@ -1,5 +1,5 @@
 import {
-  releaseReaction,
+  cleanReactionReadData,
   ReactionCallback,
   isReaction,
   ReactionOptions,
@@ -29,7 +29,7 @@ export function observe(
   reactionData.isSubscribed = true;
 
   function unsubscribe() {
-    releaseReaction(reactionCallback);
+    cleanReactionReadData(reactionCallback);
     reactionData.isSubscribed = false;
   }
 

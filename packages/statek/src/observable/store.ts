@@ -1,7 +1,7 @@
 type TargetKey = string | number | Symbol | undefined;
 type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
 
-const connectionStore = new WeakMap<object, ReactionsMapForKeys>();
+const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
 
 const ITERATION_KEY = Symbol('iteration key');
 
@@ -32,7 +32,7 @@ export type OperationInfo = ReadOperationInfo | MutationOperationInfo;
 
 export function registerNewObservable(rawObject: object) {
   // this will be used to save (obj.key -> reaction) connections later
-  connectionStore.set(rawObject, new Map());
+  readOperationsRegistry.set(rawObject, new Map());
 }
 
 export function registerReactionReadOperation(
@@ -43,7 +43,7 @@ export function registerReactionReadOperation(
     key = ITERATION_KEY;
   }
 
-  const reactionsPropsMapForTarget = connectionStore.get(target)!;
+  const reactionsPropsMapForTarget = readOperationsRegistry.get(target)!;
 
   let reactionsForKey = reactionsPropsMapForTarget.get(key);
 
@@ -58,17 +58,17 @@ export function registerReactionReadOperation(
   if (!reactionsForKey.has(reaction)) {
     reactionsForKey.add(reaction);
 
-    reactionData.linkedForProps.add(reactionsForKey);
+    reactionData.registeredInReadLists.add(reactionsForKey);
   }
 }
 
-export function getImpactedReactions({
+export function getMutationImpactedReactions({
   target,
   key,
   type,
 }: MutationOperationInfo) {
   const impactedReactions = new Set<ReactionCallback>();
-  const targetReactionsMap = connectionStore.get(target)!;
+  const targetReactionsMap = readOperationsRegistry.get(target)!;
 
   const reactionsForKey = targetReactionsMap.get(key);
 
@@ -83,23 +83,22 @@ export function getImpactedReactions({
 
   if (type === 'add' || type === 'delete' || type === 'clear') {
     const iterationKey = Array.isArray(target) ? 'length' : ITERATION_KEY;
-    const reactionsForLength = targetReactionsMap.get(iterationKey);
-    reactionsForLength && appendSet(impactedReactions, reactionsForLength);
+    const reactionsForIteration = targetReactionsMap.get(iterationKey);
+    reactionsForIteration &&
+      appendSet(impactedReactions, reactionsForIteration);
   }
 
   return impactedReactions;
 }
 
-export function releaseReaction(reaction: ReactionCallback) {
+export function cleanReactionReadData(reaction: ReactionCallback) {
   const reactionData = getReactionData(reaction);
 
-  reactionData.linkedForProps.forEach(targetPropReactionsGroup => {
+  reactionData.registeredInReadLists.forEach(targetPropReactionsGroup => {
     targetPropReactionsGroup.delete(reaction);
   });
 
-  reactionData.linkedForProps.clear();
-
-  // reactionData.isSubscribed = false;
+  reactionData.registeredInReadLists.clear();
 }
 
 export type ReactionScheduler = (reaction: ReactionCallback) => void;
@@ -108,7 +107,7 @@ export type ReactionCallback = () => void;
 
 interface ReactionData {
   options: ReactionOptions;
-  linkedForProps: Set<Set<ReactionCallback>>;
+  registeredInReadLists: Set<Set<ReactionCallback>>;
   isSubscribed: boolean;
 }
 
@@ -137,7 +136,7 @@ export function registerReaction(
 
   const reactionData: ReactionData = {
     options,
-    linkedForProps: new Set(),
+    registeredInReadLists: new Set(),
     isSubscribed: false,
   };
   reactionsOptionsMap.set(callback, reactionData);
@@ -155,8 +154,8 @@ export function getReactionData(callback: ReactionCallback): ReactionData {
   return data;
 }
 
-function appendSet<T>(set: Set<T>, itemsToAddSet: Set<T>) {
-  itemsToAddSet.forEach(item => {
+function appendSet<T>(set: Set<T>, setToAppend: Set<T>) {
+  setToAppend.forEach(item => {
     set.add(item);
   });
 }

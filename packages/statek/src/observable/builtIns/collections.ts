@@ -4,7 +4,7 @@ import {
   handleObservableMutationOperation,
   hasRunningReaction,
 } from '../reactionRunner';
-import { registeredObservablesMap, rawToObservableMap } from '../internals';
+import { observableToRawMap, rawToObservableMap } from '../internals';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
@@ -39,20 +39,20 @@ type Iterable = any;
 
 const instrumentations = {
   has(key: string) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, key, type: 'has' });
     return proto.has.apply(target, arguments as any);
   },
   get(key: string) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
 
     handleObservableReadOperation({ target, key, type: 'get' });
     return findObservable(proto.get.apply(target, arguments as any));
   },
   add(key: string) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     // forward the operation before queueing reactions
@@ -68,7 +68,7 @@ const instrumentations = {
     return result;
   },
   set(key: string, value: any) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     const oldValue = proto.get.call(target, key);
@@ -88,7 +88,7 @@ const instrumentations = {
     return result;
   },
   delete(key: string) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     const oldValue = proto.get ? proto.get.call(target, key) : undefined;
@@ -105,7 +105,7 @@ const instrumentations = {
     return result;
   },
   clear() {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadItems = target.size !== 0;
     const oldTarget = target instanceof Map ? new Map(target) : new Set(target);
@@ -117,7 +117,7 @@ const instrumentations = {
     return result;
   },
   forEach(cb: any, ...args: any[]) {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     // swap out the raw values with their observable pairs
@@ -127,34 +127,34 @@ const instrumentations = {
     return proto.forEach.call(target, wrappedCb, ...args);
   },
   keys() {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Set<any>;
     handleObservableReadOperation({ target, type: 'iterate' });
     return proto.keys.apply(target, arguments as any);
   },
   values() {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto.values.apply(target, arguments as any);
     return patchIterator(iterator, false);
   },
   entries() {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto.entries.apply(target, arguments as any);
     return patchIterator(iterator, true);
   },
   [Symbol.iterator]() {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     const iterator = proto[Symbol.iterator].apply(target, arguments as any);
     return patchIterator(iterator, target instanceof Map);
   },
   get size(): number {
-    const target = registeredObservablesMap.get(this);
+    const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
     return Reflect.get(proto, 'size', target);

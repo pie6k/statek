@@ -50,7 +50,7 @@ function batchifyFunction(inputFunction: any) {
 
 function batchifyMathodArguments<T>(obj: T, methodName: keyof T) {
   const descriptor = Object.getOwnPropertyDescriptor(obj, methodName);
-  if (descriptor.writable && typeof descriptor.value === 'function') {
+  if (descriptor?.writable && typeof descriptor.value === 'function') {
     obj[methodName] = new Proxy(descriptor.value, {
       apply(target, thisArg, argsArr) {
         return Reflect.apply(target, thisArg, argsArr.map(batchifyFunction));
