@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { autoEffect } from './autoEffect';
-import { useMethod } from '@hello/ui/hooks';
+import { useMethod } from './useMethod';
 
 export function useStoreSelector<T>(getter: () => T): T {
   const [value, setValue] = useState(getter);
@@ -54,7 +54,10 @@ function resolveDebounceTime<T>(debounceTime: DebounceTime<T>, value: T) {
   return debounceTime(value);
 }
 
-export function useDebouncedStoreSelector<T>(getter: () => T, time: DebounceTime<T>): T {
+export function useDebouncedStoreSelector<T>(
+  getter: () => T,
+  time: DebounceTime<T>,
+): T {
   const [value, setValue] = useDebouncedState<T>(getter, time);
 
   const effectCallback = useCallback(() => {

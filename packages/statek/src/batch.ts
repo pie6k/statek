@@ -1,9 +1,6 @@
-/* eslint camelcase: 0 */
-
 // react-platform is set to either react-dom or react-native during test and execution
-// eslint-disable-next-line import/no-unresolved
 import { unstable_batchedUpdates } from 'react-dom';
-import { globalObj } from './utils';
+import { globalObj, typedOwnPropertyNames } from './utils';
 import { scheduler } from './scheduler';
 
 // this runs the passed function and delays all re-renders
@@ -28,64 +25,68 @@ export function batch(fn: (args: any) => void, ctx?: any, args?: any) {
 // this creates and returns a batched version of the passed function
 // the cache is necessary to always map the same thing to the same function
 // which makes sure that addEventListener/removeEventListener pairs don't break
-const cache = new WeakMap();
-function batchFn(fn: (args: any) => void) {
-  if (typeof fn !== 'function') {
-    return fn;
+const batchifiedFunctionsCache = new WeakMap<Function, Function>();
+function batchifyFunction(inputFunction: any) {
+  if (typeof inputFunction !== 'function') {
+    return inputFunction;
   }
-  let batched = cache.get(fn);
-  if (!batched) {
-    batched = new Proxy(fn, {
-      apply(target, thisArg, args) {
-        return batch(target, thisArg, args);
-      },
-    });
-    cache.set(fn, batched);
+
+  const cachedBatchified = batchifiedFunctionsCache.get(inputFunction);
+
+  if (cachedBatchified) {
+    return cachedBatchified;
   }
-  return batched;
+
+  const newBatchified = new Proxy(inputFunction, {
+    apply(target, thisArg, args) {
+      return batch(target, thisArg, args);
+    },
+  });
+
+  batchifiedFunctionsCache.set(inputFunction, newBatchified);
+
+  return newBatchified;
 }
 
-function batchMethodCallbacks(obj: any, method: any) {
-  const descriptor = Object.getOwnPropertyDescriptor(obj, method);
-  if (
-    descriptor &&
-    descriptor.writable &&
-    typeof descriptor.value === 'function'
-  ) {
-    obj[method] = new Proxy(descriptor.value, {
-      apply(target, ctx, args) {
-        return Reflect.apply(target, ctx, args.map(batchFn));
+function batchifyMathodArguments<T>(obj: T, methodName: keyof T) {
+  const descriptor = Object.getOwnPropertyDescriptor(obj, methodName);
+  if (descriptor.writable && typeof descriptor.value === 'function') {
+    obj[methodName] = new Proxy(descriptor.value, {
+      apply(target, thisArg, argsArr) {
+        return Reflect.apply(target, thisArg, argsArr.map(batchifyFunction));
       },
     });
   }
 }
 
 // batched obj.addEventListener(cb) like callbacks
-function batchMethodsCallbacks(obj: any, methods: any) {
-  methods.forEach((method: any) => batchMethodCallbacks(obj, method));
+function batchifyMethodsArguments<T>(obj: T, methods: Array<keyof T>) {
+  methods.forEach(methodName => batchifyMathodArguments(obj, methodName));
 }
 
-function batchMethod(obj: any, method: any) {
-  const descriptor = Object.getOwnPropertyDescriptor(obj, method);
+function batchifyMethod<T>(obj: T, methodName: keyof T) {
+  const descriptor = Object.getOwnPropertyDescriptor(obj, methodName);
+
   if (!descriptor) {
     return;
   }
+
   const { value, writable, set, configurable } = descriptor;
 
   if (configurable && typeof set === 'function') {
-    Object.defineProperty(obj, method, {
+    Object.defineProperty(obj, methodName, {
       ...descriptor,
-      set: batchFn(set),
+      set: batchifyFunction(set),
     });
   } else if (writable && typeof value === 'function') {
-    obj[method] = batchFn(value);
+    obj[methodName] = batchifyFunction(value);
   }
 }
 
 // batches obj.onevent = fn like calls and store methods
-export function batchMethods(obj: any, methods?: any) {
-  methods = methods || Object.getOwnPropertyNames(obj);
-  methods.forEach((method: any) => batchMethod(obj, method));
+export function batchifyMethods<T>(obj: T, methods?: Array<keyof T>) {
+  methods = methods || typedOwnPropertyNames(obj);
+  methods.forEach(methodNames => batchifyMethod(obj, methodNames));
   return obj;
 }
 
@@ -97,15 +98,16 @@ export function batchMethods(obj: any, methods?: any) {
 // this should be removed when React's own batching is improved in the future
 
 // batch timer functions
-batchMethodsCallbacks(globalObj, [
+batchifyMethodsArguments(globalObj, [
   'setTimeout',
   'setInterval',
   'requestAnimationFrame',
+  // @ts-ignore
   'requestIdleCallback',
 ]);
 
 if (globalObj.Promise) {
-  batchMethodsCallbacks(Promise.prototype, ['then', 'catch']);
+  batchifyMethodsArguments(Promise.prototype, ['then', 'catch']);
 }
 
 // HTTP event handlers are usually wrapped by Promises, which is covered above

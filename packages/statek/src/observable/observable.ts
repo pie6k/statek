@@ -1,16 +1,9 @@
 import { registeredObservablesMap, rawToObservableMap } from './internals';
-import {
-  registerNewObservable,
-  OperationInfo,
-  ObservableOptions,
-} from './store';
+import { registerNewObservable, MutationOperationInfo } from './store';
 import { getProxyHandlers, shouldInstrument } from './builtIns';
 import { baseProxyHandlers } from './handlers';
 
-export function observable<T extends object>(
-  initialStateOrObservable: T,
-  options?: ObservableOptions,
-): T {
+export function observable<T extends object>(initialStateOrObservable: T): T {
   if (!initialStateOrObservable) {
     throw new Error('Observable source must by an object');
   }
@@ -25,14 +18,11 @@ export function observable<T extends object>(
   // otherwise create a new observable
   return (
     rawToObservableMap.get(initialStateOrObservable as object) ||
-    createObservable(initialStateOrObservable, options)
+    createObservable(initialStateOrObservable)
   );
 }
 
-function createObservable<T extends object>(
-  rawObject: T,
-  options?: ObservableOptions,
-): T {
+function createObservable<T extends object>(rawObject: T): T {
   // if it is a complex built-in object or a normal object, wrap it
   const handlers = getProxyHandlers(rawObject) ?? baseProxyHandlers;
 
@@ -41,7 +31,7 @@ function createObservable<T extends object>(
   rawToObservableMap.set(rawObject, observable);
   registeredObservablesMap.set(observable, rawObject);
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections
-  registerNewObservable(rawObject, options);
+  registerNewObservable(rawObject);
 
   return observable;
 }

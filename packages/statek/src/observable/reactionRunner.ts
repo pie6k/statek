@@ -1,11 +1,11 @@
 import { warnIfAccessingInNonReactiveComponent } from '../view';
 import {
   getImpactedReactions,
-  OperationInfo,
+  MutationOperationInfo,
   Reaction,
-  registerReactionForOperation,
+  ReadOperationInfo,
+  registerReactionReadOperation,
   releaseReaction,
-  getObservableOptions,
 } from './store';
 
 // reactions can call each other and form a call stack
@@ -53,31 +53,34 @@ export function callWithReaction<A extends any[], R>(
 }
 
 // register the currently running reaction to be queued again on obj.key mutations
-export function handleObservableReadOperation(operation: OperationInfo) {
+export function handleObservableReadOperation(
+  readOperation: ReadOperationInfo,
+) {
   warnIfAccessingInNonReactiveComponent();
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction();
 
-  const options = getObservableOptions(operation.target);
-
-  options?.onRead(operation);
-
   if (runningReaction) {
-    debugOperation(runningReaction, operation);
-    registerReactionForOperation(runningReaction, operation);
+    debugOperation(runningReaction, readOperation);
+    registerReactionReadOperation(runningReaction, readOperation);
   }
 }
 
-export function handleObservableMutationOperation(operation: OperationInfo) {
+export function handleObservableMutationOperation(
+  mutationOperation: MutationOperationInfo,
+) {
   // iterate and queue every reaction, which is triggered by obj.key mutation
-  const impactedReactions = getImpactedReactions(operation);
+  const impactedReactions = getImpactedReactions(mutationOperation);
 
   impactedReactions.forEach(reaction => {
-    enqueueSingleReaction(operation, reaction);
+    enqueueReactionCall(mutationOperation, reaction);
   });
 }
 
-function enqueueSingleReaction(operation: OperationInfo, reaction: Reaction) {
+function enqueueReactionCall(
+  operation: MutationOperationInfo,
+  reaction: Reaction,
+) {
   debugOperation(reaction, operation);
 
   // queue the reaction for later execution or run it immediately
@@ -90,7 +93,10 @@ function enqueueSingleReaction(operation: OperationInfo, reaction: Reaction) {
   }
 }
 
-function debugOperation(reaction: Reaction, operation: OperationInfo) {
+function debugOperation(
+  reaction: Reaction,
+  operation: MutationOperationInfo | ReadOperationInfo,
+) {
   if (reaction.debugger && !isDebugging) {
     try {
       isDebugging = true;

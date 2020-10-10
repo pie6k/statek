@@ -1,5 +1,5 @@
 export { getObservableRaw } from './observable';
-export { store, storeSelector } from './store';
+export { createStore as store, storeSelector } from './store';
 export { view } from './view';
 export { autoEffect } from './autoEffect';
 export { batch } from './batch';

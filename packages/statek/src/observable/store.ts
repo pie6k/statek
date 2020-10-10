@@ -3,53 +3,37 @@ type ReactionsMapForKeys = Map<TargetKey, Set<Reaction>>;
 
 const connectionStore = new WeakMap<object, ReactionsMapForKeys>();
 
-const observablesOptions = new WeakMap<object, ObservableOptions>();
-
 const ITERATION_KEY = Symbol('iteration key');
 
-export interface ObservableOptions {
-  onRead: (operation: OperationInfo) => void;
-}
+export type MutationOperationType = 'add' | 'delete' | 'set' | 'clear';
 
-type OperationType =
-  | 'get'
-  | 'has'
-  | 'iterate'
-  | 'add'
-  | 'delete'
-  | 'set'
-  | 'clear';
-
-export interface OperationInfo {
+export interface MutationOperationInfo {
   target: object;
   receiver?: object;
   key?: TargetKey;
   value?: any;
   oldValue?: any;
   oldTarget?: any;
-  type: OperationType;
+  type: MutationOperationType;
 }
 
-export function registerNewObservable(
-  rawObject: object,
-  options?: ObservableOptions,
-) {
+export type ReadOperationType = 'get' | 'has' | 'iterate';
+
+export interface ReadOperationInfo {
+  target: object;
+  receiver?: object;
+  key?: TargetKey;
+  type: ReadOperationType;
+}
+
+export function registerNewObservable(rawObject: object) {
   // this will be used to save (obj.key -> reaction) connections later
   connectionStore.set(rawObject, new Map());
-  if (options) {
-    observablesOptions.set(rawObject, options);
-  }
 }
 
-export function getObservableOptions(
-  rawObject: object,
-): ObservableOptions | null {
-  return observablesOptions.get(rawObject) ?? null;
-}
-
-export function registerReactionForOperation(
+export function registerReactionReadOperation(
   reaction: Reaction,
-  { target, key, type }: OperationInfo,
+  { target, key, type }: ReadOperationInfo,
 ) {
   if (type === 'iterate') {
     key = ITERATION_KEY;
@@ -72,7 +56,11 @@ export function registerReactionForOperation(
   }
 }
 
-export function getImpactedReactions({ target, key, type }: OperationInfo) {
+export function getImpactedReactions({
+  target,
+  key,
+  type,
+}: MutationOperationInfo) {
   const impactedReactions = new Set<Reaction>();
   const targetReactionsMap = connectionStore.get(target)!;
 

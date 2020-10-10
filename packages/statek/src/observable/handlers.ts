@@ -5,18 +5,18 @@ import {
   handleObservableMutationOperation,
   hasRunningReaction,
 } from './reactionRunner';
+import { isSymbol, typedOwnPropertyNames } from '../utils';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
-const wellKnownSymbols = new Set(
-  Object.getOwnPropertyNames(Symbol)
+const wellKnownSymbols = new Set<Symbol>(
+  typedOwnPropertyNames(Symbol)
     .map(key => {
-      return (Symbol as any)[key];
+      return Symbol[key];
     })
-    .filter(value => typeof value === 'symbol')
+    .filter(isSymbol),
 );
 
 // intercept get operations on observables to know which reaction uses their properties
-
 export const baseProxyHandlers: ProxyHandler<object> = {
   get(target, key, receiver) {
     const result = Reflect.get(target, key, receiver);
