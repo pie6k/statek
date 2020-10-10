@@ -400,7 +400,6 @@ describe('observe', () => {
     const obj = observable({ prop: 'value', run: false });
 
     const conditionalSpy = spy(() => {
-      console.log('run');
       dummy = obj.run ? obj.prop : 'other';
     });
     observe(conditionalSpy);

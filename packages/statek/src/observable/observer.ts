@@ -30,6 +30,7 @@ export function observe(
 
   function unsubscribe() {
     releaseReaction(reactionCallback);
+    reactionData.isSubscribed = false;
   }
 
   reactionCallback.unsubscribe = unsubscribe;

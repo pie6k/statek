@@ -43,6 +43,7 @@ export function callWithReaction(
 
   // release the (obj -> key -> reactions) connections
   // and reset the cleaner connections
+  releaseReaction(reactionCallback);
 
   try {
     // set the reaction as the currently running one
@@ -63,7 +64,6 @@ export function callWithReaction(
 export function handleObservableReadOperation(
   readOperation: ReadOperationInfo,
 ) {
-  // console.log({ readOperation });
   warnIfAccessingInNonReactiveComponent();
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction();
@@ -77,11 +77,8 @@ export function handleObservableReadOperation(
 export function handleObservableMutationOperation(
   mutationOperation: MutationOperationInfo,
 ) {
-  // console.log({ mutationOperation });
   // iterate and queue every reaction, which is triggered by obj.key mutation
   const impactedReactions = getImpactedReactions(mutationOperation);
-
-  // console.log({ impactedReactions });
 
   impactedReactions.forEach(reaction => {
     enqueueReactionCall(mutationOperation, reaction);

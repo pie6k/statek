@@ -99,7 +99,7 @@ export function releaseReaction(reaction: ReactionCallback) {
 
   reactionData.linkedForProps.clear();
 
-  reactionData.isSubscribed = false;
+  // reactionData.isSubscribed = false;
 }
 
 export type ReactionScheduler = (reaction: ReactionCallback) => void;
