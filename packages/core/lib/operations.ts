@@ -1,7 +1,7 @@
 export const ITERATION_KEY = Symbol('iteration key');
 import {
   reactionWatchedPropertiesMemberships,
-  ReactionCallback,
+  AnyReactionCallback,
   reactionSchedulers,
   reactionDebugger,
 } from './reaction';
@@ -28,7 +28,7 @@ export interface ReadOperationInfo {
 
 export type OperationInfo = ReadOperationInfo | MutationOperationInfo;
 
-type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
+type ReactionsMapForKeys = Map<TargetKey, Set<AnyReactionCallback>>;
 
 const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
 
@@ -38,7 +38,7 @@ export function initializeObjectReadOperationsRegistry(rawObject: object) {
 }
 
 export function registerReactionReadOperation(
-  reaction: ReactionCallback,
+  reaction: AnyReactionCallback,
   readOperation: ReadOperationInfo,
 ) {
   if (readOperation.type === 'iterate') {
@@ -67,7 +67,7 @@ export function registerReactionReadOperation(
 export function getMutationImpactedReactions(
   mutationOperation: MutationOperationInfo,
 ) {
-  const impactedReactions = new Set<ReactionCallback>();
+  const impactedReactions = new Set<AnyReactionCallback>();
   const targetKeysReactionsMap = readOperationsRegistry.get(
     mutationOperation.target,
   )!;
@@ -135,7 +135,7 @@ export function handleObservableMutationOperation(
 
 function enqueueReactionCall(
   operation: MutationOperationInfo,
-  reaction: ReactionCallback,
+  reaction: AnyReactionCallback,
 ) {
   debugOperation(reaction, operation);
 
@@ -149,7 +149,7 @@ function enqueueReactionCall(
 }
 
 function debugOperation(
-  reaction: ReactionCallback,
+  reaction: AnyReactionCallback,
   operation: MutationOperationInfo | ReadOperationInfo,
 ) {
   reactionDebugger.get(reaction)?.(operation);

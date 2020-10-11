@@ -1,25 +1,25 @@
 import { OperationInfo } from './operations';
 import { ReactionScheduler } from './scheduler';
 
-type ReactionsSet = Set<ReactionCallback>;
+type ReactionsSet = Set<AnyReactionCallback>;
 
-const registeredReactions = new WeakMap<ReactionCallback, boolean>();
+const registeredReactions = new WeakMap<AnyReactionCallback, boolean>();
 export const reactionWatchedPropertiesMemberships = new WeakMap<
-  ReactionCallback,
+  AnyReactionCallback,
   Set<ReactionsSet>
 >();
 export const reactionSchedulers = new WeakMap<
-  ReactionCallback,
+  AnyReactionCallback,
   ReactionScheduler
 >();
-export const reactionContext = new WeakMap<ReactionCallback, any>();
-export const unsubscribedReactions = new WeakSet<ReactionCallback>();
+export const reactionContext = new WeakMap<AnyReactionCallback, any>();
+export const unsubscribedReactions = new WeakSet<AnyReactionCallback>();
 export const reactionDebugger = new WeakMap<
-  ReactionCallback,
+  AnyReactionCallback,
   ReactionDebugger
 >();
 
-export function cleanReactionReadData(reaction: ReactionCallback) {
+export function cleanReactionReadData(reaction: AnyReactionCallback) {
   const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
 
   // Iterate over each list in which this reaction is registered.
@@ -33,24 +33,22 @@ export function cleanReactionReadData(reaction: ReactionCallback) {
   propsMemberships.clear();
 }
 
-export type ReactionCallback = () => void;
+export type AnyReactionCallback = () => void;
+export type LazyReactionCallback<A extends any[], R> = (...args: A) => R;
 export type ReactionDebugger = (operation: OperationInfo) => {};
 
 export interface ReactionOptions {
   scheduler?: ReactionScheduler;
   debug?: (operation: OperationInfo) => {};
-  lazy?: boolean;
   context?: any;
 }
 
-export function isReaction(input: ReactionCallback) {
+export function isReaction(input: AnyReactionCallback) {
   return registeredReactions.has(input);
 }
 
-export type Callback<A extends any[], R> = (...args: A) => R;
-
 export function registerNewReaction(
-  callback: ReactionCallback,
+  callback: AnyReactionCallback,
   options: ReactionOptions = {},
 ) {
   if (registeredReactions.has(callback)) {

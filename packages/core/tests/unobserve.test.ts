@@ -6,14 +6,14 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable({ num: 0 });
     const counterSpy = spy(() => (dummy = counter.num));
-    const reaction = watch(counterSpy);
+    const stop = watch(counterSpy);
 
     expect(counterSpy.callCount).toBe(1);
     // @ts-expect-error
     counter.num = 'Hello';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');
-    reaction.unsubscribe();
+    stop();
     // @ts-expect-error
     counter.num = 'World';
     expect(counterSpy.callCount).toBe(2);
@@ -24,13 +24,13 @@ describe('unobserve', () => {
     let dummy;
     const user = observable({ name: { name: 'Bob' } });
     const nameSpy = spy(() => (dummy = user.name.name));
-    const reaction = watch(nameSpy);
+    const stop = watch(nameSpy);
 
     expect(nameSpy.callCount).toBe(1);
     user.name.name = 'Dave';
     expect(nameSpy.callCount).toBe(2);
     expect(dummy).toBe('Dave');
-    reaction.unsubscribe();
+    stop();
     user.name.name = 'Ann';
     expect(nameSpy.callCount).toBe(2);
     expect(dummy).toBe('Dave');
@@ -40,14 +40,14 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable({ num: 0 });
 
-    const reaction1 = watch(() => (dummy = counter.num));
-    const reaction2 = watch(() => (dummy = counter.num));
-    const reaction3 = watch(() => (dummy = counter.num));
+    const stop1 = watch(() => (dummy = counter.num));
+    const stop2 = watch(() => (dummy = counter.num));
+    const stop3 = watch(() => (dummy = counter.num));
 
     expect(dummy).toBe(0);
-    reaction1.unsubscribe();
-    reaction2.unsubscribe();
-    reaction3.unsubscribe();
+    stop1();
+    stop2();
+    stop3();
     counter.num++;
     expect(dummy).toBe(0);
   });
@@ -56,11 +56,11 @@ describe('unobserve', () => {
     let dummy;
 
     const obj = observable<any>({});
-    const reaction = watch(() => (dummy = obj.prop));
+    const stop = watch(() => (dummy = obj.prop));
 
     expect(dummy).toBe(undefined);
-    reaction.unsubscribe();
-    reaction();
+    stop();
+    stop();
     obj.prop = 12;
     expect(dummy).toBe(undefined);
   });
@@ -69,15 +69,15 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable<any>({ num: 0 });
     const counterSpy = spy(() => (dummy = counter.num));
-    const reaction = watch(counterSpy);
+    const stop = watch(counterSpy);
 
     expect(counterSpy.callCount).toBe(1);
     counter.num = 'Hello';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');
-    reaction.unsubscribe();
-    reaction.unsubscribe();
-    reaction.unsubscribe();
+    stop();
+    stop();
+    stop();
     counter.num = 'World';
     expect(counterSpy.callCount).toBe(2);
     expect(dummy).toBe('Hello');

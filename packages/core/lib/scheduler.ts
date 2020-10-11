@@ -1,6 +1,6 @@
-import { ReactionCallback } from './reaction';
+import { AnyReactionCallback } from './reaction';
 
-export type ReactionScheduler = (reaction: ReactionCallback) => void;
+export type ReactionScheduler = (reaction: AnyReactionCallback) => void;
 
 import { unstable_batchedUpdates } from 'react-dom';
 

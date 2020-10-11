@@ -1,14 +1,14 @@
 import {
   cleanReactionReadData,
-  ReactionCallback,
+  AnyReactionCallback,
   reactionContext,
   unsubscribedReactions,
 } from './reaction';
 
 // reactions can call each other and form a call stack
-const watchingReactionsStack: ReactionCallback[] = [];
+const watchingReactionsStack: AnyReactionCallback[] = [];
 
-type CurrentReactionHook = () => ReactionCallback | null;
+type CurrentReactionHook = () => AnyReactionCallback | null;
 
 const currentReactionHooks: CurrentReactionHook[] = [];
 
@@ -20,9 +20,9 @@ export function registerCurrentReactionHook(hook: CurrentReactionHook) {
   };
 }
 
-export function callWithReaction(
-  reactionCallback: ReactionCallback,
-  functionToCall: ReactionCallback,
+export function callWithReaction<C extends AnyReactionCallback>(
+  reactionCallback: C,
+  functionToCall: C,
 ) {
   const context = reactionContext.get(reactionCallback);
 
@@ -53,8 +53,8 @@ export function isAnyReactionRunning(): boolean {
   return !!getCurrentReaction();
 }
 
-export function getCurrentReaction(): ReactionCallback | null {
-  let foundReaction: ReactionCallback | undefined | null =
+export function getCurrentReaction(): AnyReactionCallback | null {
+  let foundReaction: AnyReactionCallback | undefined | null =
     watchingReactionsStack[watchingReactionsStack.length - 1];
 
   if (foundReaction) {

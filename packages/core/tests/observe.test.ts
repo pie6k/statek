@@ -1,7 +1,12 @@
 /**
  * @jest-environment jsdom
  */
-import { observable, watch, getObservableRaw } from '@statek/core/lib';
+import {
+  observable,
+  watch,
+  getObservableRaw,
+  lazyWatch,
+} from '@statek/core/lib';
 
 import { spy } from './utils';
 
@@ -28,12 +33,12 @@ describe('observe', () => {
     const spy = jest.fn(() => {
       dummy = counter.num;
     });
-    const reaction = watch(spy);
+    const stop = watch(spy);
 
     expect(spy).toBeCalledTimes(1);
     counter.num = 7;
     expect(spy).toBeCalledTimes(2);
-    reaction.unsubscribe();
+    stop();
 
     counter.num = 14;
     expect(spy).toBeCalledTimes(2);
@@ -391,7 +396,8 @@ describe('observe', () => {
     function greet() {
       return `Hello`;
     }
-    const reaction = watch(greet, { lazy: true });
+    const reaction = lazyWatch(greet);
+
     expect(reaction()).toBe('Hello');
   });
 
@@ -421,11 +427,12 @@ describe('observe', () => {
     let dummy;
     let run = false;
     const obj = observable<any>({ prop: 'value' });
-    const reaction = watch(() => {
+    const spy = jest.fn(() => {
       dummy = run ? obj.prop : 'other';
     });
+    const reaction = lazyWatch(spy, spy);
 
-    expect(dummy).toBe('other');
+    expect(dummy).toBe(undefined);
     reaction();
     expect(dummy).toBe('other');
     run = true;
@@ -452,12 +459,6 @@ describe('observe', () => {
     obj.prop = 'value2';
     expect(dummy).toBe('other');
     expect(conditionalSpy.callCount).toBe(2);
-  });
-
-  it('should not double wrap if the passed function is a reaction', () => {
-    const reaction = watch(() => {});
-    const otherReaction = watch(reaction);
-    expect(reaction).toBe(otherReaction);
   });
 
   it('should not run multiple times for a single mutation', () => {
@@ -517,7 +518,7 @@ describe('options', () => {
   describe('lazy', () => {
     it('should not run the passed function, if set to true', () => {
       const fnSpy = spy(() => {});
-      watch(fnSpy, { lazy: true });
+      lazyWatch(fnSpy);
       expect(fnSpy.callCount).toBe(0);
     });
 
@@ -533,7 +534,7 @@ describe('options', () => {
       const counter = observable<any>({ num: 0 });
       const observeSpy = jest.fn(() => counter.num);
       const scheduler = jest.fn(() => {});
-      const reaction = watch(observeSpy, { scheduler });
+      const stop = watch(observeSpy, { scheduler });
 
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(0);
@@ -541,7 +542,7 @@ describe('options', () => {
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(1);
 
-      expect(scheduler).toHaveBeenLastCalledWith(reaction);
+      expect(scheduler).toHaveBeenLastCalledWith(stop);
     });
   });
 
