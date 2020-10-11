@@ -1,9 +1,9 @@
+import { ITERATION_KEY } from './internals';
+
 type TargetKey = string | number | Symbol | undefined;
 type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
 
 const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
-
-const ITERATION_KEY = Symbol('iteration key');
 
 export type MutationOperationType = 'add' | 'delete' | 'set' | 'clear';
 
@@ -31,19 +31,22 @@ export function registerNewObservable(rawObject: object) {
 
 export function registerReactionReadOperation(
   reaction: ReactionCallback,
-  { target, key, type }: ReadOperationInfo,
+  readOperation: ReadOperationInfo,
 ) {
-  if (type === 'iterate') {
-    key = ITERATION_KEY;
+  if (readOperation.type === 'iterate') {
+    readOperation.key = ITERATION_KEY;
   }
 
-  const reactionsPropsMapForTarget = readOperationsRegistry.get(target)!;
+  const reactionsPropsMapForTarget = readOperationsRegistry.get(
+    readOperation.target,
+  )!;
 
-  let reactionsForKey = reactionsPropsMapForTarget.get(key);
+  let reactionsForKey = reactionsPropsMapForTarget.get(readOperation.key);
 
   if (!reactionsForKey) {
     reactionsForKey = new Set();
-    reactionsPropsMapForTarget.set(key, reactionsForKey);
+
+    reactionsPropsMapForTarget.set(readOperation.key, reactionsForKey);
   }
 
   // save the fact that the key is used by the reaction during its current run
@@ -56,27 +59,35 @@ export function registerReactionReadOperation(
   }
 }
 
-export function getMutationImpactedReactions({
-  target,
-  key,
-  type,
-}: MutationOperationInfo) {
+export function getMutationImpactedReactions(
+  mutationOperation: MutationOperationInfo,
+) {
   const impactedReactions = new Set<ReactionCallback>();
-  const targetKeysReactionsMap = readOperationsRegistry.get(target)!;
+  const targetKeysReactionsMap = readOperationsRegistry.get(
+    mutationOperation.target,
+  )!;
 
-  const reactionsForKey = targetKeysReactionsMap.get(key);
+  const reactionsForKey = targetKeysReactionsMap.get(mutationOperation.key);
   reactionsForKey && appendSet(impactedReactions, reactionsForKey);
 
   // Inform each item when set/map is cleared
-  if (type === 'clear') {
+  if (mutationOperation.type === 'clear') {
     targetKeysReactionsMap.forEach(reactionsForAnotherProp => {
       appendSet(impactedReactions, reactionsForAnotherProp);
     });
   }
 
-  if (type === 'add' || type === 'delete' || type === 'clear') {
-    const iterationKey = Array.isArray(target) ? 'length' : ITERATION_KEY;
+  if (
+    mutationOperation.type === 'add' ||
+    mutationOperation.type === 'delete' ||
+    mutationOperation.type === 'clear'
+  ) {
+    const iterationKey = Array.isArray(mutationOperation.target)
+      ? 'length'
+      : ITERATION_KEY;
+
     const reactionsForIteration = targetKeysReactionsMap.get(iterationKey);
+
     reactionsForIteration &&
       appendSet(impactedReactions, reactionsForIteration);
   }

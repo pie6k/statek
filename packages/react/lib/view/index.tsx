@@ -8,15 +8,10 @@ import React, {
   ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
-import {
-  isObservable,
-  observe,
-  getObservableRaw,
-  Reaction,
-  unobserve,
-} from '../observable';
+import { isObservable, observe, getObservableRaw } from '../observable';
 import { renderStatus } from './renderState';
 
 export {
@@ -56,6 +51,16 @@ function isFunctionalComponent<P>(
   return true;
 }
 
+function useValueGetter<T>(value: T) {
+  const valueRef = useRef(value);
+
+  valueRef.current = value;
+
+  return function get() {
+    return valueRef.current;
+  };
+}
+
 function functionalView<C extends FunctionComponent<any>>(
   BaseComponent: C,
   memoCompareProps?: ComponentPropsComparator<C>,
@@ -66,27 +71,35 @@ function functionalView<C extends FunctionComponent<any>>(
   ): ReactElement<any, any> {
     renderStatus.currentRenderingReactiveComponent = BaseComponent;
 
+    const getProps = useValueGetter(props);
+
     const [, setState] = useState<{}>();
     const render = useMemo(
-      () =>
-        observe(BaseComponent as (props: Props) => ReactNode, {
-          scheduler: () => {
-            setState({});
+      () => {
+        return observe(
+          () => {
+            return BaseComponent(getProps());
           },
-          lazy: true,
-        }),
+          {
+            scheduler: () => {
+              setState({});
+            },
+            lazy: true,
+          },
+        );
+      },
       // Adding the original Comp here is necessary to make React Hot Reload work
       // it does not affect behavior otherwise
       [BaseComponent],
     );
 
     useEffect(() => {
-      return () => unobserve(render);
+      return () => render.unsubscribe();
     }, []);
 
     try {
       // run the reactive render instead of the original one
-      return render(props) as any;
+      return render() as any;
     } catch (error) {
       throw error;
     } finally {
@@ -115,28 +128,28 @@ function classView<C extends ComponentClass<any, any>>(BaseComponent: C): C {
 
   type E = keyof Component;
 
-  class ReactiveClassComponent extends Component<Props> {
-    constructor(props) {
-      super(props);
+  // class ReactiveClassComponent extends Component<Props> {
+  //   constructor(props) {
+  //     super(props);
 
-      this.render = observe(BaseComponent.prototype.render, {
-        scheduler: () => {
-          this.forceUpdate();
-        },
-        lazy: true,
-      });
+  //     this.render = observe(BaseComponent.prototype.render, {
+  //       scheduler: () => {
+  //         this.forceUpdate();
+  //       },
+  //       lazy: true,
+  //     });
 
-      methodsToCopy.forEach(methodName => {
-        if (BaseComponent.prototype[methodName]) {
-          this[methodName] = BaseComponent.prototype[methodName].bind(this);
-        }
-      });
+  //     methodsToCopy.forEach(methodName => {
+  //       if (BaseComponent.prototype[methodName]) {
+  //         this[methodName] = BaseComponent.prototype[methodName].bind(this);
+  //       }
+  //     });
 
-      this.componentDidMount = BaseComponent.prototype.componentDidMount.bind(
-        this,
-      );
-    }
-  }
+  //     this.componentDidMount = BaseComponent.prototype.componentDidMount.bind(
+  //       this,
+  //     );
+  //   }
+  // }
   // a HOC which overwrites render, shouldComponentUpdate and componentWillUnmount
   // it decides when to run the new reactive methods and when to proxy to the original methods
   throw new Error('Not implemented');

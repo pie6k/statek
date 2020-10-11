@@ -1,0 +1,15 @@
+{
+  "name": "@statek/react",
+  "version": "1.0.0",
+  "main": "./lib",
+  "scripts": {
+    "test": "jest --watch"
+  },
+  "dependencies": {
+    "@statek/core": "1.0.0"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-dom": "*"
+  }
+}

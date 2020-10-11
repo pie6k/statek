@@ -1,4 +1,4 @@
-import { warnIfAccessingInNonReactiveComponent } from '../view';
+// import { warnIfAccessingInNonReactiveComponent } from '../view';
 import {
   getReactionData,
   getMutationImpactedReactions,
@@ -50,7 +50,7 @@ export function callWithReaction(
 export function handleObservableReadOperation(
   readOperation: ReadOperationInfo,
 ) {
-  warnIfAccessingInNonReactiveComponent();
+  // warnIfAccessingInNonReactiveComponent();
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction();
 

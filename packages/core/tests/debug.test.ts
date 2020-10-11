@@ -1,4 +1,5 @@
 import { observable, observe } from '../src/observable';
+import { ITERATION_KEY } from '../src/observable/internals';
 import { spy } from './utils';
 
 describe('debugger', () => {
@@ -57,6 +58,7 @@ describe('debugger', () => {
     expect(dummy).toBe('num');
     expect(debugSpy).toBeCalledTimes(1);
     expect(debugSpy).toHaveBeenLastCalledWith({
+      key: ITERATION_KEY,
       type: 'iterate',
       target: rawCounter,
     });

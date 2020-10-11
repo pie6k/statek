@@ -68,7 +68,6 @@ export const baseProxyHandlers: ProxyHandler<object> = {
     const oldValue = (target as any)[key];
     // execute the set operation before running any reaction
     const result = Reflect.set(target, key, value, receiver);
-
     // do not queue reactions if the target of the operation is not the raw receiver
     // (possible because of prototypal inheritance)
     if (target !== observableToRawMap.get(receiver)) {
@@ -102,7 +101,6 @@ export const baseProxyHandlers: ProxyHandler<object> = {
     const hadKey = hasOwnProperty.call(target, key);
     // execute the delete operation before running any reaction
     const result = Reflect.deleteProperty(target, key);
-
     // only queue reactions for delete operations which resulted in an actual change
     if (hadKey) {
       handleObservableMutationOperation({
