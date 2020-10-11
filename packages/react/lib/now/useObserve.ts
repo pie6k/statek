@@ -3,6 +3,15 @@ import { useForceUpdate } from './useForceUpdate';
 
 export const fiberUpdatersMap = new WeakMap<Fiber, () => void>();
 
+export function updateFiber(fiber: Fiber) {
+  const hookBasedUpdater = fiberUpdatersMap.get(fiber);
+
+  if (hookBasedUpdater) {
+    hookBasedUpdater();
+    return;
+  }
+}
+
 export function getCurrentFiberUpdater() {
   const fiber = getCurrentFiber();
 

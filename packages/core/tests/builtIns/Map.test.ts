@@ -1,9 +1,9 @@
 import {
   isObservable,
   observable,
-  observe,
+  watch,
   getObservableRaw,
-} from '@statek/core/lib/observable';
+} from '@statek/core/lib';
 
 import { spy } from '../utils';
 
@@ -17,7 +17,7 @@ describe('Map', () => {
   it('should observe mutations', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = map.get('key')));
+    watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
     map.set('key', 'value');
@@ -31,7 +31,7 @@ describe('Map', () => {
   it('should observe size mutations', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = map.size));
+    watch(() => (dummy = map.size));
 
     expect(dummy).toBe(0);
     map.set('key1', 'value');
@@ -46,7 +46,7 @@ describe('Map', () => {
   it('should observe for of iteration', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
       for (let [key, num] of map) {
@@ -68,7 +68,7 @@ describe('Map', () => {
   it('should observe forEach iteration', () => {
     let dummy: number | null = null;
     const map = observable(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       map.forEach(num => (dummy += num));
     });
@@ -87,7 +87,7 @@ describe('Map', () => {
   it('should observe keys iteration', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let key of map.keys()) {
         dummy += key;
@@ -108,7 +108,7 @@ describe('Map', () => {
   it('should observe values iteration', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let num of map.values()) {
         dummy += num;
@@ -129,7 +129,7 @@ describe('Map', () => {
   it('should observe entries iteration', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
       for (let [key, num] of map.entries()) {
@@ -151,7 +151,7 @@ describe('Map', () => {
   it('should be triggered by clearing', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = map.get('key')));
+    watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
     map.set('key', 3);
@@ -163,7 +163,7 @@ describe('Map', () => {
   it('should not observe custom property mutations', () => {
     let dummy;
     const map = observable<any>(new Map());
-    observe(() => (dummy = map.customProp));
+    watch(() => (dummy = map.customProp));
 
     expect(dummy).toBe(undefined);
     map.customProp = 'Hello World';
@@ -174,7 +174,7 @@ describe('Map', () => {
     let dummy;
     const map = observable(new Map());
     const mapSpy = spy(() => (dummy = map.get('key')));
-    observe(mapSpy);
+    watch(mapSpy);
 
     expect(dummy).toBe(undefined);
     expect(mapSpy.callCount).toBe(1);
@@ -198,7 +198,7 @@ describe('Map', () => {
   it('should not observe raw data', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = getObservableRaw(map).get('key')));
+    watch(() => (dummy = getObservableRaw(map).get('key')));
 
     expect(dummy).toBe(undefined);
     map.set('key', 'Hello');
@@ -210,7 +210,7 @@ describe('Map', () => {
   it('should not observe raw iterations', () => {
     let dummy = 0;
     const map = observable<any>(new Map());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
       for (let [key, num] of getObservableRaw(map).entries()) {
@@ -242,7 +242,7 @@ describe('Map', () => {
   it('should not be triggered by raw mutations', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = map.get('key')));
+    watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
     getObservableRaw(map).set('key', 'Hello');
@@ -257,7 +257,7 @@ describe('Map', () => {
   it('should not observe raw size mutations', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = getObservableRaw(map).size));
+    watch(() => (dummy = getObservableRaw(map).size));
 
     expect(dummy).toBe(0);
     map.set('key', 'value');
@@ -267,7 +267,7 @@ describe('Map', () => {
   it('should not be triggered by raw size mutations', () => {
     let dummy;
     const map = observable(new Map());
-    observe(() => (dummy = map.size));
+    watch(() => (dummy = map.size));
 
     expect(dummy).toBe(0);
     getObservableRaw(map).set('key', 'value');
@@ -279,7 +279,7 @@ describe('Map', () => {
     const key = {};
     const map = observable(new Map());
     const mapSpy = spy(() => (dummy = map.get(key)));
-    observe(mapSpy);
+    watch(mapSpy);
 
     expect(dummy).toBe(undefined);
     expect(mapSpy.callCount).toBe(1);
@@ -300,7 +300,7 @@ describe('Map', () => {
 
     expect(isObservable(map.get('key'))).toBe(false);
     expect(isObservable(map.get('key2'))).toBe(false);
-    observe(() => expect(isObservable(map.get('key'))).toBe(true));
+    watch(() => expect(isObservable(map.get('key'))).toBe(true));
     expect(isObservable(map.get('key'))).toBe(true);
     expect(isObservable(map.get('key2'))).toBe(false);
   });
@@ -320,7 +320,7 @@ describe('Map', () => {
       expect(isObservable(value)).toBe(false);
     }
 
-    observe(() => {
+    watch(() => {
       map.forEach(value => expect(isObservable(value)).toBe(true));
       for (let [key, value] of map) {
         expect(isObservable(value)).toBe(true);

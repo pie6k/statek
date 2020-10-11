@@ -1,9 +1,9 @@
 import {
   isObservable,
   observable,
-  observe,
+  watch,
   getObservableRaw,
-} from '@statek/core/lib/observable';
+} from '@statek/core/lib';
 /* eslint no-unused-expressions: 0, no-unused-vars: 0 */
 
 import { spy } from '../utils';
@@ -18,7 +18,7 @@ describe('Set', () => {
   it('should observe mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.has('value')));
+    watch(() => (dummy = set.has('value')));
 
     expect(dummy).toBe(false);
     set.add('value');
@@ -30,7 +30,7 @@ describe('Set', () => {
   it('should observe for of iteration', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let num of set) {
         dummy += num;
@@ -50,7 +50,7 @@ describe('Set', () => {
   it('should observe forEach iteration', () => {
     let dummy: any;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       set.forEach((num: any) => (dummy += num));
     });
@@ -68,7 +68,7 @@ describe('Set', () => {
   it('should observe values iteration', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let num of set.values()) {
         dummy += num;
@@ -88,7 +88,7 @@ describe('Set', () => {
   it('should observe keys iteration', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let num of set.keys()) {
         dummy += num;
@@ -108,7 +108,7 @@ describe('Set', () => {
   it('should observe entries iteration', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
       for (let [key, num] of set.entries()) {
@@ -129,7 +129,7 @@ describe('Set', () => {
   it('should be triggered by clearing', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.has('key')));
+    watch(() => (dummy = set.has('key')));
 
     expect(dummy).toBe(false);
     set.add('key');
@@ -141,7 +141,7 @@ describe('Set', () => {
   it('should not observe custom property mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.customProp));
+    watch(() => (dummy = set.customProp));
 
     expect(dummy).toBe(undefined);
     set.customProp = 'Hello World';
@@ -151,7 +151,7 @@ describe('Set', () => {
   it('should observe size mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.size));
+    watch(() => (dummy = set.size));
 
     expect(dummy).toBe(0);
     set.add('value');
@@ -167,7 +167,7 @@ describe('Set', () => {
     let dummy;
     const set = observable<any>(new Set());
     const setSpy = spy(() => (dummy = set.has('value')));
-    observe(setSpy);
+    watch(setSpy);
 
     expect(dummy).toBe(false);
     expect(setSpy.callCount).toBe(1);
@@ -191,7 +191,7 @@ describe('Set', () => {
   it('should not observe raw data', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = getObservableRaw(set).has('value')));
+    watch(() => (dummy = getObservableRaw(set).has('value')));
 
     expect(dummy).toBe(false);
     set.add('value');
@@ -201,7 +201,7 @@ describe('Set', () => {
   it('should not observe raw iterations', () => {
     let dummy = 0;
     const set = observable<any>(new Set());
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let [num] of getObservableRaw(set).entries()) {
         dummy += num;
@@ -231,7 +231,7 @@ describe('Set', () => {
   it('should not be triggered by raw mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.has('value')));
+    watch(() => (dummy = set.has('value')));
 
     expect(dummy).toBe(false);
     getObservableRaw(set).add('value');
@@ -246,7 +246,7 @@ describe('Set', () => {
   it('should not observe raw size mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = getObservableRaw(set).size));
+    watch(() => (dummy = getObservableRaw(set).size));
 
     expect(dummy).toBe(0);
     set.add('value');
@@ -256,7 +256,7 @@ describe('Set', () => {
   it('should not be triggered by raw size mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    observe(() => (dummy = set.size));
+    watch(() => (dummy = set.size));
 
     expect(dummy).toBe(0);
     getObservableRaw(set).add('value');
@@ -268,7 +268,7 @@ describe('Set', () => {
     const key = {};
     const set = observable<any>(new Set());
     const setSpy = spy(() => (dummy = set.has(key)));
-    observe(setSpy);
+    watch(setSpy);
 
     expect(dummy).toBe(false);
     expect(setSpy.callCount).toBe(1);
@@ -297,7 +297,7 @@ describe('Set', () => {
       expect(isObservable(value)).toBe(false);
     }
 
-    observe(() => {
+    watch(() => {
       set.forEach((value: any) => expect(isObservable(value)).toBe(true));
       for (let value of set) {
         expect(isObservable(value)).toBe(true);

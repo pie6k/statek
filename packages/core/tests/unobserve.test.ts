@@ -1,4 +1,4 @@
-import { observable, observe } from '@statek/core/lib/observable';
+import { observable, watch } from '@statek/core/lib';
 import { spy } from './utils';
 
 describe('unobserve', () => {
@@ -6,7 +6,7 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable({ num: 0 });
     const counterSpy = spy(() => (dummy = counter.num));
-    const reaction = observe(counterSpy);
+    const reaction = watch(counterSpy);
 
     expect(counterSpy.callCount).toBe(1);
     // @ts-expect-error
@@ -24,7 +24,7 @@ describe('unobserve', () => {
     let dummy;
     const user = observable({ name: { name: 'Bob' } });
     const nameSpy = spy(() => (dummy = user.name.name));
-    const reaction = observe(nameSpy);
+    const reaction = watch(nameSpy);
 
     expect(nameSpy.callCount).toBe(1);
     user.name.name = 'Dave';
@@ -40,9 +40,9 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable({ num: 0 });
 
-    const reaction1 = observe(() => (dummy = counter.num));
-    const reaction2 = observe(() => (dummy = counter.num));
-    const reaction3 = observe(() => (dummy = counter.num));
+    const reaction1 = watch(() => (dummy = counter.num));
+    const reaction2 = watch(() => (dummy = counter.num));
+    const reaction3 = watch(() => (dummy = counter.num));
 
     expect(dummy).toBe(0);
     reaction1.unsubscribe();
@@ -56,7 +56,7 @@ describe('unobserve', () => {
     let dummy;
 
     const obj = observable<any>({});
-    const reaction = observe(() => (dummy = obj.prop));
+    const reaction = watch(() => (dummy = obj.prop));
 
     expect(dummy).toBe(undefined);
     reaction.unsubscribe();
@@ -69,7 +69,7 @@ describe('unobserve', () => {
     let dummy;
     const counter = observable<any>({ num: 0 });
     const counterSpy = spy(() => (dummy = counter.num));
-    const reaction = observe(counterSpy);
+    const reaction = watch(counterSpy);
 
     expect(counterSpy.callCount).toBe(1);
     counter.num = 'Hello';

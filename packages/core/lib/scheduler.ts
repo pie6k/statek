@@ -1,3 +1,7 @@
+import { ReactionCallback } from './reaction';
+
+export type ReactionScheduler = (reaction: ReactionCallback) => void;
+
 import { unstable_batchedUpdates } from 'react-dom';
 
 const taskQueue = new Set<() => any>();

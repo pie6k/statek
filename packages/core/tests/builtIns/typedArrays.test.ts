@@ -1,4 +1,4 @@
-import { isObservable, observable, observe } from '@statek/core/lib/observable';
+import { isObservable, observable, watch } from '@statek/core/lib';
 
 const TypedArrays = [
   Int8Array,
@@ -19,7 +19,7 @@ describe('typed arrays', () => {
       const array = observable(new TypedArray(2));
       expect(isObservable(array)).toBe(true);
 
-      observe(() => (dummy = array[0]));
+      watch(() => (dummy = array[0]));
 
       expect(dummy).toBe(0);
       array[0] = 12;

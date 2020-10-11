@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { isObservable, observable } from '@statek/core/lib/observable';
+import { isObservable, observable } from '@statek/core/lib';
 
 describe('none observable built-ins', () => {
   it('objects with global constructors should not be converted to observables', () => {

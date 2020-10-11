@@ -1,9 +1,9 @@
 import {
   isObservable,
   observable,
-  observe,
+  watch,
   getObservableRaw,
-} from '@statek/core/lib/observable';
+} from '@statek/core/lib';
 
 describe('observable', () => {
   it('should return a new observable when no argument is provided', () => {
@@ -40,7 +40,7 @@ describe('observable', () => {
       configurable: false,
     });
     const obs = observable<any>(obj);
-    expect(() => observe(() => (dummy = obs.prop.num))).not.toThrow();
+    expect(() => watch(() => (dummy = obs.prop.num))).not.toThrow();
     expect(dummy).toBe(12);
     obj.prop.num = 13;
     expect(dummy).toBe(12);

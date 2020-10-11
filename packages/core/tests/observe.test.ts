@@ -1,25 +1,21 @@
 /**
  * @jest-environment jsdom
  */
-import {
-  observable,
-  observe,
-  getObservableRaw,
-} from '@statek/core/lib/observable';
+import { observable, watch, getObservableRaw } from '@statek/core/lib';
 
 import { spy } from './utils';
 
 describe('observe', () => {
   it('should run the passed function once (wrapped by a reaction)', () => {
     const fnSpy = spy(() => {});
-    observe(fnSpy);
+    watch(fnSpy);
     expect(fnSpy.callCount).toBe(1);
   });
 
   it('should observe basic properties', () => {
     let dummy;
     const counter = observable<any>({ num: 0 });
-    observe(() => (dummy = counter.num));
+    watch(() => (dummy = counter.num));
 
     expect(dummy).toBe(0);
     counter.num = 7;
@@ -32,7 +28,7 @@ describe('observe', () => {
     const spy = jest.fn(() => {
       dummy = counter.num;
     });
-    const reaction = observe(spy);
+    const reaction = watch(spy);
 
     expect(spy).toBeCalledTimes(1);
     counter.num = 7;
@@ -46,7 +42,7 @@ describe('observe', () => {
   it('should observe multiple properties', () => {
     let dummy;
     const counter = observable<any>({ num1: 0, num2: 0 });
-    observe(() => (dummy = counter.num1 + counter.num1 + counter.num2));
+    watch(() => (dummy = counter.num1 + counter.num1 + counter.num2));
 
     expect(dummy).toBe(0);
     counter.num1 = counter.num2 = 7;
@@ -56,8 +52,8 @@ describe('observe', () => {
   it('should handle multiple reactions', () => {
     let dummy1, dummy2;
     const counter = observable<any>({ num: 0 });
-    observe(() => (dummy1 = counter.num));
-    observe(() => (dummy2 = counter.num));
+    watch(() => (dummy1 = counter.num));
+    watch(() => (dummy2 = counter.num));
 
     expect(dummy1).toBe(0);
     expect(dummy2).toBe(0);
@@ -69,7 +65,7 @@ describe('observe', () => {
   it('should observe nested properties', () => {
     let dummy;
     const counter = observable<any>({ nested: { num: 0 } });
-    observe(() => (dummy = counter.nested.num));
+    watch(() => (dummy = counter.nested.num));
 
     expect(dummy).toBe(0);
     counter.nested.num = 8;
@@ -79,7 +75,7 @@ describe('observe', () => {
   it('should observe delete operations', () => {
     let dummy;
     const obj = observable<any>({ prop: 'value' });
-    observe(() => (dummy = obj.prop));
+    watch(() => (dummy = obj.prop));
 
     expect(dummy).toBe('value');
     delete obj.prop;
@@ -89,7 +85,7 @@ describe('observe', () => {
   it('should observe has operations', () => {
     let dummy;
     const obj = observable<any>({ prop: 'value' });
-    observe(() => (dummy = 'prop' in obj));
+    watch(() => (dummy = 'prop' in obj));
 
     expect(dummy).toBe(true);
     delete obj.prop;
@@ -103,7 +99,7 @@ describe('observe', () => {
     const counter = observable<any>({ num: 0 });
     const parentCounter = observable<any>({ num: 2 });
     Object.setPrototypeOf(counter, parentCounter);
-    observe(() => (dummy = counter.num));
+    watch(() => (dummy = counter.num));
 
     expect(dummy).toBe(0);
     delete counter.num;
@@ -119,7 +115,7 @@ describe('observe', () => {
     const counter = observable<any>({ num: 0 });
     const parentCounter = observable<any>({ num: 2 });
     Object.setPrototypeOf(counter, parentCounter);
-    observe(() => (dummy = 'num' in counter));
+    watch(() => (dummy = 'num' in counter));
 
     expect(dummy).toBe(true);
     delete counter.num;
@@ -142,8 +138,8 @@ describe('observe', () => {
       },
     });
     Object.setPrototypeOf(obj, parent);
-    observe(() => (dummy = obj.prop));
-    observe(() => (parentDummy = parent.prop));
+    watch(() => (dummy = obj.prop));
+    watch(() => (parentDummy = parent.prop));
 
     expect(dummy).toBe(undefined);
     expect(parentDummy).toBe(undefined);
@@ -159,7 +155,7 @@ describe('observe', () => {
   it('should observe function call chains', () => {
     let dummy;
     const counter = observable<any>({ num: 0 });
-    observe(() => (dummy = getNum()));
+    watch(() => (dummy = getNum()));
 
     function getNum() {
       return counter.num;
@@ -173,7 +169,7 @@ describe('observe', () => {
   it('should observe iteration', () => {
     let dummy;
     const list = observable<any>(['Hello']);
-    observe(() => (dummy = list.join(' ')));
+    watch(() => (dummy = list.join(' ')));
 
     expect(dummy).toBe('Hello');
     list.push('World!');
@@ -185,7 +181,7 @@ describe('observe', () => {
   it('should observe implicit array length changes', () => {
     let dummy;
     const list = observable<any>(['Hello']);
-    observe(() => (dummy = list.join(' ')));
+    watch(() => (dummy = list.join(' ')));
 
     expect(dummy).toBe('Hello');
     list[1] = 'World!';
@@ -198,7 +194,7 @@ describe('observe', () => {
     let dummy;
     const list = observable<any>([]);
     list[1] = 'World!';
-    observe(() => (dummy = list.join(' ')));
+    watch(() => (dummy = list.join(' ')));
 
     expect(dummy).toBe(' World!');
     list[0] = 'Hello';
@@ -210,7 +206,7 @@ describe('observe', () => {
   it('should observe enumeration', () => {
     let dummy = 0;
     const numbers = observable<any>({ num1: 3 });
-    observe(() => {
+    watch(() => {
       dummy = 0;
       for (let key in numbers) {
         dummy += numbers[key];
@@ -228,8 +224,8 @@ describe('observe', () => {
     const key = Symbol('symbol keyed prop');
     let dummy, hasDummy;
     const obj = observable<any>({ [key]: 'value' });
-    observe(() => (dummy = obj[key]));
-    observe(() => (hasDummy = key in obj));
+    watch(() => (dummy = obj[key]));
+    watch(() => (hasDummy = key in obj));
 
     expect(dummy).toBe('value');
     expect(hasDummy).toBe(true);
@@ -244,7 +240,7 @@ describe('observe', () => {
     const key = Symbol.isConcatSpreadable;
     let dummy;
     const array = observable<any>([]);
-    observe(() => (dummy = array[key]));
+    watch(() => (dummy = array[key]));
 
     expect(array[key]).toBe(undefined);
     expect(dummy).toBe(undefined);
@@ -259,7 +255,7 @@ describe('observe', () => {
 
     let dummy;
     const obj = observable<any>({ func: oldFunc });
-    observe(() => (dummy = obj.func));
+    watch(() => (dummy = obj.func));
 
     expect(dummy).toBe(oldFunc);
     obj.func = newFunc;
@@ -272,8 +268,8 @@ describe('observe', () => {
 
     const getSpy = spy(() => (getDummy = obj.prop));
     const hasSpy = spy(() => (hasDummy = 'prop' in obj));
-    observe(getSpy);
-    observe(hasSpy);
+    watch(getSpy);
+    watch(hasSpy);
 
     expect(getDummy).toBe('value');
     expect(hasDummy).toBe(true);
@@ -288,7 +284,7 @@ describe('observe', () => {
     let dummy;
 
     const obj = observable<any>({});
-    observe(() => (dummy = getObservableRaw(obj).prop));
+    watch(() => (dummy = getObservableRaw(obj).prop));
 
     expect(dummy).toBe(undefined);
     obj.prop = 'value';
@@ -299,7 +295,7 @@ describe('observe', () => {
     let dummy;
 
     const obj = observable<any>({});
-    observe(() => (dummy = obj.prop));
+    watch(() => (dummy = obj.prop));
 
     expect(dummy).toBe(undefined);
     getObservableRaw(obj).prop = 'value';
@@ -318,8 +314,8 @@ describe('observe', () => {
       },
     });
     Object.setPrototypeOf(obj, parent);
-    observe(() => (dummy = obj.prop));
-    observe(() => (parentDummy = parent.prop));
+    watch(() => (dummy = obj.prop));
+    watch(() => (parentDummy = parent.prop));
 
     expect(dummy).toBe(undefined);
     expect(parentDummy).toBe(undefined);
@@ -332,7 +328,7 @@ describe('observe', () => {
     const counter = observable({ num: 0 });
 
     const counterSpy = spy(() => counter.num++);
-    observe(counterSpy);
+    watch(counterSpy);
     expect(counter.num).toBe(1);
     expect(counterSpy.callCount).toBe(1);
     counter.num = 4;
@@ -350,7 +346,7 @@ describe('observe', () => {
         numSpy();
       }
     });
-    observe(numSpy);
+    watch(numSpy);
 
     expect(counter.num).toBe(10);
     expect(numSpy.callCount).toBe(10);
@@ -361,8 +357,8 @@ describe('observe', () => {
 
     const spy1 = spy(() => (nums.num1 = nums.num2));
     const spy2 = spy(() => (nums.num2 = nums.num1));
-    observe(spy1);
-    observe(spy2);
+    watch(spy1);
+    watch(spy2);
     expect(nums.num1).toBe(1);
     expect(nums.num2).toBe(1);
     expect(spy1.callCount).toBe(1);
@@ -383,8 +379,8 @@ describe('observe', () => {
     function greet() {
       return 'Hello World';
     }
-    const reaction1 = observe(greet);
-    const reaction2 = observe(greet);
+    const reaction1 = watch(greet);
+    const reaction2 = watch(greet);
     expect(reaction1).toBeInstanceOf(Function);
     expect(reaction2).toBeInstanceOf(Function);
     expect(reaction1).not.toBe(greet);
@@ -395,7 +391,7 @@ describe('observe', () => {
     function greet() {
       return `Hello`;
     }
-    const reaction = observe(greet, { lazy: true });
+    const reaction = watch(greet, { lazy: true });
     expect(reaction()).toBe('Hello');
   });
 
@@ -406,7 +402,7 @@ describe('observe', () => {
     const conditionalSpy = spy(() => {
       dummy = obj.run ? obj.prop : 'other';
     });
-    observe(conditionalSpy);
+    watch(conditionalSpy);
 
     expect(dummy).toBe('other');
     expect(conditionalSpy.callCount).toBe(1);
@@ -425,7 +421,7 @@ describe('observe', () => {
     let dummy;
     let run = false;
     const obj = observable<any>({ prop: 'value' });
-    const reaction = observe(() => {
+    const reaction = watch(() => {
       dummy = run ? obj.prop : 'other';
     });
 
@@ -446,7 +442,7 @@ describe('observe', () => {
     const conditionalSpy = spy(() => {
       dummy = obj.run ? obj.prop : 'other';
     });
-    observe(conditionalSpy);
+    watch(conditionalSpy);
 
     expect(dummy).toBe('value');
     expect(conditionalSpy.callCount).toBe(1);
@@ -459,8 +455,8 @@ describe('observe', () => {
   });
 
   it('should not double wrap if the passed function is a reaction', () => {
-    const reaction = observe(() => {});
-    const otherReaction = observe(reaction);
+    const reaction = watch(() => {});
+    const otherReaction = watch(reaction);
     expect(reaction).toBe(otherReaction);
   });
 
@@ -475,7 +471,7 @@ describe('observe', () => {
     });
     const obj = observable<any>({});
 
-    observe(spy);
+    watch(spy);
 
     expect(spy).toBeCalledTimes(1);
     obj.prop = 16;
@@ -488,13 +484,13 @@ describe('observe', () => {
     const dummy: any = {};
 
     const childSpy = spy(() => (dummy.num1 = nums.num1));
-    const childReaction = observe(childSpy);
+    const childReaction = watch(childSpy);
     const parentSpy = spy(() => {
       dummy.num2 = nums.num2;
       childReaction();
       dummy.num3 = nums.num3;
     });
-    observe(parentSpy);
+    watch(parentSpy);
 
     expect(dummy).toEqual({ num1: 0, num2: 1, num3: 2 });
     expect(parentSpy.callCount).toBe(1);
@@ -521,13 +517,13 @@ describe('options', () => {
   describe('lazy', () => {
     it('should not run the passed function, if set to true', () => {
       const fnSpy = spy(() => {});
-      observe(fnSpy, { lazy: true });
+      watch(fnSpy, { lazy: true });
       expect(fnSpy.callCount).toBe(0);
     });
 
     it('should default to false', () => {
       const fnSpy = spy(() => {});
-      observe(fnSpy);
+      watch(fnSpy);
       expect(fnSpy.callCount).toBe(1);
     });
   });
@@ -537,7 +533,7 @@ describe('options', () => {
       const counter = observable<any>({ num: 0 });
       const observeSpy = jest.fn(() => counter.num);
       const scheduler = jest.fn(() => {});
-      const reaction = observe(observeSpy, { scheduler });
+      const reaction = watch(observeSpy, { scheduler });
 
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(0);
@@ -552,7 +548,7 @@ describe('options', () => {
   it('should not error when a DOM element is added', async () => {
     let dummy = null;
     const observed = observable<any>({ obj: null });
-    observe(() => (dummy = observed.obj && observed.obj.nodeType));
+    watch(() => (dummy = observed.obj && observed.obj.nodeType));
 
     expect(dummy).toBe(null);
     observed.obj = document;

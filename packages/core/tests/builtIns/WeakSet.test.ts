@@ -1,8 +1,4 @@
-import {
-  observable,
-  observe,
-  getObservableRaw,
-} from '@statek/core/lib/observable';
+import { observable, watch, getObservableRaw } from '@statek/core/lib';
 import { spy } from '../utils';
 
 describe('WeakSet', () => {
@@ -16,7 +12,7 @@ describe('WeakSet', () => {
     let dummy;
     const value = {};
     const set = observable(new WeakSet());
-    observe(() => (dummy = set.has(value)));
+    watch(() => (dummy = set.has(value)));
 
     expect(dummy).toBe(false);
     set.add(value);
@@ -28,7 +24,7 @@ describe('WeakSet', () => {
   it('should not observe custom property mutations', () => {
     let dummy;
     const set = observable<any>(new WeakSet());
-    observe(() => (dummy = set.customProp));
+    watch(() => (dummy = set.customProp));
 
     expect(dummy).toBe(undefined);
     set.customProp = 'Hello World';
@@ -40,7 +36,7 @@ describe('WeakSet', () => {
     const value = {};
     const set = observable(new WeakSet());
     const setSpy = spy(() => (dummy = set.has(value)));
-    observe(setSpy);
+    watch(setSpy);
 
     expect(dummy).toBe(false);
     expect(setSpy.callCount).toBe(1);
@@ -62,7 +58,7 @@ describe('WeakSet', () => {
     const value = {};
     let dummy;
     const set = observable(new WeakSet());
-    observe(() => (dummy = getObservableRaw(set).has(value)));
+    watch(() => (dummy = getObservableRaw(set).has(value)));
 
     expect(dummy).toBe(false);
     set.add(value);
@@ -73,7 +69,7 @@ describe('WeakSet', () => {
     const value = {};
     let dummy;
     const set = observable(new WeakSet());
-    observe(() => (dummy = set.has(value)));
+    watch(() => (dummy = set.has(value)));
 
     expect(dummy).toBe(false);
     getObservableRaw(set).add(value);

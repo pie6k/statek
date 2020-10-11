@@ -1,9 +1,9 @@
 import {
   isObservable,
   observable,
-  observe,
+  watch,
   getObservableRaw,
-} from '@statek/core/lib/observable';
+} from '@statek/core/lib';
 /* eslint no-unused-expressions: 0, no-unused-vars: 0 */
 
 import { spy } from '../utils';
@@ -19,7 +19,7 @@ describe('WeakMap', () => {
     let dummy;
     const key = {};
     const map = observable(new WeakMap());
-    observe(() => (dummy = map.get(key)));
+    watch(() => (dummy = map.get(key)));
 
     expect(dummy).toBe(undefined);
     map.set(key, 'value');
@@ -34,7 +34,7 @@ describe('WeakMap', () => {
     let dummy;
     const map = observable(new WeakMap());
     // @ts-expect-error
-    observe(() => (dummy = map.customProp));
+    watch(() => (dummy = map.customProp));
 
     expect(dummy).toBe(undefined);
     // @ts-expect-error
@@ -47,7 +47,7 @@ describe('WeakMap', () => {
     const key = {};
     const map = observable(new WeakMap());
     const mapSpy = spy(() => (dummy = map.get(key)));
-    observe(mapSpy);
+    watch(mapSpy);
 
     expect(dummy).toBe(undefined);
     expect(mapSpy.callCount).toBe(1);
@@ -69,7 +69,7 @@ describe('WeakMap', () => {
     const key = {};
     let dummy;
     const map = observable(new WeakMap());
-    observe(() => (dummy = getObservableRaw(map).get(key)));
+    watch(() => (dummy = getObservableRaw(map).get(key)));
 
     expect(dummy).toBe(undefined);
     map.set(key, 'Hello');
@@ -82,7 +82,7 @@ describe('WeakMap', () => {
     const key = {};
     let dummy;
     const map = observable(new WeakMap());
-    observe(() => (dummy = map.get(key)));
+    watch(() => (dummy = map.get(key)));
 
     expect(dummy).toBe(undefined);
     getObservableRaw(map).set(key, 'Hello');
@@ -100,7 +100,7 @@ describe('WeakMap', () => {
 
     expect(isObservable(map.get(key))).toBe(false);
     expect(isObservable(map.get(key2))).toBe(false);
-    observe(() => expect(isObservable(map.get(key))).toBe(true));
+    watch(() => expect(isObservable(map.get(key))).toBe(true));
     expect(isObservable(map.get(key))).toBe(true);
     expect(isObservable(map.get(key2))).toBe(false);
   });
