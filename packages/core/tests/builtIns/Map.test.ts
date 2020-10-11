@@ -5,8 +5,6 @@ import {
   getObservableRaw,
 } from '@statek/core/lib';
 
-import { spy } from '../utils';
-
 describe('Map', () => {
   it('should be a proper JS Map', () => {
     const map = observable(new Map());
@@ -173,26 +171,26 @@ describe('Map', () => {
   it('should not observe non value changing mutations', () => {
     let dummy;
     const map = observable(new Map());
-    const mapSpy = spy(() => (dummy = map.get('key')));
+    const mapSpy = jest.fn(() => (dummy = map.get('key')));
     watch(mapSpy);
 
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(1);
+    expect(mapSpy).toBeCalledTimes(1);
     map.set('key', 'value');
     expect(dummy).toBe('value');
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
     map.set('key', 'value');
     expect(dummy).toBe('value');
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
     map.delete('key');
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(3);
+    expect(mapSpy).toBeCalledTimes(3);
     map.delete('key');
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(3);
+    expect(mapSpy).toBeCalledTimes(3);
     map.clear();
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(3);
+    expect(mapSpy).toBeCalledTimes(3);
   });
 
   it('should not observe raw data', () => {
@@ -278,19 +276,19 @@ describe('Map', () => {
     let dummy;
     const key = {};
     const map = observable(new Map());
-    const mapSpy = spy(() => (dummy = map.get(key)));
+    const mapSpy = jest.fn(() => (dummy = map.get(key)));
     watch(mapSpy);
 
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(1);
+    expect(mapSpy).toBeCalledTimes(1);
 
     map.set(key, 1);
     expect(dummy).toBe(1);
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
 
     map.set({}, 2);
     expect(dummy).toBe(1);
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
   });
 
   it('should wrap object values with observables when requested from a reaction', () => {

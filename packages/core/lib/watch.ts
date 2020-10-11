@@ -52,6 +52,11 @@ export function lazyWatch<A extends any[], R>(
   context?: any,
 ): ObseringReactionCallback<A, R> {
   function reactionCallback(...args: A): R {
+    if (unsubscribedReactions.has(reactionCallback)) {
+      throw new Error(
+        `Cannot call lazyWatch callback after it has unsubscribed`,
+      );
+    }
     return callWithReaction(reactionCallback, callback);
   }
 

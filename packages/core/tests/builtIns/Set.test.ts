@@ -4,9 +4,6 @@ import {
   watch,
   getObservableRaw,
 } from '@statek/core/lib';
-/* eslint no-unused-expressions: 0, no-unused-vars: 0 */
-
-import { spy } from '../utils';
 
 describe('Set', () => {
   it('should be a proper JS Set', () => {
@@ -166,26 +163,26 @@ describe('Set', () => {
   it('should not observe non value changing mutations', () => {
     let dummy;
     const set = observable<any>(new Set());
-    const setSpy = spy(() => (dummy = set.has('value')));
+    const setSpy = jest.fn(() => (dummy = set.has('value')));
     watch(setSpy);
 
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(1);
+    expect(setSpy).toBeCalledTimes(1);
     set.add('value');
     expect(dummy).toBe(true);
-    expect(setSpy.callCount).toBe(2);
+    expect(setSpy).toBeCalledTimes(2);
     set.add('value');
     expect(dummy).toBe(true);
-    expect(setSpy.callCount).toBe(2);
+    expect(setSpy).toBeCalledTimes(2);
     set.delete('value');
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(3);
+    expect(setSpy).toBeCalledTimes(3);
     set.delete('value');
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(3);
+    expect(setSpy).toBeCalledTimes(3);
     set.clear();
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(3);
+    expect(setSpy).toBeCalledTimes(3);
   });
 
   it('should not observe raw data', () => {
@@ -267,19 +264,19 @@ describe('Set', () => {
     let dummy;
     const key = {};
     const set = observable<any>(new Set());
-    const setSpy = spy(() => (dummy = set.has(key)));
+    const setSpy = jest.fn(() => (dummy = set.has(key)));
     watch(setSpy);
 
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(1);
+    expect(setSpy).toBeCalledTimes(1);
 
     set.add({});
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(1);
+    expect(setSpy).toBeCalledTimes(1);
 
     set.add(key);
     expect(dummy).toBe(true);
-    expect(setSpy.callCount).toBe(2);
+    expect(setSpy).toBeCalledTimes(2);
   });
 
   it('should wrap object values with observables when iterated from a reaction', () => {

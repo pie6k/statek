@@ -4,9 +4,6 @@ import {
   watch,
   getObservableRaw,
 } from '@statek/core/lib';
-/* eslint no-unused-expressions: 0, no-unused-vars: 0 */
-
-import { spy } from '../utils';
 
 describe('WeakMap', () => {
   it('should be a proper JS WeakMap', () => {
@@ -46,23 +43,23 @@ describe('WeakMap', () => {
     let dummy;
     const key = {};
     const map = observable(new WeakMap());
-    const mapSpy = spy(() => (dummy = map.get(key)));
+    const mapSpy = jest.fn(() => (dummy = map.get(key)));
     watch(mapSpy);
 
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(1);
+    expect(mapSpy).toBeCalledTimes(1);
     map.set(key, 'value');
     expect(dummy).toBe('value');
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
     map.set(key, 'value');
     expect(dummy).toBe('value');
-    expect(mapSpy.callCount).toBe(2);
+    expect(mapSpy).toBeCalledTimes(2);
     map.delete(key);
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(3);
+    expect(mapSpy).toBeCalledTimes(3);
     map.delete(key);
     expect(dummy).toBe(undefined);
-    expect(mapSpy.callCount).toBe(3);
+    expect(mapSpy).toBeCalledTimes(3);
   });
 
   it('should not observe raw data', () => {

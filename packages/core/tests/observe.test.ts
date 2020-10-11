@@ -8,13 +8,11 @@ import {
   lazyWatch,
 } from '@statek/core/lib';
 
-import { spy } from './utils';
-
 describe('observe', () => {
   it('should run the passed function once (wrapped by a reaction)', () => {
-    const fnSpy = spy(() => {});
+    const fnSpy = jest.fn(() => {});
     watch(fnSpy);
-    expect(fnSpy.callCount).toBe(1);
+    expect(fnSpy).toBeCalledTimes(1);
   });
 
   it('should observe basic properties', () => {
@@ -271,16 +269,16 @@ describe('observe', () => {
     let hasDummy, getDummy;
     const obj = observable<any>({ prop: 'value' });
 
-    const getSpy = spy(() => (getDummy = obj.prop));
-    const hasSpy = spy(() => (hasDummy = 'prop' in obj));
+    const getSpy = jest.fn(() => (getDummy = obj.prop));
+    const hasSpy = jest.fn(() => (hasDummy = 'prop' in obj));
     watch(getSpy);
     watch(hasSpy);
 
     expect(getDummy).toBe('value');
     expect(hasDummy).toBe(true);
     obj.prop = 'value';
-    expect(getSpy.callCount).toBe(1);
-    expect(hasSpy.callCount).toBe(1);
+    expect(getSpy).toBeCalledTimes(1);
+    expect(hasSpy).toBeCalledTimes(1);
     expect(getDummy).toBe('value');
     expect(hasDummy).toBe(true);
   });
@@ -332,20 +330,20 @@ describe('observe', () => {
   it('should avoid implicit infinite recursive loops with itself', () => {
     const counter = observable({ num: 0 });
 
-    const counterSpy = spy(() => counter.num++);
+    const counterSpy = jest.fn(() => counter.num++);
     watch(counterSpy);
     expect(counter.num).toBe(1);
-    expect(counterSpy.callCount).toBe(1);
+    expect(counterSpy).toBeCalledTimes(1);
     counter.num = 4;
     expect(counter.num).toBe(5);
-    expect(counterSpy.callCount).toBe(2);
+    expect(counterSpy).toBeCalledTimes(2);
   });
 
   it('should allow explicitly recursive raw function loops', () => {
     const counter = observable<any>({ num: 0 });
 
     // TODO: this should be changed to reaction loops, can it be done?
-    const numSpy = spy(() => {
+    const numSpy = jest.fn(() => {
       counter.num++;
       if (counter.num < 10) {
         numSpy();
@@ -354,30 +352,30 @@ describe('observe', () => {
     watch(numSpy);
 
     expect(counter.num).toBe(10);
-    expect(numSpy.callCount).toBe(10);
+    expect(numSpy).toBeCalledTimes(10);
   });
 
   it('should avoid infinite loops with other reactions', () => {
     const nums = observable<any>({ num1: 0, num2: 1 });
 
-    const spy1 = spy(() => (nums.num1 = nums.num2));
-    const spy2 = spy(() => (nums.num2 = nums.num1));
+    const spy1 = jest.fn(() => (nums.num1 = nums.num2));
+    const spy2 = jest.fn(() => (nums.num2 = nums.num1));
     watch(spy1);
     watch(spy2);
     expect(nums.num1).toBe(1);
     expect(nums.num2).toBe(1);
-    expect(spy1.callCount).toBe(1);
-    expect(spy2.callCount).toBe(1);
+    expect(spy1).toBeCalledTimes(1);
+    expect(spy2).toBeCalledTimes(1);
     nums.num2 = 4;
     expect(nums.num1).toBe(4);
     expect(nums.num2).toBe(4);
-    expect(spy1.callCount).toBe(2);
-    expect(spy2.callCount).toBe(2);
+    expect(spy1).toBeCalledTimes(2);
+    expect(spy2).toBeCalledTimes(2);
     nums.num1 = 10;
     expect(nums.num1).toBe(10);
     expect(nums.num2).toBe(10);
-    expect(spy1.callCount).toBe(3);
-    expect(spy2.callCount).toBe(3);
+    expect(spy1).toBeCalledTimes(3);
+    expect(spy2).toBeCalledTimes(3);
   });
 
   it('should return a new reactive version of the function', () => {
@@ -399,6 +397,17 @@ describe('observe', () => {
     const reaction = lazyWatch(greet);
 
     expect(reaction()).toBe('Hello');
+  });
+
+  it('should properly pass context', () => {
+    let dummy: any;
+    function greet(this: any) {
+      dummy = this;
+      return `Hello`;
+    }
+    watch(greet, { context: 'foo' });
+
+    expect(dummy).toBe('foo');
   });
 
   it('should inform lazy watch about deps change, but not run it again', () => {
@@ -433,26 +442,94 @@ describe('observe', () => {
     expect(depsChangeCallback).toBeCalledTimes(2);
   });
 
+  it('should properly pass context to lazyWatch', () => {
+    let dummy: any;
+    function greet(this: any) {
+      dummy = this;
+      return `Hello`;
+    }
+    const call = lazyWatch(greet, () => {}, 'foo');
+
+    call();
+
+    expect(dummy).toBe('foo');
+  });
+
+  it('should not allow lazywatch to be called when unsubscribed', () => {
+    const obj = observable({ prop: 'foo' });
+    const spy = jest.fn(() => obj.prop);
+
+    const call = lazyWatch(spy, spy);
+
+    expect(() => {
+      call();
+    }).not.toThrow();
+
+    call.unsubscribe();
+
+    expect(() => {
+      call();
+    }).toThrow();
+  });
+
+  it('should not call lazyWatch callback before initial call', () => {
+    const obj = observable({ prop: 'foo' });
+    const reaction = jest.fn(() => obj.prop);
+    const changeCallback = jest.fn(() => {});
+
+    lazyWatch(reaction, changeCallback);
+
+    expect(reaction).toBeCalledTimes(0);
+    expect(changeCallback).toBeCalledTimes(0);
+
+    obj.prop = 'bar';
+
+    expect(reaction).toBeCalledTimes(0);
+    expect(changeCallback).toBeCalledTimes(0);
+  });
+
+  it('lazy reaction callback should not be called after unsubscribing', () => {
+    const obj = observable({ prop: 'foo' });
+    const reaction = jest.fn(() => obj.prop);
+    const changeCallback = jest.fn(() => {});
+
+    const call = lazyWatch(reaction, changeCallback);
+
+    call();
+
+    expect(changeCallback).toBeCalledTimes(0);
+
+    obj.prop = 'bar';
+
+    expect(changeCallback).toBeCalledTimes(1);
+
+    call.unsubscribe();
+
+    obj.prop = 'baz';
+
+    expect(changeCallback).toBeCalledTimes(1);
+  });
+
   it('should discover new branches while running automatically', () => {
     let dummy: string = '';
     const obj = observable({ prop: 'value', run: false });
 
-    const conditionalSpy = spy(() => {
+    const conditionalSpy = jest.fn(() => {
       dummy = obj.run ? obj.prop : 'other';
     });
     watch(conditionalSpy);
 
     expect(dummy).toBe('other');
-    expect(conditionalSpy.callCount).toBe(1);
+    expect(conditionalSpy).toBeCalledTimes(1);
     obj.prop = 'Hi';
     expect(dummy).toBe('other');
-    expect(conditionalSpy.callCount).toBe(1);
+    expect(conditionalSpy).toBeCalledTimes(1);
     obj.run = true;
     expect(dummy).toBe('Hi');
-    expect(conditionalSpy.callCount).toBe(2);
+    expect(conditionalSpy).toBeCalledTimes(2);
     obj.prop = 'World';
     expect(dummy).toBe('World');
-    expect(conditionalSpy.callCount).toBe(3);
+    expect(conditionalSpy).toBeCalledTimes(3);
   });
 
   it('should discover new branches when running manually', () => {
@@ -478,19 +555,19 @@ describe('observe', () => {
     let dummy: string = '';
     const obj = observable({ prop: 'value', run: true });
 
-    const conditionalSpy = spy(() => {
+    const conditionalSpy = jest.fn(() => {
       dummy = obj.run ? obj.prop : 'other';
     });
     watch(conditionalSpy);
 
     expect(dummy).toBe('value');
-    expect(conditionalSpy.callCount).toBe(1);
+    expect(conditionalSpy).toBeCalledTimes(1);
     obj.run = false;
     expect(dummy).toBe('other');
-    expect(conditionalSpy.callCount).toBe(2);
+    expect(conditionalSpy).toBeCalledTimes(2);
     obj.prop = 'value2';
     expect(dummy).toBe('other');
-    expect(conditionalSpy.callCount).toBe(2);
+    expect(conditionalSpy).toBeCalledTimes(2);
   });
 
   it('should not run multiple times for a single mutation', () => {
@@ -549,15 +626,15 @@ describe('observe', () => {
 describe('options', () => {
   describe('lazy', () => {
     it('should not run the passed function, if set to true', () => {
-      const fnSpy = spy(() => {});
+      const fnSpy = jest.fn(() => {});
       lazyWatch(fnSpy);
-      expect(fnSpy.callCount).toBe(0);
+      expect(fnSpy).toBeCalledTimes(0);
     });
 
     it('should default to false', () => {
-      const fnSpy = spy(() => {});
+      const fnSpy = jest.fn(() => {});
       watch(fnSpy);
-      expect(fnSpy.callCount).toBe(1);
+      expect(fnSpy).toBeCalledTimes(1);
     });
   });
 

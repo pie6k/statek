@@ -1,38 +1,37 @@
 import { observable, watch } from '@statek/core/lib';
-import { spy } from './utils';
 
 describe('unobserve', () => {
   it('should unobserve the observed function', () => {
     let dummy;
     const counter = observable({ num: 0 });
-    const counterSpy = spy(() => (dummy = counter.num));
+    const counterSpy = jest.fn(() => (dummy = counter.num));
     const stop = watch(counterSpy);
 
-    expect(counterSpy.callCount).toBe(1);
+    expect(counterSpy).toBeCalledTimes(1);
     // @ts-expect-error
     counter.num = 'Hello';
-    expect(counterSpy.callCount).toBe(2);
+    expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
     stop();
     // @ts-expect-error
     counter.num = 'World';
-    expect(counterSpy.callCount).toBe(2);
+    expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
   });
 
   it('should unobserve when the same key is used multiple times', () => {
     let dummy;
     const user = observable({ name: { name: 'Bob' } });
-    const nameSpy = spy(() => (dummy = user.name.name));
+    const nameSpy = jest.fn(() => (dummy = user.name.name));
     const stop = watch(nameSpy);
 
-    expect(nameSpy.callCount).toBe(1);
+    expect(nameSpy).toBeCalledTimes(1);
     user.name.name = 'Dave';
-    expect(nameSpy.callCount).toBe(2);
+    expect(nameSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Dave');
     stop();
     user.name.name = 'Ann';
-    expect(nameSpy.callCount).toBe(2);
+    expect(nameSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Dave');
   });
 
@@ -68,18 +67,18 @@ describe('unobserve', () => {
   it('should have the same effect, when called multiple times', () => {
     let dummy;
     const counter = observable<any>({ num: 0 });
-    const counterSpy = spy(() => (dummy = counter.num));
+    const counterSpy = jest.fn(() => (dummy = counter.num));
     const stop = watch(counterSpy);
 
-    expect(counterSpy.callCount).toBe(1);
+    expect(counterSpy).toBeCalledTimes(1);
     counter.num = 'Hello';
-    expect(counterSpy.callCount).toBe(2);
+    expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
     stop();
     stop();
     stop();
     counter.num = 'World';
-    expect(counterSpy.callCount).toBe(2);
+    expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
   });
 });

@@ -1,5 +1,4 @@
 import { observable, watch, getObservableRaw } from '@statek/core/lib';
-import { spy } from '../utils';
 
 describe('WeakSet', () => {
   it('should be a proper JS WeakSet', () => {
@@ -35,23 +34,23 @@ describe('WeakSet', () => {
     let dummy;
     const value = {};
     const set = observable(new WeakSet());
-    const setSpy = spy(() => (dummy = set.has(value)));
+    const setSpy = jest.fn(() => (dummy = set.has(value)));
     watch(setSpy);
 
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(1);
+    expect(setSpy).toBeCalledTimes(1);
     set.add(value);
     expect(dummy).toBe(true);
-    expect(setSpy.callCount).toBe(2);
+    expect(setSpy).toBeCalledTimes(2);
     set.add(value);
     expect(dummy).toBe(true);
-    expect(setSpy.callCount).toBe(2);
+    expect(setSpy).toBeCalledTimes(2);
     set.delete(value);
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(3);
+    expect(setSpy).toBeCalledTimes(3);
     set.delete(value);
     expect(dummy).toBe(false);
-    expect(setSpy.callCount).toBe(3);
+    expect(setSpy).toBeCalledTimes(3);
   });
 
   it('should not observe raw data', () => {
