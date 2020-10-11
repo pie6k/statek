@@ -1,5 +1,5 @@
-import { observable, observe } from '../src/observable';
-import { ITERATION_KEY } from '../src/observable/internals';
+import { observable, observe } from '@statek/core/lib/observable';
+import { ITERATION_KEY } from '@statek/core/lib/observable/internals';
 import { spy } from './utils';
 
 describe('debugger', () => {

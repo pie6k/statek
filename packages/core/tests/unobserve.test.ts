@@ -1,4 +1,4 @@
-import { observable, observe } from '../src/observable';
+import { observable, observe } from '@statek/core/lib/observable';
 import { spy } from './utils';
 
 describe('unobserve', () => {

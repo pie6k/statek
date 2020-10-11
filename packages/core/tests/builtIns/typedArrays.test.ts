@@ -1,4 +1,4 @@
-import { isObservable, observable, observe } from '../../src/observable';
+import { isObservable, observable, observe } from '@statek/core/lib/observable';
 
 const TypedArrays = [
   Int8Array,

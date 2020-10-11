@@ -3,7 +3,7 @@ import {
   observable,
   observe,
   getObservableRaw,
-} from '../../src/observable';
+} from '@statek/core/lib/observable';
 /* eslint no-unused-expressions: 0, no-unused-vars: 0 */
 
 import { spy } from '../utils';

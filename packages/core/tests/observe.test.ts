@@ -1,7 +1,11 @@
 /**
  * @jest-environment jsdom
  */
-import { observable, observe, getObservableRaw } from '../src/observable';
+import {
+  observable,
+  observe,
+  getObservableRaw,
+} from '@statek/core/lib/observable';
 
 import { spy } from './utils';
 

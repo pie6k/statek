@@ -3,7 +3,7 @@ import {
   observable,
   observe,
   getObservableRaw,
-} from '../src/observable';
+} from '@statek/core/lib/observable';
 
 describe('observable', () => {
   it('should return a new observable when no argument is provided', () => {

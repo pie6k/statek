@@ -12,6 +12,18 @@ import {
 // reactions can call each other and form a call stack
 const watchingReactionsStack: ReactionCallback[] = [];
 
+type CurrentReactionHook = () => ReactionCallback | null;
+
+const currentReactionHooks: CurrentReactionHook[] = [];
+
+export function registerCurrentReactionHook(hook: CurrentReactionHook) {
+  currentReactionHooks.push(hook);
+
+  return function remove() {
+    // TODO implement
+  };
+}
+
 export function callWithReaction(
   reactionCallback: ReactionCallback,
   functionToCall: ReactionCallback,
@@ -95,10 +107,27 @@ function debugOperation(
   getReactionData(reaction).options.debug?.(operation);
 }
 
-export function isAnyReactionRunning() {
-  return watchingReactionsStack.length > 0;
+export function isAnyReactionRunning(): boolean {
+  return !!getCurrentReaction();
 }
 
 export function getCurrentReaction(): ReactionCallback | null {
-  return watchingReactionsStack[watchingReactionsStack.length - 1] ?? null;
+  let foundReaction: ReactionCallback | undefined | null =
+    watchingReactionsStack[watchingReactionsStack.length - 1];
+
+  if (foundReaction) {
+    return foundReaction;
+  }
+
+  if (currentReactionHooks.length > 0) {
+    for (let reactionCreator of currentReactionHooks) {
+      foundReaction = reactionCreator();
+
+      if (foundReaction) {
+        return foundReaction;
+      }
+    }
+  }
+
+  return null;
 }

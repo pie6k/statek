@@ -8,11 +8,11 @@
     ]
   },
   "scripts": {
-    "core": "yarn workspace core",
+    "core": "yarn workspace @statek/core",
     "react": "yarn workspace react",
     "playground": "yarn workspace playground",
     "clean": "del packages/**/lib/**/*.js",
-    "tooling": "yarn workspace tooling"
+    "tooling": "yarn workspace @statek/tooling"
   },
   "devDependencies": {
     "@types/jest": "^26.0.14",
