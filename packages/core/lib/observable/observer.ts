@@ -26,8 +26,6 @@ export function autoRun(
 
   const reactionData = registerNewReaction(reactionCallback, options);
 
-  2;
-
   reactionData.isSubscribed = true;
 
   function unsubscribe() {
