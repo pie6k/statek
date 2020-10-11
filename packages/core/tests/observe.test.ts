@@ -481,12 +481,12 @@ describe('observe', () => {
   });
 
   it('should allow nested reactions', () => {
-    const nums = observable<any>({ num1: 0, num2: 1, num3: 2 });
+    const nums = observable({ num1: 0, num2: 1, num3: 2 });
     const dummy: any = {};
 
-    const childSpy = spy(() => (dummy.num1 = nums.num1));
-    const childReaction = watch(childSpy);
-    const parentSpy = spy(() => {
+    const childSpy = jest.fn(() => (dummy.num1 = nums.num1));
+    const childReaction = lazyWatch(childSpy, childSpy);
+    const parentSpy = jest.fn(() => {
       dummy.num2 = nums.num2;
       childReaction();
       dummy.num3 = nums.num3;
@@ -494,23 +494,23 @@ describe('observe', () => {
     watch(parentSpy);
 
     expect(dummy).toEqual({ num1: 0, num2: 1, num3: 2 });
-    expect(parentSpy.callCount).toBe(1);
-    expect(childSpy.callCount).toBe(2);
+    expect(parentSpy).toBeCalledTimes(1);
+    expect(childSpy).toBeCalledTimes(1);
     // this should only call the childReaction
     nums.num1 = 4;
     expect(dummy).toEqual({ num1: 4, num2: 1, num3: 2 });
-    expect(parentSpy.callCount).toBe(1);
-    expect(childSpy.callCount).toBe(3);
+    expect(parentSpy).toBeCalledTimes(1);
+    expect(childSpy).toBeCalledTimes(2);
     // this calls the parentReaction, which calls the childReaction once
     nums.num2 = 10;
     expect(dummy).toEqual({ num1: 4, num2: 10, num3: 2 });
-    expect(parentSpy.callCount).toBe(2);
-    expect(childSpy.callCount).toBe(4);
+    expect(parentSpy).toBeCalledTimes(2);
+    expect(childSpy).toBeCalledTimes(3);
     // this calls the parentReaction, which calls the childReaction once
     nums.num3 = 7;
     expect(dummy).toEqual({ num1: 4, num2: 10, num3: 7 });
-    expect(parentSpy.callCount).toBe(3);
-    expect(childSpy.callCount).toBe(5);
+    expect(parentSpy).toBeCalledTimes(3);
+    expect(childSpy).toBeCalledTimes(4);
   });
 });
 
@@ -534,15 +534,13 @@ describe('options', () => {
       const counter = observable<any>({ num: 0 });
       const observeSpy = jest.fn(() => counter.num);
       const scheduler = jest.fn(() => {});
-      const stop = watch(observeSpy, { scheduler });
+      watch(observeSpy, { scheduler });
 
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(0);
       counter.num++;
       expect(observeSpy).toBeCalledTimes(1);
       expect(scheduler).toBeCalledTimes(1);
-
-      expect(scheduler).toHaveBeenLastCalledWith(stop);
     });
   });
 
