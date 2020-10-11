@@ -401,6 +401,38 @@ describe('observe', () => {
     expect(reaction()).toBe('Hello');
   });
 
+  it('should inform lazy watch about deps change, but not run it again', () => {
+    let dummy: string = '';
+    const obj = observable({ prop: 'foo' });
+
+    const reaction = jest.fn(() => obj.prop);
+    const depsChangeCallback = jest.fn(() => {});
+    const call = lazyWatch(reaction, depsChangeCallback);
+
+    expect(reaction).toBeCalledTimes(0);
+    expect(depsChangeCallback).toBeCalledTimes(0);
+
+    call();
+
+    expect(reaction).toBeCalledTimes(1);
+    expect(depsChangeCallback).toBeCalledTimes(0);
+
+    obj.prop = 'bar';
+
+    expect(reaction).toBeCalledTimes(1);
+    expect(depsChangeCallback).toBeCalledTimes(1);
+
+    call();
+
+    expect(reaction).toBeCalledTimes(2);
+    expect(depsChangeCallback).toBeCalledTimes(1);
+
+    obj.prop = 'baz';
+
+    expect(reaction).toBeCalledTimes(2);
+    expect(depsChangeCallback).toBeCalledTimes(2);
+  });
+
   it('should discover new branches while running automatically', () => {
     let dummy: string = '';
     const obj = observable({ prop: 'value', run: false });
