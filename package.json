@@ -11,7 +11,8 @@
     "core": "yarn workspace core",
     "react": "yarn workspace react",
     "playground": "yarn workspace playground",
-    "clean": "del packages/**/lib/**/*.js"
+    "clean": "del packages/**/lib/**/*.js",
+    "tooling": "yarn workspace tooling"
   },
   "devDependencies": {
     "@types/jest": "^26.0.14",
@@ -24,6 +25,7 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "ts-jest": "^26.4.1",
+    "ts-node": "^9.0.0",
     "ts-node-dev": "^1.0.0-pre.63",
     "typescript": "^4.0.3"
   }
