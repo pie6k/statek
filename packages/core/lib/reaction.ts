@@ -1,25 +1,28 @@
+import { ReactionScheduler } from './batch';
 import { OperationInfo } from './operations';
-import { ReactionScheduler } from './scheduler';
 
-type ReactionsSet = Set<AnyReactionCallback>;
+type ReactionsSet = Set<ReactionCallback>;
 
-const registeredReactions = new WeakMap<AnyReactionCallback, boolean>();
+export const callbacksReactions = new WeakMap<
+  ReactionCallback,
+  ReactionCallback
+>();
 export const reactionWatchedPropertiesMemberships = new WeakMap<
-  AnyReactionCallback,
+  ReactionCallback,
   Set<ReactionsSet>
 >();
 export const reactionSchedulers = new WeakMap<
-  AnyReactionCallback,
+  ReactionCallback,
   ReactionScheduler
 >();
-export const reactionContext = new WeakMap<AnyReactionCallback, any>();
-export const unsubscribedReactions = new WeakSet<AnyReactionCallback>();
+export const reactionContext = new WeakMap<ReactionCallback, any>();
+export const unsubscribedReactions = new WeakSet<ReactionCallback>();
 export const reactionDebugger = new WeakMap<
-  AnyReactionCallback,
+  ReactionCallback,
   ReactionDebugger
 >();
 
-export function cleanReactionReadData(reaction: AnyReactionCallback) {
+export function cleanReactionReadData(reaction: ReactionCallback) {
   const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
 
   // Iterate over each list in which this reaction is registered.
@@ -33,7 +36,7 @@ export function cleanReactionReadData(reaction: AnyReactionCallback) {
   propsMemberships.clear();
 }
 
-export type AnyReactionCallback = () => void;
+export type ReactionCallback = () => void;
 export type LazyReactionCallback<A extends any[], R> = (...args: A) => R;
 export type ReactionDebugger = (operation: OperationInfo) => {};
 
@@ -43,31 +46,32 @@ export interface ReactionOptions {
   context?: any;
 }
 
-export function isReaction(input: AnyReactionCallback) {
-  return registeredReactions.has(input);
+export function hasCallbackReaction(input: ReactionCallback) {
+  return callbacksReactions.has(input);
 }
 
 export function registerNewReaction(
-  callback: AnyReactionCallback,
+  reaction: ReactionCallback,
+  originalCallback: ReactionCallback,
   options: ReactionOptions = {},
 ) {
-  if (registeredReactions.has(callback)) {
+  if (callbacksReactions.has(reaction)) {
     throw new Error('This reactions is already registered');
   }
 
-  registeredReactions.set(callback, true);
+  callbacksReactions.set(originalCallback, reaction);
 
   if (options.context) {
-    reactionContext.set(callback, options.context);
+    reactionContext.set(reaction, options.context);
   }
 
   if (options.scheduler) {
-    reactionSchedulers.set(callback, options.scheduler);
+    reactionSchedulers.set(reaction, options.scheduler);
   }
 
   if (options.debug) {
-    reactionDebugger.set(callback, options.debug);
+    reactionDebugger.set(reaction, options.debug);
   }
 
-  reactionWatchedPropertiesMemberships.set(callback, new Set());
+  reactionWatchedPropertiesMemberships.set(reaction, new Set());
 }

@@ -1,29 +1,30 @@
 import {
   cleanReactionReadData,
-  isReaction,
-  AnyReactionCallback,
+  hasCallbackReaction,
+  ReactionCallback,
   ReactionOptions,
   registerNewReaction,
   unsubscribedReactions,
   LazyReactionCallback,
+  callbacksReactions,
 } from './reaction';
-import { callWithReaction } from './reactionRunner';
+import { callWithReactionsStack } from './reactionsStack';
 
 export function watch(
-  callback: AnyReactionCallback,
+  callback: ReactionCallback,
   options: ReactionOptions = {},
 ): () => void {
-  if (isReaction(callback)) {
+  if (hasCallbackReaction(callback)) {
     return function unsubscribe() {
       cleanReactionReadData(callback);
       unsubscribedReactions.add(reactionCallback);
     };
   }
   function reactionCallback() {
-    return callWithReaction(reactionCallback, callback);
+    return callWithReactionsStack(reactionCallback, callback);
   }
 
-  registerNewReaction(reactionCallback, options);
+  registerNewReaction(reactionCallback, callback, options);
 
   unsubscribedReactions.delete(reactionCallback);
 
@@ -32,6 +33,7 @@ export function watch(
   function unsubscribe() {
     cleanReactionReadData(reactionCallback);
     unsubscribedReactions.add(reactionCallback);
+    callbacksReactions.delete(callback);
   }
 
   return unsubscribe;
@@ -57,10 +59,10 @@ export function lazyWatch<A extends any[], R>(
         `Cannot call lazyWatch callback after it has unsubscribed`,
       );
     }
-    return callWithReaction(reactionCallback, callback);
+    return callWithReactionsStack(reactionCallback, callback);
   }
 
-  registerNewReaction(reactionCallback, {
+  registerNewReaction(reactionCallback, callback, {
     context,
     scheduler: onObservedChange,
   });

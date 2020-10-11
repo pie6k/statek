@@ -1,11 +1,11 @@
 export const ITERATION_KEY = Symbol('iteration key');
+import { enqueueReactionCall } from './batch';
 import {
-  reactionWatchedPropertiesMemberships,
-  AnyReactionCallback,
-  reactionSchedulers,
+  ReactionCallback,
   reactionDebugger,
+  reactionWatchedPropertiesMemberships,
 } from './reaction';
-import { getCurrentReaction } from './reactionRunner';
+import { getCurrentReaction } from './reactionsStack';
 
 type TargetKey = string | number | Symbol | undefined;
 
@@ -28,7 +28,7 @@ export interface ReadOperationInfo {
 
 export type OperationInfo = ReadOperationInfo | MutationOperationInfo;
 
-type ReactionsMapForKeys = Map<TargetKey, Set<AnyReactionCallback>>;
+type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
 
 const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
 
@@ -38,7 +38,7 @@ export function initializeObjectReadOperationsRegistry(rawObject: object) {
 }
 
 export function registerReactionReadOperation(
-  reaction: AnyReactionCallback,
+  reaction: ReactionCallback,
   readOperation: ReadOperationInfo,
 ) {
   if (readOperation.type === 'iterate') {
@@ -67,7 +67,7 @@ export function registerReactionReadOperation(
 export function getMutationImpactedReactions(
   mutationOperation: MutationOperationInfo,
 ) {
-  const impactedReactions = new Set<AnyReactionCallback>();
+  const impactedReactions = new Set<ReactionCallback>();
   const targetKeysReactionsMap = readOperationsRegistry.get(
     mutationOperation.target,
   )!;
@@ -129,27 +129,13 @@ export function handleObservableMutationOperation(
   const impactedReactions = getMutationImpactedReactions(mutationOperation);
 
   impactedReactions.forEach(reaction => {
-    enqueueReactionCall(mutationOperation, reaction);
+    debugOperation(reaction, mutationOperation);
+    enqueueReactionCall(reaction);
   });
 }
 
-function enqueueReactionCall(
-  operation: MutationOperationInfo,
-  reaction: AnyReactionCallback,
-) {
-  debugOperation(reaction, operation);
-
-  const scheduler = reactionSchedulers.get(reaction);
-  if (scheduler) {
-    scheduler(reaction);
-    return;
-  }
-
-  reaction();
-}
-
 function debugOperation(
-  reaction: AnyReactionCallback,
+  reaction: ReactionCallback,
   operation: MutationOperationInfo | ReadOperationInfo,
 ) {
   reactionDebugger.get(reaction)?.(operation);

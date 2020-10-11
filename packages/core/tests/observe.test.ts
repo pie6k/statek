@@ -65,6 +65,15 @@ describe('observe', () => {
     expect(dummy2).toBe(1);
   });
 
+  it('should not call reaction multiple times if watched multiple times', () => {
+    const counter = observable({ num: 0 });
+    const reaction = jest.fn(() => counter.num);
+    watch(reaction);
+    watch(reaction);
+
+    expect(reaction).toBeCalledTimes(1);
+  });
+
   it('should observe nested properties', () => {
     let dummy;
     const counter = observable<any>({ nested: { num: 0 } });
@@ -510,6 +519,37 @@ describe('observe', () => {
     expect(changeCallback).toBeCalledTimes(1);
   });
 
+  it('lazy callback could be subscribed again after unsubscribing', () => {
+    const obj = observable({ num: 0 });
+    const reaction = jest.fn(() => obj.num);
+    const callback = jest.fn();
+    const call = lazyWatch(reaction, callback);
+
+    call();
+
+    expect(reaction).toBeCalledTimes(1);
+
+    obj.num++;
+
+    expect(callback).toBeCalledTimes(1);
+
+    call.unsubscribe();
+
+    obj.num++;
+
+    expect(callback).toBeCalledTimes(1);
+
+    const callAgain = lazyWatch(reaction, callback);
+
+    callAgain();
+
+    expect(reaction).toBeCalledTimes(2);
+
+    obj.num++;
+
+    expect(callback).toBeCalledTimes(2);
+  });
+
   it('should discover new branches while running automatically', () => {
     let dummy: string = '';
     const obj = observable({ prop: 'value', run: false });
@@ -640,8 +680,10 @@ describe('options', () => {
 
   describe('scheduler', () => {
     it('should call the scheduler function with the reaction instead of running it sync', () => {
-      const counter = observable<any>({ num: 0 });
-      const observeSpy = jest.fn(() => counter.num);
+      const counter = observable({ num: 0 });
+      const observeSpy = jest.fn(() => {
+        counter.num;
+      });
       const scheduler = jest.fn(() => {});
       watch(observeSpy, { scheduler });
 

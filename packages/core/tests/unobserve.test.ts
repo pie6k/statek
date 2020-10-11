@@ -81,4 +81,25 @@ describe('unobserve', () => {
     expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
   });
+
+  it('should restore unobserved reaction if watch called again', () => {
+    const counter = observable({ num: 0 });
+    const counterSpy = jest.fn(() => counter.num);
+    const stop = watch(counterSpy);
+
+    expect(counterSpy).toBeCalledTimes(1);
+    counter.num++;
+    expect(counterSpy).toBeCalledTimes(2);
+    stop();
+    counter.num++;
+    expect(counterSpy).toBeCalledTimes(2);
+
+    watch(counterSpy);
+
+    expect(counterSpy).toBeCalledTimes(3);
+
+    counter.num++;
+
+    expect(counterSpy).toBeCalledTimes(4);
+  });
 });
