@@ -51,7 +51,7 @@ export function wrapObjectInProxy<T extends object>(input: T): T {
     return input;
   }
 
-  return new Proxy(
+  return new Proxy<any>(
     input,
     supportedBuiltInTypes.get(input.constructor) ?? basicProxyHandlers,
   );

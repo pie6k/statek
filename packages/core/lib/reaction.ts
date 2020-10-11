@@ -1,31 +1,40 @@
 import { OperationInfo } from './operations';
 import { ReactionScheduler } from './scheduler';
 
-type TargetKey = string | number | Symbol | undefined;
+type ReactionsSet = Set<ReactionCallback>;
+
+const registeredReactions = new WeakMap<ReactionCallback, boolean>();
+export const reactionWatchedPropertiesMemberships = new WeakMap<
+  ReactionCallback,
+  Set<ReactionsSet>
+>();
+export const reactionSchedulers = new WeakMap<
+  ReactionCallback,
+  ReactionScheduler
+>();
+export const reactionContext = new WeakMap<ReactionCallback, any>();
+export const unsubscribedReactions = new WeakSet<ReactionCallback>();
+export const reactionDebugger = new WeakMap<
+  ReactionCallback,
+  ReactionDebugger
+>();
 
 export function cleanReactionReadData(reaction: ReactionCallback) {
-  const reactionData = getReactionData(reaction);
+  const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
 
   // Iterate over each list in which this reaction is registered.
   // Each list represents single key of some proxy object that this reaction readed from.
-  reactionData.registeredInReadLists.forEach(targetPropReactionsGroup => {
+  propsMemberships.forEach(propReactions => {
     // Remove this reaction from such list.
-    targetPropReactionsGroup.delete(reaction);
+    propReactions.delete(reaction);
   });
 
   // As we're removed from each list - clear links that pointed to them.
-  reactionData.registeredInReadLists.clear();
+  propsMemberships.clear();
 }
 
 export type ReactionCallback = () => void;
-
-interface ReactionData {
-  options: ReactionOptions;
-  registeredInReadLists: Set<Set<ReactionCallback>>;
-  isSubscribed: boolean;
-}
-
-const registeredReactionsMap = new WeakMap<ReactionCallback, ReactionData>();
+export type ReactionDebugger = (operation: OperationInfo) => {};
 
 export interface ReactionOptions {
   scheduler?: ReactionScheduler;
@@ -35,7 +44,7 @@ export interface ReactionOptions {
 }
 
 export function isReaction(input: ReactionCallback) {
-  return registeredReactionsMap.has(input);
+  return registeredReactions.has(input);
 }
 
 export type Callback<A extends any[], R> = (...args: A) => R;
@@ -43,27 +52,24 @@ export type Callback<A extends any[], R> = (...args: A) => R;
 export function registerNewReaction(
   callback: ReactionCallback,
   options: ReactionOptions = {},
-): ReactionData {
-  if (registeredReactionsMap.has(callback)) {
+) {
+  if (registeredReactions.has(callback)) {
     throw new Error('This reactions is already registered');
   }
 
-  const reactionData: ReactionData = {
-    options,
-    registeredInReadLists: new Set(),
-    isSubscribed: false,
-  };
-  registeredReactionsMap.set(callback, reactionData);
+  registeredReactions.set(callback, true);
 
-  return reactionData;
-}
-
-export function getReactionData(callback: ReactionCallback): ReactionData {
-  const data = registeredReactionsMap.get(callback);
-
-  if (!data) {
-    throw new Error('Callback is not an reaction');
+  if (options.context) {
+    reactionContext.set(callback, options.context);
   }
 
-  return data;
+  if (options.scheduler) {
+    reactionSchedulers.set(callback, options.scheduler);
+  }
+
+  if (options.debug) {
+    reactionDebugger.set(callback, options.debug);
+  }
+
+  reactionWatchedPropertiesMemberships.set(callback, new Set());
 }

@@ -1,7 +1,7 @@
 export const observableToRawMap = new WeakMap();
 export const rawToObservableMap = new WeakMap();
 
-import { initializeObjectOperationsRegistry } from './operations';
+import { initializeObjectReadOperationsRegistry } from './operations';
 import { wrapObjectInProxy, canWrapInProxy } from './proxy';
 
 import { isAnyReactionRunning } from './reactionRunner';
@@ -57,7 +57,7 @@ function createObservable<T extends object>(rawObject: T): T {
   rawToObservableMap.set(rawObject, observable);
   observableToRawMap.set(observable, rawObject);
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections
-  initializeObjectOperationsRegistry(rawObject);
+  initializeObjectReadOperationsRegistry(rawObject);
 
   return observable;
 }

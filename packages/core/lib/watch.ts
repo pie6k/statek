@@ -4,6 +4,7 @@ import {
   ReactionCallback,
   ReactionOptions,
   registerNewReaction,
+  unsubscribedReactions,
 } from './reaction';
 import { callWithReaction } from './reactionRunner';
 
@@ -22,13 +23,13 @@ export function watch(
     return callWithReaction(reactionCallback, callback);
   }
 
-  const reactionData = registerNewReaction(reactionCallback, options);
+  registerNewReaction(reactionCallback, options);
 
-  reactionData.isSubscribed = true;
+  unsubscribedReactions.delete(reactionCallback);
 
   function unsubscribe() {
     cleanReactionReadData(reactionCallback);
-    reactionData.isSubscribed = false;
+    unsubscribedReactions.add(reactionCallback);
   }
 
   reactionCallback.unsubscribe = unsubscribe;

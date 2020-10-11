@@ -1,11 +1,13 @@
 export const ITERATION_KEY = Symbol('iteration key');
-import { getReactionData, ReactionCallback } from './reaction';
+import {
+  reactionWatchedPropertiesMemberships,
+  ReactionCallback,
+  reactionSchedulers,
+  reactionDebugger,
+} from './reaction';
 import { getCurrentReaction } from './reactionRunner';
 
 type TargetKey = string | number | Symbol | undefined;
-type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
-
-const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
 
 export type MutationOperationType = 'add' | 'delete' | 'set' | 'clear';
 
@@ -26,7 +28,11 @@ export interface ReadOperationInfo {
 
 export type OperationInfo = ReadOperationInfo | MutationOperationInfo;
 
-export function initializeObjectOperationsRegistry(rawObject: object) {
+type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
+
+const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
+
+export function initializeObjectReadOperationsRegistry(rawObject: object) {
   // this will be used to save (obj.key -> reaction) connections later
   readOperationsRegistry.set(rawObject, new Map());
 }
@@ -54,10 +60,7 @@ export function registerReactionReadOperation(
   // save the fact that the key is used by the reaction during its current run
   if (!reactionsForKey.has(reaction)) {
     reactionsForKey.add(reaction);
-
-    const reactionData = getReactionData(reaction);
-
-    reactionData.registeredInReadLists.add(reactionsForKey);
+    reactionWatchedPropertiesMemberships.get(reaction)!.add(reactionsForKey);
   }
 }
 
@@ -134,11 +137,11 @@ function enqueueReactionCall(
   operation: MutationOperationInfo,
   reaction: ReactionCallback,
 ) {
-  const { options } = getReactionData(reaction);
   debugOperation(reaction, operation);
 
-  if (options.scheduler) {
-    options.scheduler(reaction);
+  const scheduler = reactionSchedulers.get(reaction);
+  if (scheduler) {
+    scheduler(reaction);
     return;
   }
 
@@ -149,5 +152,5 @@ function debugOperation(
   reaction: ReactionCallback,
   operation: MutationOperationInfo | ReadOperationInfo,
 ) {
-  getReactionData(reaction).options.debug?.(operation);
+  reactionDebugger.get(reaction)?.(operation);
 }
