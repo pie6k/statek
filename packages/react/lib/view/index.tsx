@@ -10,6 +10,7 @@ import {
   useMemo,
   useReducer,
 } from 'react';
+import { isClassComponent, isFunctionalComponent } from '../componentTypes';
 import { reactScheduler } from '../scheduler';
 import { renderStatus } from './renderState';
 export {
@@ -27,27 +28,7 @@ type ComponentPropsComparator<
   ? (oldValue: P, newValue: P) => boolean
   : never;
 
-const COMPONENT = Symbol('owner component');
-
 const registeredViewComponents = new WeakSet<ComponentType<any>>();
-
-type ClassStateBase = {
-  [COMPONENT]: any;
-};
-
-function isFunctionalComponent<P>(
-  Component: ComponentType<P>,
-): Component is FunctionComponent<P> {
-  if (typeof Component !== 'function') {
-    return false;
-  }
-
-  if (Component?.prototype?.isReactComponent) {
-    return false;
-  }
-
-  return true;
-}
 
 function createFunctionalView<C extends FunctionComponent<any>>(
   BaseComponent: C,
@@ -92,14 +73,22 @@ function createFunctionalView<C extends FunctionComponent<any>>(
   return (memo(ReactiveFunctionalComponent, memoCompareProps) as any) as C;
 }
 
-const methodsToCopy = [
+const methodsToBind = [
   'componentDidCatch',
   'componentDidMount',
   'componentDidUpdate',
-  'componentWillUnmount',
+  // 'componentWillUnmount',
   'shouldComponentUpdate',
   'getSnapshotBeforeUpdate',
 ] as const;
+
+const staticMethodsToBind = [
+  'getDerivedStateFromProps',
+  'getDerivedStateFromError',
+  'contextType',
+] as const;
+
+const unsubscribeSymbol = Symbol('unsubscribe');
 
 function createClassView<C extends ComponentClass<any, any>>(
   BaseComponent: C,
@@ -108,117 +97,66 @@ function createClassView<C extends ComponentClass<any, any>>(
 
   type E = keyof Component;
 
-  // class ReactiveClassComponent extends Component<Props> {
-  //   constructor(props) {
-  //     super(props);
+  class ReactiveClassComponent extends Component<Props> {
+    static getDerivedStateFromProps: any;
+    static getDerivedStateFromError: any;
+    static contextType: any;
 
-  //     this.render = observe(BaseComponent.prototype.render, {
-  //       scheduler: () => {
-  //         this.forceUpdate();
-  //       },
-  //       lazy: true,
-  //     });
+    private [unsubscribeSymbol]: () => void;
 
-  //     methodsToCopy.forEach(methodName => {
-  //       if (BaseComponent.prototype[methodName]) {
-  //         this[methodName] = BaseComponent.prototype[methodName].bind(this);
-  //       }
-  //     });
+    constructor(props: Props, context: any) {
+      super(props);
+      // super(props);
+      const baseInstance: any = BaseComponent.apply(this, [props, context]);
 
-  //     this.componentDidMount = BaseComponent.prototype.componentDidMount.bind(
-  //       this,
-  //     );
-  //   }
-  // }
-  // a HOC which overwrites render, shouldComponentUpdate and componentWillUnmount
-  // it decides when to run the new reactive methods and when to proxy to the original methods
-  throw new Error('Not implemented');
-  // class ReactiveClassComponent extends BaseComponent<P, ClassStateBase> {
-  //   constructor(props: P) {
-  //     super(props);
+      this.state = baseInstance.state;
 
-  //     const initialState: ClassStateBase = {
-  //       [COMPONENT]: this,
-  //     };
+      const reactiveRender = lazyWatch(
+        BaseComponent.prototype.render,
+        () => {
+          reactScheduler(() => {
+            this.forceUpdate();
+          });
+        },
+        this,
+      );
 
-  //     // const initialState: S & ClassStateBase
+      this[unsubscribeSymbol] = reactiveRender.unsubscribe;
 
-  //     // @ts-ignore
-  //     this.state = initialState;
+      // @ts-ignore
+      this.render = reactiveRender;
 
-  //     // create a reactive render for the component
-  //     this.render = observe(this.render, {
-  //       scheduler: () => this.setState({}),
-  //       lazy: true,
-  //     });
-  //   }
+      methodsToBind.forEach(methodToBindName => {
+        const existingMethod =
+          baseInstance[methodToBindName] ||
+          BaseComponent.prototype[methodToBindName];
 
-  //   render() {
-  //     renderStatus.currentRenderingReactiveComponent = BaseComponent;
-  //     try {
-  //       return super.render();
-  //     } finally {
-  //       renderStatus.currentRenderingReactiveComponent = null;
-  //     }
-  //   }
+        if (existingMethod) {
+          this[methodToBindName] = existingMethod.bind(this);
+        }
+      });
 
-  //   // react should trigger updates on prop changes, while easyState handles store changes
-  //   shouldComponentUpdate(
-  //     nextProps: P,
-  //     nextState: ClassStateBase,
-  //     nextContext: any,
-  //   ) {
-  //     const { props, state } = this;
+      this.componentWillUnmount = () => {
+        this[unsubscribeSymbol]();
+        const unmountCallback =
+          baseInstance.componentWillUnmount ||
+          BaseComponent.prototype.componentWillUnmount;
 
-  //     // respect the case when the user defines a shouldComponentUpdate
-  //     if (super.shouldComponentUpdate) {
-  //       return super.shouldComponentUpdate(nextProps, nextState, nextContext);
-  //     }
+        if (unmountCallback) {
+          unmountCallback.apply(this);
+        }
+      };
+    }
+  }
 
-  //     // return true if it is a reactive render or state changes
-  //     if (state !== nextState) {
-  //       return true;
-  //     }
+  staticMethodsToBind.forEach(staticMethodToBindName => {
+    if (BaseComponent[staticMethodToBindName]) {
+      ReactiveClassComponent[staticMethodToBindName] =
+        BaseComponent[staticMethodToBindName];
+    }
+  });
 
-  //     // the component should update if any of its props shallowly changed value
-  //     const keys = typedKeys(props);
-  //     const nextKeys = typedKeys(nextProps);
-
-  //     return (
-  //       nextKeys.length !== keys.length ||
-  //       nextKeys.some(key => props[key] !== nextProps[key])
-  //     );
-  //   }
-
-  //   // add a custom deriveStoresFromProps lifecyle method
-  //   static getDerivedStateFromProps(props: P, state: ClassStateBase) {
-  //     // @ts-ignore
-  //     if (super.deriveStoresFromProps) {
-  //       // inject all local stores and let the user mutate them directly
-  //       const stores = mapStateToStores(state);
-  //       // @ts-ignore
-  //       super.deriveStoresFromProps(props, ...stores);
-  //     }
-  //     // respect user defined getDerivedStateFromProps
-  //     // @ts-ignore
-  //     if (super.getDerivedStateFromProps) {
-  //       // @ts-ignore
-  //       return super.getDerivedStateFromProps(props, state);
-  //     }
-  //     return null;
-  //   }
-
-  //   componentWillUnmount() {
-  //     // call user defined componentWillUnmount
-  //     if (super.componentWillUnmount) {
-  //       super.componentWillUnmount();
-  //     }
-  //     // clean up memory used by Easy State
-  //     unobserve(this.render as Reaction<any, any>);
-  //   }
-  // }
-
-  // return ReactiveClassComponent;
+  return (ReactiveClassComponent as any) as C;
 }
 
 export function view<C extends ComponentType<any>>(
@@ -236,9 +174,11 @@ export function view<C extends ComponentType<any>>(
       return createFunctionalView(Comp, memoCompareProps) as C;
     }
 
-    throw new Error('Not implemented');
+    if (isClassComponent(Comp)) {
+      return createClassView(Comp) as C;
+    }
 
-    // return classView(Comp);
+    throw new Error('Incorrect input provided to view function');
   }
 
   const ReactiveComponent = getReactiveComponent();
@@ -250,10 +190,6 @@ export function view<C extends ComponentType<any>>(
   registeredViewComponents.add(ReactiveComponent);
 
   return ReactiveComponent;
-}
-
-function typedKeys<O>(input: O): Array<keyof O> {
-  return Object.keys(input) as Array<keyof O>;
 }
 
 const updateReducer = (num: number): number => (num + 1) % 1_000_000;
