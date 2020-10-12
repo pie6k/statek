@@ -12,6 +12,9 @@ type CurrentReactionHook = () => ReactionCallback | null;
 
 const currentReactionHooks: CurrentReactionHook[] = [];
 
+/**
+ * @internal
+ */
 export function registerCurrentReactionHook(hook: CurrentReactionHook) {
   currentReactionHooks.push(hook);
 

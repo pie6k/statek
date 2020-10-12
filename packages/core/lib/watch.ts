@@ -3,12 +3,13 @@ import {
   hasCallbackReaction,
   ReactionCallback,
   ReactionOptions,
-  registerNewReaction,
+  registerReaction,
   unsubscribedReactions,
   LazyReactionCallback,
   callbacksReactions,
 } from './reaction';
 import { callWithReactionsStack } from './reactionsStack';
+import { deepRead } from './utils';
 
 export function watch(
   callback: ReactionCallback,
@@ -24,7 +25,7 @@ export function watch(
     return callWithReactionsStack(reactionCallback, callback);
   }
 
-  registerNewReaction(reactionCallback, callback, options);
+  registerReaction(reactionCallback, callback, options);
 
   unsubscribedReactions.delete(reactionCallback);
 
@@ -37,6 +38,17 @@ export function watch(
   }
 
   return unsubscribe;
+}
+
+export function watchEager(
+  callback: ReactionCallback,
+  observable: object,
+  options: ReactionOptions = {},
+): () => void {
+  return watch(() => {
+    deepRead(observable);
+    callback();
+  }, options);
 }
 
 export type ObseringReactionCallback<A extends any[], R> = LazyReactionCallback<
@@ -62,7 +74,7 @@ export function lazyWatch<A extends any[], R>(
     return callWithReactionsStack(reactionCallback, callback);
   }
 
-  registerNewReaction(reactionCallback, callback, {
+  registerReaction(reactionCallback, callback, {
     context,
     scheduler: onObservedChange,
   });

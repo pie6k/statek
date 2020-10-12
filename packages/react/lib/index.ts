@@ -1,8 +1,5 @@
-export { getObservableRaw } from './observable';
-export { createStore as store, storeSelector } from './store';
+export { createStore, storeSelector, StoreCreator } from './store';
 export { view } from './view';
-export { autoEffect } from './autoEffect';
-export { batch } from './batch';
 export {
   useStoreEffect,
   useStatefulStoreEffect,
@@ -10,3 +7,4 @@ export {
   useDebouncedStoreSelector,
 } from './hooks';
 export { createContextStore } from './context';
+export { useObserve } from './useObserve';

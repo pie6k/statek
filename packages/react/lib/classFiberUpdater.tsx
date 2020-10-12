@@ -10,27 +10,24 @@ export function createForceUpdateByFiber() {
    */
 
   let forceUpdate: ((fiber: ClassFiber) => void) | null = null;
-  class CaptureForceUpdate extends Component {
-    render() {
-      /**
-       * Each class component has such option that allows passing
-       * instance of component to perform ForceUpdate firber update
-       */
-      // @ts-ignore
-      forceUpdate = this.updater.enqueueForceUpdate;
-      return null;
-    }
+
+  function captureForceUpdate(fiber: ClassFiber) {
+    forceUpdate = (fiber: ClassFiber) => {
+      fiber.stateNode.updater.enqueueForceUpdate({
+        _reactInternalFiber: fiber,
+      });
+    };
   }
-
-  // let's render
-  const holder = document.createElement('div');
-
-  render(<CaptureForceUpdate />, holder);
 
   // now we have this force update function picked
 
   // let's prepare function that accepts fiber instance
-  function performForceUpdateByFiber(fiber: ClassFiber) {
+  function performForceUpdateByClassFiber(fiber: ClassFiber) {
+    if (!forceUpdate) {
+      captureForceUpdate(fiber);
+    }
+
+    forceUpdate!(fiber);
     /**
      * enqueueForceUpdate requires instance to be passed,
      * but instance is only used to get corresponding fiber.
@@ -38,9 +35,10 @@ export function createForceUpdateByFiber() {
      * Under the hood it expects fiber to be under ._reactInternalFiber
      * key. So let's prepare such object
      */
-
-    forceUpdate!({ _reactInternalFiber: fiber });
+    // forceUpdate!({ _reactInternalFiber: fiber });
   }
 
-  return performForceUpdateByFiber;
+  return performForceUpdateByClassFiber;
 }
+
+export const updateClassComponentByFiber = createForceUpdateByFiber();

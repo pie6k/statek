@@ -1,33 +1,13 @@
+import { createAsyncScheduler, watch, ReactionCallback } from '@statek/core';
 import { unstable_batchedUpdates } from 'react-dom';
+import { act } from 'react-test-renderer';
 
-const taskQueue = new Set<() => any>();
+export const reactScheduler = createAsyncScheduler(task => {
+  act(() => {
+    unstable_batchedUpdates(task);
+  });
+});
 
-export const scheduler = {
-  isOn: false,
-  add(task: () => any) {
-    if (scheduler.isOn) {
-      taskQueue.add(task);
-    } else {
-      task();
-    }
-  },
-  flush() {
-    if (!taskQueue.size) {
-      return;
-    }
-
-    const tasks = Array.from(taskQueue);
-    taskQueue.clear();
-    setTimeout(() => {
-      unstable_batchedUpdates(() => {
-        tasks.forEach(task => task());
-      });
-    }, 0);
-  },
-  on() {
-    scheduler.isOn = true;
-  },
-  off() {
-    scheduler.isOn = false;
-  },
-};
+export function reactWatch(callback: ReactionCallback) {
+  return watch(callback, { scheduler: reactScheduler });
+}

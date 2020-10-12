@@ -50,7 +50,14 @@ export function hasCallbackReaction(input: ReactionCallback) {
   return callbacksReactions.has(input);
 }
 
-export function registerNewReaction(
+export function applyReaction(reaction: ReactionCallback) {
+  reaction.apply(reactionContext.get(reaction));
+}
+
+/**
+ * @internal
+ */
+export function registerReaction(
   reaction: ReactionCallback,
   originalCallback: ReactionCallback,
   options: ReactionOptions = {},

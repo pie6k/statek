@@ -69,24 +69,16 @@ export function batchifyMethods<T>(obj: T, methods?: Array<keyof T>) {
   return obj;
 }
 
-///////////////
+export function batchifyBuiltins() {
+  batchifyMethodsArguments(globalObj, [
+    'setTimeout',
+    'setInterval',
+    'requestAnimationFrame',
+    // @ts-ignore
+    'requestIdleCallback',
+  ]);
 
-// batched obj.addEventListener(cb) like callbacks
-
-// do a sync batching for the most common task sources
-// this should be removed when React's own batching is improved in the future
-
-// batch timer functions
-batchifyMethodsArguments(globalObj, [
-  'setTimeout',
-  'setInterval',
-  'requestAnimationFrame',
-  // @ts-ignore
-  'requestIdleCallback',
-]);
-
-if (globalObj.Promise) {
-  batchifyMethodsArguments(Promise.prototype, ['then', 'catch']);
+  if (globalObj.Promise) {
+    batchifyMethodsArguments(Promise.prototype, ['then', 'catch']);
+  }
 }
-
-// HTTP event handlers are usually wrapped by Promises, which is covered above

@@ -1,5 +1,5 @@
 export const ITERATION_KEY = Symbol('iteration key');
-import { enqueueReactionCall } from './batch';
+import { requestReactionCallNeeded } from './batch';
 import {
   ReactionCallback,
   reactionDebugger,
@@ -130,7 +130,7 @@ export function handleObservableMutationOperation(
 
   impactedReactions.forEach(reaction => {
     debugOperation(reaction, mutationOperation);
-    enqueueReactionCall(reaction);
+    requestReactionCallNeeded(reaction);
   });
 }
 

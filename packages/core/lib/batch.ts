@@ -1,11 +1,11 @@
 import { ReactionCallback, reactionSchedulers } from './reaction';
-export type ReactionScheduler = (reaction: ReactionCallback) => void;
+import { getDefaultScheduler } from './schedulers';
+export type ReactionScheduler = (
+  reaction: ReactionCallback,
+) => Promise<void> | void;
+
 const batchStack: boolean[] = [];
 
-// this runs the passed function and delays all re-renders
-// until the function is finished running
-// react renders are batched by unstable_batchedUpdates
-// autoEffects and other custom reactions are batched by our scheduler
 export function batch(fn: (args: any) => void, ctx?: any, args?: any) {
   batchStack.push(true);
 
@@ -15,23 +15,23 @@ export function batch(fn: (args: any) => void, ctx?: any, args?: any) {
     batchStack.pop();
 
     if (batchStack.length === 0) {
-      reactionsBatchScheduler.flush();
+      reactionsBatchQueue.flush();
     }
   }
 }
 
-export function enqueueReactionCall(reaction: ReactionCallback) {
+export function requestReactionCallNeeded(reaction: ReactionCallback) {
   if (batchStack.length === 0) {
-    performReactionCall(reaction);
+    sendReactionToScheduler(reaction);
     return;
   }
 
-  reactionsBatchScheduler.add(reaction);
+  reactionsBatchQueue.add(reaction);
 }
 
 const reactionsQueue = new Set<ReactionCallback>();
 
-export const reactionsBatchScheduler = {
+export const reactionsBatchQueue = {
   add(reaction: ReactionCallback) {
     reactionsQueue.add(reaction);
   },
@@ -42,16 +42,16 @@ export const reactionsBatchScheduler = {
 
     const reactionsToCall = Array.from(reactionsQueue);
     reactionsQueue.clear();
-    reactionsToCall.forEach(performReactionCall);
+    reactionsToCall.forEach(sendReactionToScheduler);
   },
 };
 
-function performReactionCall(reaction: ReactionCallback) {
+export function sendReactionToScheduler(reaction: ReactionCallback) {
   const scheduler = reactionSchedulers.get(reaction);
   if (scheduler) {
     scheduler(reaction);
     return;
   }
 
-  reaction();
+  getDefaultScheduler()(reaction);
 }

@@ -1,22 +1,20 @@
-import React, {
+import { lazyWatch } from '@statek/core';
+import {
   Component,
   ComponentClass,
   ComponentType,
   FunctionComponent,
   memo,
   ReactElement,
-  ReactNode,
   useEffect,
   useMemo,
-  useRef,
-  useState,
+  useReducer,
 } from 'react';
-import { isObservable, observe, getObservableRaw } from '../observable';
+import { reactScheduler } from '../scheduler';
 import { renderStatus } from './renderState';
-
 export {
-  warnIfAccessingInNonReactiveComponent,
   renderStatus,
+  warnIfAccessingInNonReactiveComponent,
 } from './renderState';
 
 type InferComponentProps<
@@ -31,7 +29,7 @@ type ComponentPropsComparator<
 
 const COMPONENT = Symbol('owner component');
 
-const viewsSet = new Set<ComponentType<any>>();
+const registeredViewComponents = new WeakSet<ComponentType<any>>();
 
 type ClassStateBase = {
   [COMPONENT]: any;
@@ -51,55 +49,39 @@ function isFunctionalComponent<P>(
   return true;
 }
 
-function useValueGetter<T>(value: T) {
-  const valueRef = useRef(value);
-
-  valueRef.current = value;
-
-  return function get() {
-    return valueRef.current;
-  };
-}
-
-function functionalView<C extends FunctionComponent<any>>(
+function createFunctionalView<C extends FunctionComponent<any>>(
   BaseComponent: C,
   memoCompareProps?: ComponentPropsComparator<C>,
 ): C {
   type Props = InferComponentProps<C>;
   const ReactiveFunctionalComponent: FunctionComponent<Props> = function ReactiveComponent(
     props: Props,
+    context,
   ): ReactElement<any, any> {
     renderStatus.currentRenderingReactiveComponent = BaseComponent;
 
-    const getProps = useValueGetter(props);
-
-    const [, setState] = useState<{}>();
-    const render = useMemo(
+    const forceUpdate = useForceUpdate();
+    const reactiveRender = useMemo(
       () => {
-        return observe(
-          () => {
-            return BaseComponent(getProps());
+        return lazyWatch(
+          (props: Props, context: any) => {
+            return BaseComponent(props, context);
           },
-          {
-            scheduler: () => {
-              setState({});
-            },
-            lazy: true,
+          () => {
+            reactScheduler(forceUpdate);
           },
         );
       },
-      // Adding the original Comp here is necessary to make React Hot Reload work
-      // it does not affect behavior otherwise
+      // Make sure to update component on fast refresh / hot reload
       [BaseComponent],
     );
 
     useEffect(() => {
-      return () => render.unsubscribe();
-    }, []);
+      return () => reactiveRender.unsubscribe();
+    }, [reactiveRender]);
 
     try {
-      // run the reactive render instead of the original one
-      return render() as any;
+      return reactiveRender(props, context) as any;
     } catch (error) {
       throw error;
     } finally {
@@ -110,10 +92,6 @@ function functionalView<C extends FunctionComponent<any>>(
   return (memo(ReactiveFunctionalComponent, memoCompareProps) as any) as C;
 }
 
-type E = {
-  [key in keyof Component]: any;
-};
-
 const methodsToCopy = [
   'componentDidCatch',
   'componentDidMount',
@@ -123,7 +101,9 @@ const methodsToCopy = [
   'getSnapshotBeforeUpdate',
 ] as const;
 
-function classView<C extends ComponentClass<any, any>>(BaseComponent: C): C {
+function createClassView<C extends ComponentClass<any, any>>(
+  BaseComponent: C,
+): C {
   type Props = InferComponentProps<C>;
 
   type E = keyof Component;
@@ -245,15 +225,15 @@ export function view<C extends ComponentType<any>>(
   Comp: C,
   memoCompareProps?: ComponentPropsComparator<C>,
 ): C {
-  const existingView = viewsSet.has(Comp);
+  const isViewAlready = registeredViewComponents.has(Comp);
 
-  if (existingView) {
+  if (isViewAlready) {
     return Comp;
   }
 
   function getReactiveComponent(): C {
     if (isFunctionalComponent(Comp)) {
-      return functionalView(Comp, memoCompareProps) as C;
+      return createFunctionalView(Comp, memoCompareProps) as C;
     }
 
     throw new Error('Not implemented');
@@ -267,11 +247,18 @@ export function view<C extends ComponentType<any>>(
     ReactiveComponent.displayName = `Reactive${Comp.displayName}`;
   }
 
-  viewsSet.add(ReactiveComponent);
+  registeredViewComponents.add(ReactiveComponent);
 
   return ReactiveComponent;
 }
 
 function typedKeys<O>(input: O): Array<keyof O> {
   return Object.keys(input) as Array<keyof O>;
+}
+
+const updateReducer = (num: number): number => (num + 1) % 1_000_000;
+
+export function useForceUpdate(): () => void {
+  const [, update] = useReducer(updateReducer, 0);
+  return update as () => void;
 }

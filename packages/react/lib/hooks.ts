@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { autoEffect } from './autoEffect';
 import { useMethod } from './useMethod';
+import { reactWatch } from './scheduler';
 
 export function useStoreSelector<T>(getter: () => T): T {
   const [value, setValue] = useState(getter);
 
-  const effectCallback = useCallback(() => {
+  function effectCallback() {
     const newValue = getter();
     setValue(newValue);
-  }, [getter]);
+  }
 
   useStoreEffect(effectCallback, [getter]);
 
@@ -18,12 +18,9 @@ export function useStoreSelector<T>(getter: () => T): T {
 export function useStoreEffect(callback: () => void, deps: any[] = []) {
   const callbackRef = useMethod(callback);
   useEffect(() => {
-    const [clear] = autoEffect(
-      () => {
-        callbackRef();
-      },
-      // { syncScheduler: true },
-    );
+    const clear = reactWatch(() => {
+      callbackRef();
+    });
 
     return () => {
       clear();
@@ -34,7 +31,7 @@ export function useStoreEffect(callback: () => void, deps: any[] = []) {
 export function useStatefulStoreEffect(factory: () => () => void, deps: any[]) {
   useEffect(() => {
     const effectCallback = factory();
-    const [clearEffect] = autoEffect(() => {
+    const clearEffect = reactWatch(() => {
       effectCallback();
     });
 

@@ -2,8 +2,7 @@ export const observableToRawMap = new WeakMap();
 export const rawToObservableMap = new WeakMap();
 
 import { initializeObjectReadOperationsRegistry } from './operations';
-import { wrapObjectInProxy, canWrapInProxy } from './proxy';
-
+import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isAnyReactionRunning } from './reactionsStack';
 
 export function observable<T extends object>(initialStateOrObservable: T): T {

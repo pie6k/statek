@@ -19,7 +19,11 @@ describe('typed arrays', () => {
       const array = observable(new TypedArray(2));
       expect(isObservable(array)).toBe(true);
 
-      watch(() => (dummy = array[0]));
+      watch(() => {
+        dummy = array[0];
+        // TODO This will fail TypeError: this is not a typed array.at Proxy.forEach (<anonymous>)
+        // array.forEach(() => {});
+      });
 
       expect(dummy).toBe(0);
       array[0] = 12;

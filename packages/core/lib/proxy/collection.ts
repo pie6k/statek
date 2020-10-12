@@ -99,7 +99,7 @@ const mapLikeProxyWrappers = {
     }
     return result;
   },
-  forEach(callback: any, ...args: any[]) {
+  forEach(this: any, callback: any, ...args: any[]) {
     const target = observableToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     handleObservableReadOperation({ target, type: 'iterate' });
