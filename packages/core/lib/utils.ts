@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { isObservable } from './observable';
 import { ReactionCallback } from './reaction';
 
 // try to find the global object
@@ -44,6 +44,10 @@ export function createAutomaticReactionsBatcher(
   };
 }
 
+export function isPrimitive(input: any) {
+  return input !== Object(input);
+}
+
 function isPlainObject(input: any) {
   return Object.prototype.toString.call(input) === '[object Object]';
 }
@@ -82,9 +86,18 @@ function isPrimiviteIterable(input: any): input is PrimitiveIterable {
   return false;
 }
 
-function noop() {}
+export function noop() {}
 
+/**
+ * Will access each deep prop of any input to mark it as read.
+ */
 export function deepRead(input: any) {
+  // there is no point in accessing input that is not observable, as read operations would not
+  // be recorded anyway.
+  if (!isObservable(input)) {
+    return;
+  }
+
   if (isPlainObject(input)) {
     for (const key in input) {
       deepRead(input[key]);

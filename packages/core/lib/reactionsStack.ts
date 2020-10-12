@@ -1,3 +1,4 @@
+import { dontWatchManager } from './batch';
 import {
   cleanReactionReadData,
   ReactionCallback,
@@ -57,6 +58,10 @@ export function isAnyReactionRunning(): boolean {
 }
 
 export function getCurrentReaction(): ReactionCallback | null {
+  if (dontWatchManager.isRunning()) {
+    return null;
+  }
+
   let foundReaction: ReactionCallback | undefined | null =
     watchingReactionsStack[watchingReactionsStack.length - 1];
 

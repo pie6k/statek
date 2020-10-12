@@ -1,6 +1,6 @@
 export { getObservableRaw, observable, isObservable } from './observable';
 export { watch, lazyWatch } from './watch';
-export { batch } from './batch';
+export { batch, sync, syncEvery, dontWatch } from './batch';
 export { batchifyMethods } from './builtInsBatch';
 export {
   syncScheduler,

@@ -5,7 +5,9 @@ import {
   ComponentType,
   FunctionComponent,
   memo,
+  PureComponent,
   ReactElement,
+  ReactNode,
   useEffect,
   useMemo,
   useReducer,
@@ -77,9 +79,10 @@ const methodsToBind = [
   'componentDidCatch',
   'componentDidMount',
   'componentDidUpdate',
-  // 'componentWillUnmount',
   'shouldComponentUpdate',
   'getSnapshotBeforeUpdate',
+  // We're not automatically binding unmount, as we'll have to unsubscribe reactive render
+  // 'componentWillUnmount',
 ] as const;
 
 const staticMethodsToBind = [
@@ -95,9 +98,13 @@ function createClassView<C extends ComponentClass<any, any>>(
 ): C {
   type Props = InferComponentProps<C>;
 
-  type E = keyof Component;
+  // Pick PureComponent or Component according to original component.
+  const BaseReactComponent =
+    Object.getPrototypeOf(BaseComponent) === PureComponent
+      ? PureComponent
+      : Component;
 
-  class ReactiveClassComponent extends Component<Props> {
+  class ReactiveClassComponent extends BaseReactComponent<Props> {
     static getDerivedStateFromProps: any;
     static getDerivedStateFromError: any;
     static contextType: any;
@@ -106,12 +113,12 @@ function createClassView<C extends ComponentClass<any, any>>(
 
     constructor(props: Props, context: any) {
       super(props);
-      // super(props);
+
       const baseInstance: any = BaseComponent.apply(this, [props, context]);
 
       this.state = baseInstance.state;
 
-      const reactiveRender = lazyWatch(
+      const reactiveRender = lazyWatch<[], ReactNode>(
         BaseComponent.prototype.render,
         () => {
           reactScheduler(() => {
@@ -123,7 +130,6 @@ function createClassView<C extends ComponentClass<any, any>>(
 
       this[unsubscribeSymbol] = reactiveRender.unsubscribe;
 
-      // @ts-ignore
       this.render = reactiveRender;
 
       methodsToBind.forEach(methodToBindName => {

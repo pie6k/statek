@@ -51,6 +51,14 @@ describe('batch', () => {
     expect(reaction).toBeCalledTimes(2);
   });
 
+  it('will throw errors in batch', () => {
+    expect(() => {
+      batch(() => {
+        throw new Error('foo');
+      });
+    }).toThrowError('foo');
+  });
+
   it('returns to normal mode after batch ends', () => {
     const obj = observable({ foo: 2, bar: 3 });
     const reaction = jest.fn(() => {

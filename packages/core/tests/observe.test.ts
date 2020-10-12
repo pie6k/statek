@@ -451,6 +451,33 @@ describe('observe', () => {
     expect(depsChangeCallback).toBeCalledTimes(2);
   });
 
+  it('should properly watch classes', () => {
+    class Foo {
+      foo = 1;
+      bar = {
+        baz: 2,
+      };
+    }
+
+    const obs = observable(new Foo());
+    const spy = jest.fn(() => {
+      obs.foo;
+      obs.bar.baz;
+    });
+
+    watch(spy);
+
+    expect(spy).toBeCalledTimes(1);
+
+    obs.foo++;
+
+    expect(spy).toBeCalledTimes(2);
+
+    obs.bar.baz++;
+
+    expect(spy).toBeCalledTimes(3);
+  });
+
   it('should properly pass context to lazyWatch', () => {
     let dummy: any;
     function greet(this: any) {

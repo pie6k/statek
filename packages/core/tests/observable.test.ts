@@ -11,6 +11,28 @@ describe('observable', () => {
     expect(isObservable(obs)).toBe(true);
   });
 
+  it('should throw when creating non-object observable', () => {
+    expect(() => {
+      // @ts-expect-error
+      observable('foo');
+    }).toThrow();
+  });
+
+  it('should throw when creating observable from function', () => {
+    expect(() => {
+      observable(() => {});
+    }).toThrow();
+  });
+
+  it('should allow creating observable from class instance', () => {
+    class Foo {
+      bar = 1;
+    }
+    expect(() => {
+      observable(new Foo());
+    }).not.toThrow();
+  });
+
   it('should return an observable wrapping of an object argument', () => {
     const obj = { prop: 'value' };
     const obs = observable(obj);

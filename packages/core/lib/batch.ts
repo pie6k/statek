@@ -1,39 +1,44 @@
-import { ReactionCallback, reactionSchedulers } from './reaction';
+import { ReactNodeArray } from 'react';
+import {
+  applyReaction,
+  ReactionCallback,
+  reactionSchedulers,
+} from './reaction';
 import { getDefaultScheduler } from './schedulers';
+import { noop } from './utils';
 export type ReactionScheduler = (
   reaction: ReactionCallback,
 ) => Promise<void> | void;
 
-const batchStack: boolean[] = [];
-
-export function batch(fn: (args: any) => void, ctx?: any, args?: any) {
-  batchStack.push(true);
-
-  try {
-    return fn.apply(ctx, args);
-  } finally {
-    batchStack.pop();
-
-    if (batchStack.length === 0) {
-      reactionsBatchQueue.flush();
-    }
-  }
-}
-
 export function requestReactionCallNeeded(reaction: ReactionCallback) {
-  if (batchStack.length === 0) {
-    sendReactionToScheduler(reaction);
+  if (syncEveryManager.isRunning()) {
+    applyReaction(reaction);
     return;
   }
 
-  reactionsBatchQueue.add(reaction);
+  const isSync = syncManager.isRunning();
+  if (batchManager.isRunning() || isSync) {
+    reactionsBatchQueue.add(reaction, isSync);
+    return;
+  }
+
+  sendReactionToScheduler(reaction, false);
 }
 
-const reactionsQueue = new Set<ReactionCallback>();
+interface QueuedReaction {
+  reaction: ReactionCallback;
+  isSync: boolean;
+}
+
+const reactionsQueue = new Map<ReactionCallback, boolean>();
+
+type MapEntry<M extends Map<any, any>> = M extends Map<infer K, infer V>
+  ? [K, V]
+  : never;
 
 export const reactionsBatchQueue = {
-  add(reaction: ReactionCallback) {
-    reactionsQueue.add(reaction);
+  add(reaction: ReactionCallback, isSync: boolean) {
+    reactionsQueue.set(reaction, isSync);
   },
   flush() {
     if (!reactionsQueue.size) {
@@ -42,16 +47,63 @@ export const reactionsBatchQueue = {
 
     const reactionsToCall = Array.from(reactionsQueue);
     reactionsQueue.clear();
-    reactionsToCall.forEach(sendReactionToScheduler);
+    reactionsToCall.forEach(sendQueuedReactionToScheduler);
   },
 };
 
-export function sendReactionToScheduler(reaction: ReactionCallback) {
-  const scheduler = reactionSchedulers.get(reaction);
-  if (scheduler) {
-    scheduler(reaction);
+function sendQueuedReactionToScheduler([reaction, isSync]: MapEntry<
+  typeof reactionsQueue
+>) {
+  sendReactionToScheduler(reaction, isSync);
+}
+
+function sendReactionToScheduler(reaction: ReactionCallback, isSync: boolean) {
+  if (isSync) {
+    applyReaction(reaction);
     return;
   }
 
-  getDefaultScheduler()(reaction);
+  const scheduler = reactionSchedulers.get(reaction) || getDefaultScheduler();
+
+  scheduler(reaction);
+}
+
+export const [batch, batchManager] = createStackCallback(
+  reactionsBatchQueue.flush,
+);
+export const [sync, syncManager] = createStackCallback(
+  reactionsBatchQueue.flush,
+);
+
+export const [syncEvery, syncEveryManager] = createStackCallback(
+  reactionsBatchQueue.flush,
+);
+
+export const [dontWatch, dontWatchManager] = createStackCallback(noop);
+
+function createStackCallback(onFinish: () => void) {
+  const callsStack: boolean[] = [];
+
+  function perform(fn: (args: any) => void, ctx?: any, args?: any) {
+    callsStack.push(true);
+
+    try {
+      return fn.apply(ctx, args);
+    } finally {
+      callsStack.pop();
+
+      if (callsStack.length === 0) {
+        onFinish();
+      }
+    }
+  }
+
+  function isRunning() {
+    return callsStack.length > 0;
+  }
+
+  const manager = {
+    isRunning,
+  };
+  return [perform, manager] as const;
 }

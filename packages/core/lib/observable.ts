@@ -4,9 +4,22 @@ export const rawToObservableMap = new WeakMap();
 import { initializeObjectReadOperationsRegistry } from './operations';
 import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isAnyReactionRunning } from './reactionsStack';
+import { isPrimitive } from './utils';
+
+function canBeObservable(input: any) {
+  if (isPrimitive(input)) {
+    return false;
+  }
+
+  if (typeof input === 'function') {
+    return false;
+  }
+
+  return true;
+}
 
 export function observable<T extends object>(initialStateOrObservable: T): T {
-  if (!initialStateOrObservable) {
+  if (!canBeObservable(initialStateOrObservable)) {
     throw new Error('Observable source must by an object');
   }
   // if it is already an observable or it should not be wrapped, return it

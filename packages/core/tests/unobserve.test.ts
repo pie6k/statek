@@ -78,6 +78,7 @@ describe('unobserve', () => {
     stop();
     stop();
     counter.num = 'World';
+    stop();
     expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
   });
