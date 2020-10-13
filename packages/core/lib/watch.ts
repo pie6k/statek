@@ -1,4 +1,8 @@
 import {
+  getSelectedAnyChangeReactions,
+  registerSelectedAnyChangeReaction,
+} from './observable';
+import {
   cleanReactionReadData,
   hasCallbackReaction,
   ReactionCallback,
@@ -7,25 +11,26 @@ import {
   unsubscribedReactions,
   LazyReactionCallback,
   callbacksReactions,
+  registerLazyReactionCallback,
 } from './reaction';
 import { callWithReactionsStack } from './reactionsStack';
-import { deepRead } from './utils';
+import { selectInStore } from './batch';
 
 export function watch(
-  callback: ReactionCallback,
+  watcher: ReactionCallback,
   options: ReactionOptions = {},
 ): () => void {
-  if (hasCallbackReaction(callback)) {
+  if (hasCallbackReaction(watcher)) {
     return function unsubscribe() {
-      cleanReactionReadData(callback);
+      cleanReactionReadData(watcher);
       unsubscribedReactions.add(reactionCallback);
     };
   }
   function reactionCallback() {
-    return callWithReactionsStack(reactionCallback, callback);
+    return callWithReactionsStack(reactionCallback, watcher);
   }
 
-  registerReaction(reactionCallback, callback, options);
+  registerReaction(reactionCallback, watcher, options);
 
   unsubscribedReactions.delete(reactionCallback);
 
@@ -34,21 +39,22 @@ export function watch(
   function unsubscribe() {
     cleanReactionReadData(reactionCallback);
     unsubscribedReactions.add(reactionCallback);
-    callbacksReactions.delete(callback);
+    callbacksReactions.delete(watcher);
   }
 
   return unsubscribe;
 }
 
-export function watchEager(
+export function watchSelected(
+  selector: () => object,
   callback: ReactionCallback,
-  observable: object,
-  options: ReactionOptions = {},
-): () => void {
-  return watch(() => {
-    deepRead(observable);
-    callback();
-  }, options);
+  options?: ReactionOptions,
+) {
+  const resolvedObservable = selectInStore(selector);
+  registerReaction(callback, callback, options);
+  const stop = registerSelectedAnyChangeReaction(resolvedObservable, callback);
+
+  return stop;
 }
 
 export type ObseringReactionCallback<A extends any[], R> = LazyReactionCallback<
@@ -61,9 +67,9 @@ export type ObseringReactionCallback<A extends any[], R> = LazyReactionCallback<
 const noop = () => {};
 
 export function lazyWatch<A extends any[], R>(
-  callback: LazyReactionCallback<A, R>,
-  onObservedChange: () => void = noop,
-  context?: any,
+  lazyWatcher: LazyReactionCallback<A, R>,
+  onWatchedChange: () => void = noop,
+  options?: ReactionOptions,
 ): ObseringReactionCallback<A, R> {
   function reactionCallback(...args: A): R {
     if (unsubscribedReactions.has(reactionCallback)) {
@@ -71,13 +77,12 @@ export function lazyWatch<A extends any[], R>(
         `Cannot call lazyWatch callback after it has unsubscribed`,
       );
     }
-    return callWithReactionsStack(reactionCallback, callback);
+    return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
   }
 
-  registerReaction(reactionCallback, callback, {
-    context,
-    scheduler: onObservedChange,
-  });
+  registerReaction(reactionCallback, lazyWatcher, options);
+
+  registerLazyReactionCallback(reactionCallback, onWatchedChange);
 
   unsubscribedReactions.delete(reactionCallback);
 

@@ -1,4 +1,4 @@
-import { isObservable } from './observable';
+import { isStore } from './observable';
 import { ReactionCallback } from './reaction';
 
 // try to find the global object
@@ -94,7 +94,7 @@ export function noop() {}
 export function deepRead(input: any) {
   // there is no point in accessing input that is not observable, as read operations would not
   // be recorded anyway.
-  if (!isObservable(input)) {
+  if (!isStore(input)) {
     return;
   }
 
@@ -115,4 +115,35 @@ export function deepRead(input: any) {
   if (input instanceof Map) {
     input.forEach(deepRead);
   }
+}
+
+export function appendSet<T>(set: Set<T>, setToAppend?: Set<T>) {
+  if (!setToAppend) {
+    return;
+  }
+  setToAppend.forEach(item => {
+    set.add(item);
+  });
+}
+
+export type ThunkFunction<T> = () => T;
+
+export type Thunk<T> = T | (() => T);
+
+export function resolveThunk<T>(
+  thunk: Thunk<T>,
+  callback?: (thunkFunction: ThunkFunction<T>) => T,
+): T {
+  if (
+    typeof thunk === 'function' &&
+    Object.getPrototypeOf(thunk) === Function.prototype
+  ) {
+    if (callback) {
+      return callback(thunk as any);
+    }
+
+    return (thunk as any)();
+  }
+
+  return thunk as T;
 }

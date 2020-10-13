@@ -1,33 +1,26 @@
-import React, { Component } from 'react';
-import ReactTestRenderer, { act } from 'react-test-renderer';
 import { waitForSchedulersToFlush } from '@statek/core';
-import { createStore, useObserve, view } from '../lib';
-import { wait } from './utils';
+import React, { Component } from 'react';
+import ReactTestRenderer from 'react-test-renderer';
+import { store } from '../lib';
+import { actSync, expectContent, itRenders, render } from './utils';
 
-async function expectContentAfterUpdate(
-  renderer: ReactTestRenderer.ReactTestRenderer,
-  content: any,
-) {
-  await waitForSchedulersToFlush();
-
-  expect(renderer.toJSON()).toEqual(content);
-}
-
-describe('view', () => {
-  it('rerenders on update', async () => {
-    const obj = createStore({ foo: 1 });
+describe('class without view', () => {
+  itRenders('rerenders on update', () => {
+    const obj = store({ foo: 1 });
     class Test extends Component {
       render() {
         return <>{obj.foo}</>;
       }
     }
 
-    const t = ReactTestRenderer.create(<Test />);
+    const t = render(<Test />);
 
-    await expectContentAfterUpdate(t, '1');
+    expectContent(t, '1');
 
-    obj.foo = 2;
+    actSync(() => {
+      obj.foo = 2;
+    });
 
-    await expectContentAfterUpdate(t, '2');
+    expectContent(t, '2');
   });
 });

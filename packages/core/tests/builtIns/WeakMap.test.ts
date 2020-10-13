@@ -1,21 +1,16 @@
-import {
-  isObservable,
-  observable,
-  watch,
-  getObservableRaw,
-} from '@statek/core/lib';
+import { isStore, store, watch, getStoreRaw } from '@statek/core/lib';
 
 describe('WeakMap', () => {
   it('should be a proper JS WeakMap', () => {
-    const map = observable(new WeakMap());
+    const map = store(new WeakMap());
     expect(map).toBeInstanceOf(WeakMap);
-    expect(getObservableRaw(map)).toBeInstanceOf(WeakMap);
+    expect(getStoreRaw(map)).toBeInstanceOf(WeakMap);
   });
 
   it('should observe mutations', () => {
     let dummy;
     const key = {};
-    const map = observable(new WeakMap());
+    const map = store(new WeakMap());
     watch(() => (dummy = map.get(key)));
 
     expect(dummy).toBe(undefined);
@@ -29,7 +24,7 @@ describe('WeakMap', () => {
 
   it('should not observe custom property mutations', () => {
     let dummy;
-    const map = observable(new WeakMap());
+    const map = store(new WeakMap());
     // @ts-expect-error
     watch(() => (dummy = map.customProp));
 
@@ -42,7 +37,7 @@ describe('WeakMap', () => {
   it('should not observe non value changing mutations', () => {
     let dummy;
     const key = {};
-    const map = observable(new WeakMap());
+    const map = store(new WeakMap());
     const mapSpy = jest.fn(() => (dummy = map.get(key)));
     watch(mapSpy);
 
@@ -65,8 +60,8 @@ describe('WeakMap', () => {
   it('should not observe raw data', () => {
     const key = {};
     let dummy;
-    const map = observable(new WeakMap());
-    watch(() => (dummy = getObservableRaw(map).get(key)));
+    const map = store(new WeakMap());
+    watch(() => (dummy = getStoreRaw(map).get(key)));
 
     expect(dummy).toBe(undefined);
     map.set(key, 'Hello');
@@ -78,27 +73,27 @@ describe('WeakMap', () => {
   it('should not be triggered by raw mutations', () => {
     const key = {};
     let dummy;
-    const map = observable(new WeakMap());
+    const map = store(new WeakMap());
     watch(() => (dummy = map.get(key)));
 
     expect(dummy).toBe(undefined);
-    getObservableRaw(map).set(key, 'Hello');
+    getStoreRaw(map).set(key, 'Hello');
     expect(dummy).toBe(undefined);
-    getObservableRaw(map).delete(key);
+    getStoreRaw(map).delete(key);
     expect(dummy).toBe(undefined);
   });
 
   it('should wrap object values with observables when requested from a reaction', () => {
     const key = {};
     const key2 = {};
-    const map = observable(new Map());
+    const map = store(new Map());
     map.set(key, {});
     map.set(key2, {});
 
-    expect(isObservable(map.get(key))).toBe(false);
-    expect(isObservable(map.get(key2))).toBe(false);
-    watch(() => expect(isObservable(map.get(key))).toBe(true));
-    expect(isObservable(map.get(key))).toBe(true);
-    expect(isObservable(map.get(key2))).toBe(false);
+    expect(isStore(map.get(key))).toBe(false);
+    expect(isStore(map.get(key2))).toBe(false);
+    watch(() => expect(isStore(map.get(key))).toBe(true));
+    expect(isStore(map.get(key))).toBe(true);
+    expect(isStore(map.get(key2))).toBe(false);
   });
 });

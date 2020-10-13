@@ -22,6 +22,9 @@ export interface Fiber {
   // We'll need type of current fiber to detect if it's class or functional component
   type: any;
   stateNode: any;
+  return: Fiber | null;
+  child: Fiber | null;
+  sibling: Fiber | null;
 }
 
 // :P it looks better now!

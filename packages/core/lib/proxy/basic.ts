@@ -1,7 +1,7 @@
-import { lazyCreateObservable, observableToRawMap } from '../observable';
+import { createChildStoreIfNeeded, storeToRawMap } from '../observable';
 import {
-  handleObservableMutationOperation,
-  handleObservableReadOperation,
+  handleStoreMutationOperation,
+  handleStoreReadOperation,
 } from '../operations';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
 
@@ -25,7 +25,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
       return result;
     }
     // register and save (observable.prop -> runningReaction)
-    handleObservableReadOperation({
+    handleStoreReadOperation({
       target,
       key,
       type: 'get',
@@ -41,17 +41,17 @@ export const basicProxyHandlers: ProxyHandler<object> = {
 
     // if we are inside a reaction and observable.prop is an object wrap it in an observable too
     // this is needed to intercept property access on that object too (dynamic observable tree)
-    return lazyCreateObservable(result);
+    return createChildStoreIfNeeded(result, target);
   },
 
   has(target, key) {
     // register and save (observable.prop -> runningReaction)
-    handleObservableReadOperation({ target, key, type: 'has' });
+    handleStoreReadOperation({ target, key, type: 'has' });
     return Reflect.has(target, key);
   },
 
   ownKeys(target) {
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     return Reflect.ownKeys(target);
   },
 
@@ -59,7 +59,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
   set(target, key, value, receiver) {
     // make sure to do not pollute the raw object with observables
     if (typeof value === 'object' && value !== null) {
-      value = observableToRawMap.get(value) || value;
+      value = storeToRawMap.get(value) || value;
     }
     // save if the object had a descriptor for this key
     const hadKey = hasOwnProperty.call(target, key);
@@ -69,13 +69,13 @@ export const basicProxyHandlers: ProxyHandler<object> = {
     const result = Reflect.set(target, key, value, receiver);
     // do not queue reactions if the target of the operation is not the raw receiver
     // (possible because of prototypal inheritance)
-    if (target !== observableToRawMap.get(receiver)) {
+    if (target !== storeToRawMap.get(receiver)) {
       return result;
     }
 
     // queue a reaction if it's a new property or its value changed
     if (!hadKey) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         value,
@@ -85,7 +85,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
     }
 
     if (value !== oldValue) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         value,
@@ -102,7 +102,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
     const result = Reflect.deleteProperty(target, key);
     // only queue reactions for delete operations which resulted in an actual change
     if (hadKey) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         type: 'delete',

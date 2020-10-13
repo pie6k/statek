@@ -1,4 +1,4 @@
-export { createStore, storeSelector, StoreCreator } from './store';
+export { storeSelector, StoreCreator } from './store';
 export { view } from './view';
 export {
   useStoreEffect,
@@ -7,4 +7,6 @@ export {
   useDebouncedStoreSelector,
 } from './hooks';
 export { createContextStore } from './context';
-export { useObserve } from './useObserve';
+export { useView, useUpdateOnStoreChanges } from './useObserve';
+export { store } from '@statek/core';
+export { WatchStore } from './WatchStore';

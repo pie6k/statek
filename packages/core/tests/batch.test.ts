@@ -1,17 +1,11 @@
 /**
  * @jest-environment jsdom
  */
-import {
-  observable,
-  watch,
-  getObservableRaw,
-  lazyWatch,
-  batch,
-} from '@statek/core/lib';
+import { store, watch, getStoreRaw, lazyWatch, batch } from '@statek/core/lib';
 
 describe('batch', () => {
   it('should call reaction once when called in batch', () => {
-    const obj = observable({ foo: 2, bar: 3 });
+    const obj = store({ foo: 2, bar: 3 });
     const reaction = jest.fn(() => {
       obj.bar;
       obj.foo;
@@ -29,7 +23,7 @@ describe('batch', () => {
   });
 
   it('supports nested batch', () => {
-    const obj = observable({ foo: 2, bar: 3, baz: 4 });
+    const obj = store({ foo: 2, bar: 3, baz: 4 });
     const reaction = jest.fn(() => {
       obj.bar;
       obj.foo;
@@ -60,7 +54,7 @@ describe('batch', () => {
   });
 
   it('returns to normal mode after batch ends', () => {
-    const obj = observable({ foo: 2, bar: 3 });
+    const obj = store({ foo: 2, bar: 3 });
     const reaction = jest.fn(() => {
       obj.bar;
       obj.foo;

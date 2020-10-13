@@ -12,6 +12,7 @@ import {
   useMemo,
   useReducer,
 } from 'react';
+import { act } from 'react-test-renderer';
 import { isClassComponent, isFunctionalComponent } from '../componentTypes';
 import { reactScheduler } from '../scheduler';
 import { renderStatus } from './renderState';
@@ -51,8 +52,11 @@ function createFunctionalView<C extends FunctionComponent<any>>(
             return BaseComponent(props, context);
           },
           () => {
-            reactScheduler(forceUpdate);
+            act(() => {
+              forceUpdate();
+            });
           },
+          { scheduler: reactScheduler },
         );
       },
       // Make sure to update component on fast refresh / hot reload
@@ -121,11 +125,9 @@ function createClassView<C extends ComponentClass<any, any>>(
       const reactiveRender = lazyWatch<[], ReactNode>(
         BaseComponent.prototype.render,
         () => {
-          reactScheduler(() => {
-            this.forceUpdate();
-          });
+          this.forceUpdate();
         },
-        this,
+        { context: this, scheduler: reactScheduler },
       );
 
       this[unsubscribeSymbol] = reactiveRender.unsubscribe;

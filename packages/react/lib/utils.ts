@@ -1,5 +1,7 @@
 // import { useState } from 'react';
 
+import { useMethod } from './useMethod';
+
 // // try to find the global object
 // // it is window in the DOM and global in NodeJS and React Native
 // const isDOM = typeof window !== 'undefined';
@@ -34,3 +36,7 @@
 
 //   return newValue;
 // }
+
+export function useUnmount(callback: () => void) {
+  const callbackRef = useMethod(callback);
+}

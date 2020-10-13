@@ -1,11 +1,13 @@
 export const ITERATION_KEY = Symbol('iteration key');
 import { requestReactionCallNeeded } from './batch';
+import { getSelectedAnyChangeReactions } from './observable';
 import {
   ReactionCallback,
   reactionDebugger,
   reactionWatchedPropertiesMemberships,
 } from './reaction';
 import { getCurrentReaction } from './reactionsStack';
+import { appendSet } from './utils';
 
 type TargetKey = string | number | Symbol | undefined;
 
@@ -37,7 +39,7 @@ export function initializeObjectReadOperationsRegistry(rawObject: object) {
   readOperationsRegistry.set(rawObject, new Map());
 }
 
-export function registerReactionReadOperation(
+function registerReactionReadOperation(
   reaction: ReactionCallback,
   readOperation: ReadOperationInfo,
 ) {
@@ -64,10 +66,13 @@ export function registerReactionReadOperation(
   }
 }
 
-export function getMutationImpactedReactions(
+function getMutationImpactedReactions(
   mutationOperation: MutationOperationInfo,
 ) {
-  const impactedReactions = new Set<ReactionCallback>();
+  const impactedReactions = getSelectedAnyChangeReactions(
+    mutationOperation.target,
+  );
+
   const targetKeysReactionsMap = readOperationsRegistry.get(
     mutationOperation.target,
   )!;
@@ -100,17 +105,8 @@ export function getMutationImpactedReactions(
   return impactedReactions;
 }
 
-function appendSet<T>(set: Set<T>, setToAppend: Set<T>) {
-  setToAppend.forEach(item => {
-    set.add(item);
-  });
-}
-
 // register the currently running reaction to be queued again on obj.key mutations
-export function handleObservableReadOperation(
-  readOperation: ReadOperationInfo,
-) {
-  // warnIfAccessingInNonReactiveComponent();
+export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction();
 
@@ -122,7 +118,7 @@ export function handleObservableReadOperation(
   registerReactionReadOperation(runningReaction, readOperation);
 }
 
-export function handleObservableMutationOperation(
+export function handleStoreMutationOperation(
   mutationOperation: MutationOperationInfo,
 ) {
   // iterate and queue every reaction, which is triggered by obj.key mutation

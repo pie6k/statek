@@ -1,20 +1,20 @@
-import { lazyCreateObservable, observableToRawMap } from '../observable';
+import { createChildStoreIfNeeded, storeToRawMap } from '../observable';
 import {
-  handleObservableMutationOperation,
-  handleObservableReadOperation,
+  handleStoreMutationOperation,
+  handleStoreReadOperation,
 } from '../operations';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-function proxifyIterator(iterator: any, isEntries: boolean) {
+function proxifyIterator(iterator: any, isEntries: boolean, parent: object) {
   const originalNext = iterator.next;
   iterator.next = () => {
     let { done, value } = originalNext.call(iterator);
     if (!done) {
       if (isEntries) {
-        value[1] = lazyCreateObservable(value[1]);
+        value[1] = createChildStoreIfNeeded(value[1], parent);
       } else {
-        value = lazyCreateObservable(value);
+        value = createChildStoreIfNeeded(value, parent);
       }
     }
     return { done, value };
@@ -26,26 +26,29 @@ type Iterable = any;
 
 const mapLikeProxyWrappers = {
   has(key: string) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, key, type: 'has' });
+    handleStoreReadOperation({ target, key, type: 'has' });
     return proto.has.apply(target, arguments as any);
   },
   get(key: string) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
 
-    handleObservableReadOperation({ target, key, type: 'get' });
-    return lazyCreateObservable(proto.get.apply(target, arguments as any));
+    handleStoreReadOperation({ target, key, type: 'get' });
+    return createChildStoreIfNeeded(
+      proto.get.apply(target, arguments as any),
+      target,
+    );
   },
   add(key: string) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     // forward the operation before queueing reactions
     const result = proto.add.apply(target, arguments as any);
     if (!hadKey) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         value: key,
@@ -55,16 +58,16 @@ const mapLikeProxyWrappers = {
     return result;
   },
   set(key: string, value: any) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     const oldValue = proto.get.call(target, key);
     // forward the operation before queueing reactions
     const result = proto.set.apply(target, arguments as any);
     if (!hadKey) {
-      handleObservableMutationOperation({ target, key, value, type: 'add' });
+      handleStoreMutationOperation({ target, key, value, type: 'add' });
     } else if (value !== oldValue) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         value,
@@ -74,13 +77,13 @@ const mapLikeProxyWrappers = {
     return result;
   },
   delete(key: string) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadKey = proto.has.call(target, key);
     // forward the operation before queueing reactions
     const result = proto.delete.apply(target, arguments as any);
     if (hadKey) {
-      handleObservableMutationOperation({
+      handleStoreMutationOperation({
         target,
         key,
         type: 'delete',
@@ -89,57 +92,57 @@ const mapLikeProxyWrappers = {
     return result;
   },
   clear() {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
     const hadItems = target.size !== 0;
     // forward the operation before queueing reactions
     const result = proto.clear.apply(target, arguments as any);
     if (hadItems) {
-      handleObservableMutationOperation({ target, type: 'clear' });
+      handleStoreMutationOperation({ target, type: 'clear' });
     }
     return result;
   },
   forEach(this: any, callback: any, ...args: any[]) {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     // swap out the raw values with their observable pairs
     // before passing them to the callback
     const wrappedCallback = (value: any, ...rest: [any]) =>
-      callback(lazyCreateObservable(value), ...rest);
+      callback(createChildStoreIfNeeded(value, target), ...rest);
     return proto.forEach.call(target, wrappedCallback, ...args);
   },
   keys() {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Set<any>;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     return proto.keys.apply(target, arguments as any);
   },
   values() {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     const iterator = proto.values.apply(target, arguments as any);
-    return proxifyIterator(iterator, false);
+    return proxifyIterator(iterator, false, target);
   },
   entries() {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     const iterator = proto.entries.apply(target, arguments as any);
-    return proxifyIterator(iterator, true);
+    return proxifyIterator(iterator, true, target);
   },
   [Symbol.iterator]() {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     const iterator = proto[Symbol.iterator].apply(target, arguments as any);
-    return proxifyIterator(iterator, target instanceof Map);
+    return proxifyIterator(iterator, target instanceof Map, target);
   },
   get size(): number {
-    const target = observableToRawMap.get(this);
+    const target = storeToRawMap.get(this);
     const proto = Reflect.getPrototypeOf(this) as Iterable;
-    handleObservableReadOperation({ target, type: 'iterate' });
+    handleStoreReadOperation({ target, type: 'iterate' });
     return Reflect.get(proto, 'size', target);
   },
 };

@@ -1,54 +1,48 @@
 import React from 'react';
-import ReactTestRenderer, { act } from 'react-test-renderer';
-import { waitForSchedulersToFlush } from '@statek/core';
-import { createStore, useObserve, view } from '../lib';
-import { wait } from './utils';
+import { store, view } from '../lib';
+import { actSync, expectContent, itRenders, render, wait } from './utils';
 
-async function expectContentAfterUpdate(
-  renderer: ReactTestRenderer.ReactTestRenderer,
-  content: any,
-) {
-  await waitForSchedulersToFlush();
-
-  expect(renderer.toJSON()).toEqual(content);
-}
-
-describe('view', () => {
-  it('rerenders on update', async () => {
-    const obj = createStore({ foo: 1 });
+describe.only('view', () => {
+  itRenders('rerenders on update', () => {
+    const obj = store({ foo: 1 });
     const Test = view(() => {
       return <>{obj.foo}</>;
     });
 
-    const t = ReactTestRenderer.create(<Test />);
+    const t = render(<Test />);
 
-    await expectContentAfterUpdate(t, '1');
+    expectContent(t, '1');
 
-    obj.foo = 2;
+    actSync(() => {
+      obj.foo = 2;
+    });
 
-    await expectContentAfterUpdate(t, '2');
+    expectContent(t, '2');
   });
 
-  it('dont rerender on unwatched update', async () => {
-    const obj = createStore({ foo: 1, bar: 2 });
+  itRenders('dont rerender on unwatched update', () => {
+    const obj = store({ foo: 1, bar: 2 });
     const renderSpy = jest.fn();
     const Test = view(() => {
       renderSpy();
       return <>{obj.foo}</>;
     });
 
-    const t = ReactTestRenderer.create(<Test />);
+    const t = render(<Test />);
 
-    await expectContentAfterUpdate(t, '1');
+    expectContent(t, '1');
 
-    obj.bar++;
+    actSync(() => {
+      obj.bar++;
+      obj.bar++;
+    });
 
-    await expectContentAfterUpdate(t, '1');
+    expectContent(t, '1');
     expect(renderSpy).toBeCalledTimes(1);
   });
 
-  it('rerenders once on multiple updates', async () => {
-    const obj = createStore({ foo: 1, bar: 1 });
+  itRenders('rerenders once on multiple updates', () => {
+    const obj = store({ foo: 1, bar: 1 });
     const renderSpy = jest.fn();
     const Test = view(() => {
       renderSpy();
@@ -60,50 +54,60 @@ describe('view', () => {
       );
     });
 
-    const t = ReactTestRenderer.create(<Test />);
+    const t = render(<Test />);
 
-    await expectContentAfterUpdate(t, ['1', '1']);
+    expectContent(t, ['1', '1']);
 
-    obj.foo++;
-    obj.bar++;
+    actSync(() => {
+      obj.foo++;
+      obj.bar++;
+    });
 
-    await expectContentAfterUpdate(t, ['2', '2']);
+    expectContent(t, ['2', '2']);
     expect(renderSpy).toBeCalledTimes(2);
   });
 
-  it('rerenders once per async call parts on multiple updates', async () => {
-    const obj = createStore({ foo: 1, bar: 1 });
-    const renderSpy = jest.fn();
-    const Test = view(() => {
-      renderSpy();
-      return (
-        <>
-          {obj.foo}
-          {obj.bar}
-        </>
-      );
-    });
+  itRenders(
+    'rerenders once per async call parts on multiple updates',
+    async () => {
+      const obj = store({ foo: 1, bar: 1 });
+      const renderSpy = jest.fn();
+      const Test = view(() => {
+        renderSpy();
+        return (
+          <>
+            {obj.foo}
+            {obj.bar}
+          </>
+        );
+      });
 
-    async function update() {
-      obj.foo++;
-      obj.bar++;
-      await wait(5);
-      obj.foo++;
-      obj.bar++;
-    }
+      async function update() {
+        actSync(() => {
+          obj.foo++;
+          obj.bar++;
+        });
+        await wait(5);
 
-    const t = ReactTestRenderer.create(<Test />);
+        actSync(() => {
+          obj.foo++;
+          obj.bar++;
+        });
+      }
 
-    await expectContentAfterUpdate(t, ['1', '1']);
+      const t = render(<Test />);
 
-    await update();
+      expectContent(t, ['1', '1']);
 
-    await expectContentAfterUpdate(t, ['3', '3']);
-    expect(renderSpy).toBeCalledTimes(3);
-  });
+      await update();
 
-  it('does not re-render parent on child update', async () => {
-    const obj = createStore({ foo: 1, bar: 2 });
+      expectContent(t, ['3', '3']);
+      expect(renderSpy).toBeCalledTimes(3);
+    },
+  );
+
+  itRenders('does not re-render parent on child update', () => {
+    const obj = store({ foo: 1, bar: 2 });
     const parentSpy = jest.fn();
     const childSpy = jest.fn();
     const Test = view(() => {
@@ -121,15 +125,17 @@ describe('view', () => {
       return <>{obj.bar}</>;
     });
 
-    const t = ReactTestRenderer.create(<Test />);
+    const t = render(<Test />);
 
-    await expectContentAfterUpdate(t, ['1', '2']);
+    expectContent(t, ['1', '2']);
     expect(parentSpy).toBeCalledTimes(1);
     expect(childSpy).toBeCalledTimes(1);
 
-    obj.bar = 3;
+    actSync(() => {
+      obj.bar = 3;
+    });
 
-    await expectContentAfterUpdate(t, ['1', '3']);
+    expectContent(t, ['1', '3']);
     expect(parentSpy).toBeCalledTimes(1);
     expect(childSpy).toBeCalledTimes(2);
   });

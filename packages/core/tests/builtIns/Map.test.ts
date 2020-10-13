@@ -1,20 +1,15 @@
-import {
-  isObservable,
-  observable,
-  watch,
-  getObservableRaw,
-} from '@statek/core/lib';
+import { isStore, store, watch, getStoreRaw } from '@statek/core/lib';
 
 describe('Map', () => {
   it('should be a proper JS Map', () => {
-    const map = observable(new Map());
+    const map = store(new Map());
     expect(map).toBeInstanceOf(Map);
-    expect(getObservableRaw(map)).toBeInstanceOf(Map);
+    expect(getStoreRaw(map)).toBeInstanceOf(Map);
   });
 
   it('should observe mutations', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
@@ -28,7 +23,7 @@ describe('Map', () => {
 
   it('should observe size mutations', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => (dummy = map.size));
 
     expect(dummy).toBe(0);
@@ -43,7 +38,7 @@ describe('Map', () => {
 
   it('should observe for of iteration', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
@@ -65,7 +60,7 @@ describe('Map', () => {
 
   it('should observe forEach iteration', () => {
     let dummy: number | null = null;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => {
       dummy = 0;
       map.forEach(num => (dummy += num));
@@ -84,7 +79,7 @@ describe('Map', () => {
 
   it('should observe keys iteration', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => {
       dummy = 0;
       for (let key of map.keys()) {
@@ -105,7 +100,7 @@ describe('Map', () => {
 
   it('should observe values iteration', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => {
       dummy = 0;
       for (let num of map.values()) {
@@ -126,7 +121,7 @@ describe('Map', () => {
 
   it('should observe entries iteration', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
@@ -148,7 +143,7 @@ describe('Map', () => {
 
   it('should be triggered by clearing', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
@@ -160,7 +155,7 @@ describe('Map', () => {
 
   it('should not observe custom property mutations', () => {
     let dummy;
-    const map = observable<any>(new Map());
+    const map = store<any>(new Map());
     watch(() => (dummy = map.customProp));
 
     expect(dummy).toBe(undefined);
@@ -170,7 +165,7 @@ describe('Map', () => {
 
   it('should not observe non value changing mutations', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     const mapSpy = jest.fn(() => (dummy = map.get('key')));
     watch(mapSpy);
 
@@ -195,8 +190,8 @@ describe('Map', () => {
 
   it('should not observe raw data', () => {
     let dummy;
-    const map = observable(new Map());
-    watch(() => (dummy = getObservableRaw(map).get('key')));
+    const map = store(new Map());
+    watch(() => (dummy = getStoreRaw(map).get('key')));
 
     expect(dummy).toBe(undefined);
     map.set('key', 'Hello');
@@ -207,24 +202,24 @@ describe('Map', () => {
 
   it('should not observe raw iterations', () => {
     let dummy = 0;
-    const map = observable<any>(new Map());
+    const map = store<any>(new Map());
     watch(() => {
       dummy = 0;
       // eslint-disable-next-line no-unused-vars
-      for (let [key, num] of getObservableRaw(map).entries()) {
+      for (let [key, num] of getStoreRaw(map).entries()) {
         dummy += num;
       }
-      for (let key of getObservableRaw(map).keys()) {
-        dummy += getObservableRaw(map).get(key);
+      for (let key of getStoreRaw(map).keys()) {
+        dummy += getStoreRaw(map).get(key);
       }
-      for (let num of getObservableRaw(map).values()) {
+      for (let num of getStoreRaw(map).values()) {
         dummy += num;
       }
-      getObservableRaw(map).forEach((num: any, key: any) => {
+      getStoreRaw(map).forEach((num: any, key: any) => {
         dummy += num;
       });
       // eslint-disable-next-line no-unused-vars
-      for (let [key, num] of getObservableRaw(map)) {
+      for (let [key, num] of getStoreRaw(map)) {
         dummy += num;
       }
     });
@@ -239,23 +234,23 @@ describe('Map', () => {
 
   it('should not be triggered by raw mutations', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => (dummy = map.get('key')));
 
     expect(dummy).toBe(undefined);
-    getObservableRaw(map).set('key', 'Hello');
+    getStoreRaw(map).set('key', 'Hello');
     expect(dummy).toBe(undefined);
     dummy = 'Thing';
-    getObservableRaw(map).delete('key');
+    getStoreRaw(map).delete('key');
     expect(dummy).toBe('Thing');
-    getObservableRaw(map).clear();
+    getStoreRaw(map).clear();
     expect(dummy).toBe('Thing');
   });
 
   it('should not observe raw size mutations', () => {
     let dummy;
-    const map = observable(new Map());
-    watch(() => (dummy = getObservableRaw(map).size));
+    const map = store(new Map());
+    watch(() => (dummy = getStoreRaw(map).size));
 
     expect(dummy).toBe(0);
     map.set('key', 'value');
@@ -264,18 +259,18 @@ describe('Map', () => {
 
   it('should not be triggered by raw size mutations', () => {
     let dummy;
-    const map = observable(new Map());
+    const map = store(new Map());
     watch(() => (dummy = map.size));
 
     expect(dummy).toBe(0);
-    getObservableRaw(map).set('key', 'value');
+    getStoreRaw(map).set('key', 'value');
     expect(dummy).toBe(0);
   });
 
   it('should support objects as key', () => {
     let dummy;
     const key = {};
-    const map = observable(new Map());
+    const map = store(new Map());
     const mapSpy = jest.fn(() => (dummy = map.get(key)));
     watch(mapSpy);
 
@@ -292,54 +287,54 @@ describe('Map', () => {
   });
 
   it('should wrap object values with observables when requested from a reaction', () => {
-    const map = observable(new Map());
+    const map = store(new Map());
     map.set('key', {});
     map.set('key2', {});
 
-    expect(isObservable(map.get('key'))).toBe(false);
-    expect(isObservable(map.get('key2'))).toBe(false);
-    watch(() => expect(isObservable(map.get('key'))).toBe(true));
-    expect(isObservable(map.get('key'))).toBe(true);
-    expect(isObservable(map.get('key2'))).toBe(false);
+    expect(isStore(map.get('key'))).toBe(false);
+    expect(isStore(map.get('key2'))).toBe(false);
+    watch(() => expect(isStore(map.get('key'))).toBe(true));
+    expect(isStore(map.get('key'))).toBe(true);
+    expect(isStore(map.get('key2'))).toBe(false);
   });
 
   it('should wrap object values with observables when iterated from a reaction', () => {
-    const map = observable(new Map());
+    const map = store(new Map());
     map.set('key', {});
 
-    map.forEach(value => expect(isObservable(value)).toBe(false));
+    map.forEach(value => expect(isStore(value)).toBe(false));
     for (let [key, value] of map) {
-      expect(isObservable(value)).toBe(false);
+      expect(isStore(value)).toBe(false);
     }
     for (let [key, value] of map.entries()) {
-      expect(isObservable(value)).toBe(false);
+      expect(isStore(value)).toBe(false);
     }
     for (let value of map.values()) {
-      expect(isObservable(value)).toBe(false);
+      expect(isStore(value)).toBe(false);
     }
 
     watch(() => {
-      map.forEach(value => expect(isObservable(value)).toBe(true));
+      map.forEach(value => expect(isStore(value)).toBe(true));
       for (let [key, value] of map) {
-        expect(isObservable(value)).toBe(true);
+        expect(isStore(value)).toBe(true);
       }
       for (let [key, value] of map.entries()) {
-        expect(isObservable(value)).toBe(true);
+        expect(isStore(value)).toBe(true);
       }
       for (let value of map.values()) {
-        expect(isObservable(value)).toBe(true);
+        expect(isStore(value)).toBe(true);
       }
     });
 
-    map.forEach(value => expect(isObservable(value)).toBe(true));
+    map.forEach(value => expect(isStore(value)).toBe(true));
     for (let [key, value] of map) {
-      expect(isObservable(value)).toBe(true);
+      expect(isStore(value)).toBe(true);
     }
     for (let [key, value] of map.entries()) {
-      expect(isObservable(value)).toBe(true);
+      expect(isStore(value)).toBe(true);
     }
     for (let value of map.values()) {
-      expect(isObservable(value)).toBe(true);
+      expect(isStore(value)).toBe(true);
     }
   });
 });

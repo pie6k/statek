@@ -1,8 +1,8 @@
-import { batch, observable, sync, syncEvery, watch } from '@statek/core';
+import { batch, store, sync, syncEvery, watch } from '@statek/core';
 
 describe('syncEvery', () => {
   it('sync every should call reactions on each update even if inside batch', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
       b: 2,
     });
@@ -27,7 +27,7 @@ describe('syncEvery', () => {
   });
 
   it('sync every should ignore nested batch', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
       b: 2,
     });
@@ -52,7 +52,7 @@ describe('syncEvery', () => {
   });
 
   it('sync every should skip scheduler', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
     });
 

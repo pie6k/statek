@@ -1,11 +1,11 @@
-import { observable, watch } from '@statek/core/lib';
+import { store, watch } from '@statek/core/lib';
 import { ITERATION_KEY } from '../lib/operations';
 
 describe('debugger', () => {
   it('should debug get operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(() => (dummy = counter.num), {
       debug: debugSpy,
@@ -23,7 +23,7 @@ describe('debugger', () => {
   it('should debug has operations', () => {
     let dummy;
     const rawCounter = {};
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(() => (dummy = 'num' in counter), {
       debug: debugSpy,
@@ -41,7 +41,7 @@ describe('debugger', () => {
   it('should debug iteration operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(
       () => {
@@ -66,7 +66,7 @@ describe('debugger', () => {
   it('should debug add operations', () => {
     let dummy;
     const rawCounter = {};
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(() => (dummy = counter.num), {
       debug: debugSpy,
@@ -89,7 +89,7 @@ describe('debugger', () => {
   it('should debug set operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(() => (dummy = counter.num), {
       debug: debugSpy,
@@ -111,7 +111,7 @@ describe('debugger', () => {
   it('should debug delete operations', () => {
     let dummy;
     const rawCounter = { num: 0 };
-    const counter = observable<any>(rawCounter);
+    const counter = store<any>(rawCounter);
     const debugSpy = jest.fn();
     watch(() => (dummy = counter.num), {
       debug: debugSpy,
@@ -133,7 +133,7 @@ describe('debugger', () => {
     let dummy;
     const rawMap = new Map();
     rawMap.set('key', 'value');
-    const map = observable<any>(rawMap);
+    const map = store<any>(rawMap);
     const debugSpy = jest.fn();
     watch(() => (dummy = map.get('key')), {
       debug: debugSpy,
@@ -153,7 +153,7 @@ describe('debugger', () => {
 
   it('should not cause infinite loops', () => {
     const rawCounter = { num: 0 };
-    const counter = observable(rawCounter);
+    const counter = store(rawCounter);
     const debugSpy = jest.fn();
     watch(() => counter.num, {
       debug: debugSpy,

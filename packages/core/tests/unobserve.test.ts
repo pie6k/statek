@@ -1,9 +1,9 @@
-import { observable, watch } from '@statek/core/lib';
+import { store, watch } from '@statek/core/lib';
 
 describe('unobserve', () => {
   it('should unobserve the observed function', () => {
     let dummy;
-    const counter = observable({ num: 0 });
+    const counter = store({ num: 0 });
     const counterSpy = jest.fn(() => (dummy = counter.num));
     const stop = watch(counterSpy);
 
@@ -21,7 +21,7 @@ describe('unobserve', () => {
 
   it('should unobserve when the same key is used multiple times', () => {
     let dummy;
-    const user = observable({ name: { name: 'Bob' } });
+    const user = store({ name: { name: 'Bob' } });
     const nameSpy = jest.fn(() => (dummy = user.name.name));
     const stop = watch(nameSpy);
 
@@ -37,7 +37,7 @@ describe('unobserve', () => {
 
   it('should unobserve multiple reactions for the same target and key', () => {
     let dummy;
-    const counter = observable({ num: 0 });
+    const counter = store({ num: 0 });
 
     const stop1 = watch(() => (dummy = counter.num));
     const stop2 = watch(() => (dummy = counter.num));
@@ -54,7 +54,7 @@ describe('unobserve', () => {
   it('should not reobserve unobserved reactions on manual execution', () => {
     let dummy;
 
-    const obj = observable<any>({});
+    const obj = store<any>({});
     const stop = watch(() => (dummy = obj.prop));
 
     expect(dummy).toBe(undefined);
@@ -66,7 +66,7 @@ describe('unobserve', () => {
 
   it('should have the same effect, when called multiple times', () => {
     let dummy;
-    const counter = observable<any>({ num: 0 });
+    const counter = store<any>({ num: 0 });
     const counterSpy = jest.fn(() => (dummy = counter.num));
     const stop = watch(counterSpy);
 
@@ -84,7 +84,7 @@ describe('unobserve', () => {
   });
 
   it('should restore unobserved reaction if watch called again', () => {
-    const counter = observable({ num: 0 });
+    const counter = store({ num: 0 });
     const counterSpy = jest.fn(() => counter.num);
     const stop = watch(counterSpy);
 

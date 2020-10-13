@@ -1,8 +1,8 @@
-import { observable, sync, watch } from '@statek/core/lib';
+import { store, sync, watch } from '@statek/core/lib';
 
 describe('sync', () => {
   it('will skip scheduler if called in sync mode', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
     });
 
@@ -30,7 +30,7 @@ describe('sync', () => {
   });
 
   it('sync operations are batched', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
       b: 2,
     });

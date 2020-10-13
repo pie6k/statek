@@ -1,8 +1,8 @@
-import React, { Component } from 'react';
-import ReactTestRenderer, { act } from 'react-test-renderer';
 import { waitForSchedulersToFlush } from '@statek/core';
-import { createStore, useObserve, view } from '../lib';
-import { wait } from './utils';
+import React, { Component } from 'react';
+import ReactTestRenderer from 'react-test-renderer';
+import { store, view } from '../lib';
+import { actSync, expectContent, itRenders, render } from './utils';
 
 async function expectContentAfterUpdate(
   renderer: ReactTestRenderer.ReactTestRenderer,
@@ -14,8 +14,8 @@ async function expectContentAfterUpdate(
 }
 
 describe('view - class', () => {
-  it('rerenders on update', async () => {
-    const obj = createStore({ foo: 1 });
+  itRenders('rerenders on update', () => {
+    const obj = store({ foo: 1 });
     class Test extends Component {
       render() {
         return <>{obj.foo}</>;
@@ -24,17 +24,19 @@ describe('view - class', () => {
 
     const RTest = view(Test);
 
-    const t = ReactTestRenderer.create(<RTest />);
+    const t = render(<RTest />);
 
-    await expectContentAfterUpdate(t, '1');
+    expectContent(t, '1');
 
-    obj.foo = 2;
+    actSync(() => {
+      obj.foo = 2;
+    });
 
-    await expectContentAfterUpdate(t, '2');
+    expectContent(t, '2');
   });
 
-  it('supports props', async () => {
-    const obj = createStore({ foo: 1 });
+  it('supports props', () => {
+    const obj = store({ foo: 1 });
     class Test extends Component<{ bar: string }> {
       render() {
         return (
@@ -48,17 +50,19 @@ describe('view - class', () => {
 
     const RTest = view(Test);
 
-    const t = ReactTestRenderer.create(<RTest bar="bar" />);
+    const t = render(<RTest bar="bar" />);
 
-    await expectContentAfterUpdate(t, ['1', 'bar']);
+    expectContent(t, ['1', 'bar']);
 
-    obj.foo = 2;
+    actSync(() => {
+      obj.foo = 2;
+    });
 
-    await expectContentAfterUpdate(t, ['2', 'bar']);
+    expectContent(t, ['2', 'bar']);
   });
 
-  it('lifecycles are properly passed', async () => {
-    const obj = createStore({ foo: 1 });
+  it('lifecycles are properly passed', () => {
+    const obj = store({ foo: 1 });
     const componentDidUpdateSpy = jest.fn();
     const componentDidMountSpy = jest.fn();
     const shouldComponentUpdateSpy = jest.fn();
@@ -112,7 +116,7 @@ describe('view - class', () => {
 
     const RTest = view(Test);
 
-    const t = ReactTestRenderer.create(<RTest p={1} />);
+    const t = render(<RTest p={1} />);
 
     expect(componentDidMountSpy).toHaveBeenNthCalledWith(
       1,
@@ -120,11 +124,13 @@ describe('view - class', () => {
       [],
     );
 
-    await expectContentAfterUpdate(t, ['1', '1', '0']);
+    expectContent(t, ['1', '1', '0']);
 
-    obj.foo = 2;
+    actSync(() => {
+      obj.foo = 2;
+    });
 
-    await expectContentAfterUpdate(t, ['2', '1', '0']);
+    expectContent(t, ['2', '1', '0']);
 
     expect(componentDidUpdateSpy).toBeCalledTimes(1);
 

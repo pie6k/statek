@@ -1,16 +1,16 @@
-import { observable, watch, getObservableRaw } from '@statek/core/lib';
+import { store, watch, getStoreRaw } from '@statek/core/lib';
 
 describe('WeakSet', () => {
   it('should be a proper JS WeakSet', () => {
-    const set = observable(new WeakSet());
+    const set = store(new WeakSet());
     expect(set).toBeInstanceOf(WeakSet);
-    expect(getObservableRaw(set)).toBeInstanceOf(WeakSet);
+    expect(getStoreRaw(set)).toBeInstanceOf(WeakSet);
   });
 
   it('should observe mutations', () => {
     let dummy;
     const value = {};
-    const set = observable(new WeakSet());
+    const set = store(new WeakSet());
     watch(() => (dummy = set.has(value)));
 
     expect(dummy).toBe(false);
@@ -22,7 +22,7 @@ describe('WeakSet', () => {
 
   it('should not observe custom property mutations', () => {
     let dummy;
-    const set = observable<any>(new WeakSet());
+    const set = store<any>(new WeakSet());
     watch(() => (dummy = set.customProp));
 
     expect(dummy).toBe(undefined);
@@ -33,7 +33,7 @@ describe('WeakSet', () => {
   it('should not observe non value changing mutations', () => {
     let dummy;
     const value = {};
-    const set = observable(new WeakSet());
+    const set = store(new WeakSet());
     const setSpy = jest.fn(() => (dummy = set.has(value)));
     watch(setSpy);
 
@@ -56,8 +56,8 @@ describe('WeakSet', () => {
   it('should not observe raw data', () => {
     const value = {};
     let dummy;
-    const set = observable(new WeakSet());
-    watch(() => (dummy = getObservableRaw(set).has(value)));
+    const set = store(new WeakSet());
+    watch(() => (dummy = getStoreRaw(set).has(value)));
 
     expect(dummy).toBe(false);
     set.add(value);
@@ -67,11 +67,11 @@ describe('WeakSet', () => {
   it('should not be triggered by raw mutations', () => {
     const value = {};
     let dummy;
-    const set = observable(new WeakSet());
+    const set = store(new WeakSet());
     watch(() => (dummy = set.has(value)));
 
     expect(dummy).toBe(false);
-    getObservableRaw(set).add(value);
+    getStoreRaw(set).add(value);
     expect(dummy).toBe(false);
   });
 });

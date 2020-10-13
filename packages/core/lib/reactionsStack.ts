@@ -27,11 +27,12 @@ export function registerCurrentReactionHook(hook: CurrentReactionHook) {
 export function callWithReactionsStack<C extends ReactionCallback>(
   reactionCallback: C,
   functionToCall: C,
+  ...args: any[]
 ) {
   const context = reactionContext.get(reactionCallback);
 
   if (unsubscribedReactions.has(reactionCallback)) {
-    return Reflect.apply(functionToCall, context, []);
+    return Reflect.apply(functionToCall, context, args);
   }
 
   if (watchingReactionsStack.includes(reactionCallback)) {
@@ -44,9 +45,9 @@ export function callWithReactionsStack<C extends ReactionCallback>(
 
   try {
     // set the reaction as the currently running one
-    // this is required so that we can create (observable.prop -> reaction) pairs in the get trap
+    // this is required so that we can create (store.prop -> reaction) pairs in the get trap
     watchingReactionsStack.push(reactionCallback);
-    return Reflect.apply(functionToCall, context ?? null, []);
+    return Reflect.apply(functionToCall, context ?? null, args);
   } finally {
     // always remove the currently running flag from the reaction when it stops execution
     watchingReactionsStack.pop();

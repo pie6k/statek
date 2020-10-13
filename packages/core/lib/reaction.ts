@@ -1,7 +1,8 @@
 import { ReactionScheduler } from './batch';
 import { OperationInfo } from './operations';
 
-type ReactionsSet = Set<ReactionCallback>;
+export type ReactionsSet = Set<ReactionCallback>;
+export type ReactionsMemberships = Set<ReactionsSet>;
 
 export const callbacksReactions = new WeakMap<
   ReactionCallback,
@@ -9,7 +10,7 @@ export const callbacksReactions = new WeakMap<
 >();
 export const reactionWatchedPropertiesMemberships = new WeakMap<
   ReactionCallback,
-  Set<ReactionsSet>
+  ReactionsMemberships
 >();
 export const reactionSchedulers = new WeakMap<
   ReactionCallback,
@@ -21,6 +22,30 @@ export const reactionDebugger = new WeakMap<
   ReactionCallback,
   ReactionDebugger
 >();
+
+export const lazyReactionsCallbacks = new WeakMap<
+  ReactionCallback,
+  ReactionCallback
+>();
+
+export function registerLazyReactionCallback(
+  reaction: ReactionCallback,
+  callback: ReactionCallback,
+) {
+  if (!isReaction(reaction)) {
+    throw new Error('Only reaction can have apply callback');
+  }
+
+  lazyReactionsCallbacks.set(reaction, callback);
+}
+
+export function isLazyReaction(reaction: ReactionCallback) {
+  return lazyReactionsCallbacks.has(reaction);
+}
+
+export function getLazyReactionCallback(reaction: ReactionCallback) {
+  return lazyReactionsCallbacks.has(reaction);
+}
 
 export function cleanReactionReadData(reaction: ReactionCallback) {
   const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
@@ -51,7 +76,16 @@ export function hasCallbackReaction(input: ReactionCallback) {
 }
 
 export function applyReaction(reaction: ReactionCallback) {
+  if (lazyReactionsCallbacks.has(reaction)) {
+    lazyReactionsCallbacks.get(reaction)!();
+    return;
+  }
+
   reaction.apply(reactionContext.get(reaction));
+}
+
+export function isReaction(reaction: ReactionCallback) {
+  return reactionWatchedPropertiesMemberships.has(reaction);
 }
 
 /**

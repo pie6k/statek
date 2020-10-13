@@ -1,8 +1,8 @@
-import { dontWatch, observable, sync, watch } from '@statek/core/lib';
+import { dontWatch, store, sync, watch } from '@statek/core/lib';
 
 describe('dontWatch', () => {
   it('will ignore read access inside dontWatch', () => {
-    const obj = observable({
+    const obj = store({
       a: 1,
       b: 2,
       c: 3,

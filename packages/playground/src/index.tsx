@@ -14,7 +14,6 @@ function saveFiber() {
   const fiber = getFiber();
 
   if (!window.a.has(fiber)) {
-    console.log('new!');
   }
 
   window.a.add(fiber);
