@@ -6,13 +6,5 @@
   "semi": true,
   "singleQuote": true,
   "tabWidth": 2,
-  "trailingComma": "all",
-  "overrides": [
-    {
-      "files": "*.html",
-      "options": {
-        "printWidth": 140
-      }
-    }
-  ]
+  "trailingComma": "all"
 }
