@@ -29,7 +29,13 @@ function getPackageFile(dirPath: string): Package {
   return readJsonFile(packageJsonPath);
 }
 
-function updateJsonFile(path: string, updater: (json: any) => any) {}
+function updateJsonFile(path: string, updater: (json: any) => any) {
+  const currentJson = readJsonFile(path);
+
+  const newJson = updater(currentJson);
+
+  fs.writeFileSync(path, JSON.stringify(newJson, null, 2));
+}
 
 function updatePackageJson(
   packageDir: string,
@@ -51,9 +57,14 @@ function collectPackages() {
 }
 
 function getDirectories(dirPath: string) {
-  return fs.readdirSync(dirPath).filter(function (subItem) {
-    return fs.statSync(path.resolve(dirPath, subItem)).isDirectory();
-  });
+  return fs
+    .readdirSync(dirPath)
+    .filter(function (subItem) {
+      return fs.statSync(path.resolve(dirPath, subItem)).isDirectory();
+    })
+    .map(subItem => {
+      return path.resolve(dirPath, subItem);
+    });
 }
 
 async function perform() {

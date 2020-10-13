@@ -1,13 +1,13 @@
 {
   "name": "@statek/react",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "./lib",
   "scripts": {
     "test": "jest --watch",
     "build": "rollup --config"
   },
   "dependencies": {
-    "@statek/core": "1.0.0"
+    "@statek/core": "0.1.0"
   },
   "peerDependencies": {
     "react": "*",

@@ -1,9 +1,9 @@
 {
   "name": "@statek/tooling",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0",
   "scripts": {
     "clean": "ts-node ./clean.ts",
-    "versions": "ts-node ./clean.ts"
+    "update-versions": "ts-node ./updateVersions.ts"
   }
 }

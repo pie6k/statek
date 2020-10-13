@@ -1,14 +1,14 @@
 {
   "name": "statek",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "main": "./src",
   "scripts": {
     "test": "jest --watch",
     "benchmark": "parcel ./benchmark/index.html"
   },
   "devDependencies": {
-    "@statek/core": "1.0.0",
-    "@statek/react": "1.0.0"
+    "@statek/core": "0.1.0",
+    "@statek/react": "0.1.0"
   },
   "peerDependencies": {
     "react": "*",
