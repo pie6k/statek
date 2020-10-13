@@ -1,17 +1,6 @@
-import { waitForSchedulersToFlush } from '@statek/core';
 import React, { Component } from 'react';
-import ReactTestRenderer from 'react-test-renderer';
 import { store, view } from '../lib';
 import { actSync, expectContent, itRenders, render } from './utils';
-
-async function expectContentAfterUpdate(
-  renderer: ReactTestRenderer.ReactTestRenderer,
-  content: any,
-) {
-  await waitForSchedulersToFlush();
-
-  expect(renderer.toJSON()).toEqual(content);
-}
 
 describe('view - class', () => {
   itRenders('rerenders on update', () => {

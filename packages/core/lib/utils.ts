@@ -1,4 +1,4 @@
-import { isStore } from './observable';
+import { isStore } from './store';
 import { ReactionCallback } from './reaction';
 
 // try to find the global object
@@ -146,4 +146,36 @@ export function resolveThunk<T>(
   }
 
   return thunk as T;
+}
+
+export function createStackCallback(onFinish: () => void) {
+  const callsStack: boolean[] = [];
+  let isEnabled = true;
+
+  function perform<T>(fn: (args: any) => T, args?: any, ctx?: any): T {
+    callsStack.push(true);
+
+    try {
+      return fn.apply(args, ctx);
+    } finally {
+      callsStack.pop();
+
+      onFinish();
+    }
+  }
+
+  function setEnabled(newIsEnabled: boolean) {
+    isEnabled = newIsEnabled;
+  }
+
+  function isRunning() {
+    return callsStack.length > 0;
+  }
+
+  const manager = {
+    isRunning,
+    setEnabled,
+  };
+
+  return [perform, manager] as const;
 }

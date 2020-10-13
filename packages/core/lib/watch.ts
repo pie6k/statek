@@ -1,7 +1,4 @@
-import {
-  getSelectedAnyChangeReactions,
-  registerSelectedAnyChangeReaction,
-} from './observable';
+import { registerSelectedAnyChangeReaction } from './store';
 import {
   cleanReactionReadData,
   hasCallbackReaction,
@@ -15,6 +12,7 @@ import {
 } from './reaction';
 import { callWithReactionsStack } from './reactionsStack';
 import { selectInStore } from './batch';
+import { allowPublicInternal } from './internal';
 
 export function watch(
   watcher: ReactionCallback,
@@ -30,7 +28,9 @@ export function watch(
     return callWithReactionsStack(reactionCallback, watcher);
   }
 
-  registerReaction(reactionCallback, watcher, options);
+  allowPublicInternal(() => {
+    registerReaction(reactionCallback, watcher, options);
+  });
 
   unsubscribedReactions.delete(reactionCallback);
 
@@ -51,7 +51,9 @@ export function watchSelected(
   options?: ReactionOptions,
 ) {
   const resolvedObservable = selectInStore(selector);
-  registerReaction(callback, callback, options);
+  allowPublicInternal(() => {
+    registerReaction(callback, callback, options);
+  });
   const stop = registerSelectedAnyChangeReaction(resolvedObservable, callback);
 
   return stop;
@@ -77,7 +79,9 @@ export function lazyWatch<A extends any[], R>(
     return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
   }
 
-  registerReaction(reactionCallback, lazyWatcher, options);
+  allowPublicInternal(() => {
+    registerReaction(reactionCallback, lazyWatcher, options);
+  });
 
   registerLazyReactionCallback(reactionCallback, onWatchedChange);
 

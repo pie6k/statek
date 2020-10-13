@@ -5,7 +5,6 @@
     "esModuleInterop": true,
     "downlevelIteration": true,
     "strict": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true
+    "importHelpers": true,
   }
 }

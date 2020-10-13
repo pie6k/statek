@@ -1,4 +1,4 @@
-import { createChildStoreIfNeeded, storeToRawMap } from '../observable';
+import { createChildStoreIfNeeded, storeToRawMap } from '../store';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,

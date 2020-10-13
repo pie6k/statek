@@ -6,7 +6,7 @@ import {
   reactionSchedulers,
 } from './reaction';
 import { getDefaultScheduler } from './schedulers';
-import { noop } from './utils';
+import { createStackCallback, noop } from './utils';
 export type ReactionScheduler = (
   reaction: ReactionCallback,
 ) => Promise<void> | void;
@@ -131,28 +131,3 @@ export const [selectInStore, readStoreManager] = createStackCallback(noop);
  * It can be called inside part of `watch` callback and such read access will not be registered.
  */
 export const [dontWatch, dontWatchManager] = createStackCallback(noop);
-
-function createStackCallback(onFinish: () => void) {
-  const callsStack: boolean[] = [];
-
-  function perform<T>(fn: (args: any) => T, args?: any, ctx?: any): T {
-    callsStack.push(true);
-
-    try {
-      return fn.apply(args, ctx);
-    } finally {
-      callsStack.pop();
-
-      onFinish();
-    }
-  }
-
-  function isRunning() {
-    return callsStack.length > 0;
-  }
-
-  const manager = {
-    isRunning,
-  };
-  return [perform, manager] as const;
-}

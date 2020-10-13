@@ -112,48 +112,42 @@ export function getSelectedAnyChangeReactions(storePartRaw: object) {
   return reactions;
 }
 
-function isValidStoreInput(input: any) {
-  if (isPrimitive(input)) {
-    return false;
-  }
+export type StoreFactory<T extends object> = T | (() => T);
 
-  if (typeof input === 'function') {
-    return false;
-  }
+export function store<T extends object>(storeFactory: StoreFactory<T>): T {
+  const storeInput = resolveStoreFactory(storeFactory);
 
-  return true;
-}
-
-export function store<T extends object>(initialStateOrStore: T): T {
-  if (!isValidStoreInput(initialStateOrStore)) {
-    throw new Error(`Observable cannot be created from ${initialStateOrStore}`);
+  const canWrapInProxyError = canWrapInProxy(storeInput);
+  if (canWrapInProxyError !== true) {
+    const untypedInput = storeInput as any;
+    const inputConstructorName =
+      untypedInput?.constructor?.name ?? untypedInput?.name ?? 'Unknown';
+    throw new Error(
+      `Observable cannot be created from ${inputConstructorName}. Reason - ${canWrapInProxyError}`,
+    );
   }
   // if it is already an observable or it should not be wrapped, return it
-  if (storeToRawMap.has(initialStateOrStore)) {
-    return initialStateOrStore;
+  if (storeToRawMap.has(storeInput)) {
+    return storeInput;
   }
 
   // if it already has a cached observable wrapper, return it
-  const existingObservable = rawToStoreMap.get(initialStateOrStore);
+  const existingObservable = rawToStoreMap.get(storeInput);
 
   if (existingObservable) {
     return existingObservable;
   }
 
-  if (!canWrapInProxy(initialStateOrStore)) {
-    return initialStateOrStore;
-  }
-
   // otherwise create a new observable
 
-  const observable = wrapObjectInProxy(initialStateOrStore);
+  const newStore = wrapObjectInProxy(storeInput);
   // save these to switch between the raw object and the wrapped object with ease later
-  rawToStoreMap.set(initialStateOrStore, observable);
-  storeToRawMap.set(observable, initialStateOrStore);
+  rawToStoreMap.set(storeInput, newStore);
+  storeToRawMap.set(newStore, storeInput);
   // init basic data structures to save and cleanup later (observable.prop -> reaction) connections
-  initializeObjectReadOperationsRegistry(initialStateOrStore);
+  initializeObjectReadOperationsRegistry(storeInput);
 
-  return observable;
+  return newStore;
 }
 
 export function createChildStoreIfNeeded(
@@ -169,7 +163,7 @@ export function createChildStoreIfNeeded(
   }
 
   // If it's not possible to create observable - no point of checking if we should create it.
-  if (!isValidStoreInput(storePartRaw)) {
+  if (canWrapInProxy(storePartRaw) !== true) {
     return storePartRaw;
   }
 
@@ -206,4 +200,14 @@ export function getStoreRaw<T extends object>(store: T): T {
   }
 
   return storeToRawMap.get(store)!;
+}
+
+export function resolveStoreFactory<T extends object>(
+  factory: StoreFactory<T>,
+): T {
+  if (typeof factory === 'function') {
+    return (factory as any)() as T;
+  }
+
+  return factory as T;
 }

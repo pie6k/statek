@@ -1,4 +1,8 @@
-import { ReactionCallback, registerReaction } from '@statek/core';
+import {
+  allowPublicInternal,
+  ReactionCallback,
+  registerReaction,
+} from '@statek/core';
 import { useMemo, useReducer } from 'react';
 import { reactScheduler } from './scheduler';
 
@@ -13,7 +17,9 @@ export function useForceUpdateReaction(): ReactionCallback {
   const forceUpdate = useForceUpdate();
 
   useMemo(() => {
-    registerReaction(forceUpdate, forceUpdate, { scheduler: reactScheduler });
+    allowPublicInternal(() => {
+      registerReaction(forceUpdate, forceUpdate, { scheduler: reactScheduler });
+    });
   }, [forceUpdate]);
 
   return forceUpdate;

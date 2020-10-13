@@ -1,11 +1,11 @@
 import React from 'react';
 import { store } from '../lib';
-import { itRendersRaw } from './utils';
+import { itRenders, render, expectContent } from './utils';
 
 describe('warn', () => {
-  itRendersRaw(
+  itRenders(
     'should warn when accessing store inside non-reactive component',
-    ({ render, expectContent }) => {
+    () => {
       const obj = store({ foo: 1 });
       function Test() {
         return <>{obj.foo}</>;

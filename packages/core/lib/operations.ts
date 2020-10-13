@@ -1,6 +1,6 @@
 export const ITERATION_KEY = Symbol('iteration key');
 import { requestReactionCallNeeded } from './batch';
-import { getSelectedAnyChangeReactions } from './observable';
+import { getSelectedAnyChangeReactions } from './store';
 import {
   ReactionCallback,
   reactionDebugger,

@@ -12,7 +12,6 @@ import {
   useMemo,
   useReducer,
 } from 'react';
-import { act } from 'react-test-renderer';
 import { isClassComponent, isFunctionalComponent } from './componentTypes';
 import { reactScheduler } from './scheduler';
 
@@ -49,9 +48,7 @@ function createFunctionalView<C extends FunctionComponent<any>>(
             return BaseComponent(props, context);
           },
           () => {
-            act(() => {
-              forceUpdate();
-            });
+            forceUpdate();
           },
           { scheduler: reactScheduler },
         );

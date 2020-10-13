@@ -1,25 +1,47 @@
 import { isStore, store, watch, getStoreRaw } from '@statek/core/lib';
 
-describe('observable', () => {
-  it('should return a new observable when no argument is provided', () => {
+describe('store - creating', () => {
+  it('should return a new store when no argument is provided', () => {
     const obs = store({});
     expect(isStore(obs)).toBe(true);
   });
 
-  it('should throw when creating non-object observable', () => {
+  it('should throw when creating non-object store', () => {
     expect(() => {
       // @ts-expect-error
       store('foo');
     }).toThrow();
   });
 
-  it('should throw when creating observable from function', () => {
-    expect(() => {
-      store(() => {});
-    }).toThrow();
+  it('should resolve factory function', () => {
+    const s = store(() => ({ foo: 1 }));
+
+    expect(s.foo).toEqual(1);
   });
 
-  it('should allow creating observable from class instance', () => {
+  it('should throw when using built in function as factory', () => {
+    expect(() => {
+      store(parseInt);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from Number. Reason - Non object value"`,
+    );
+  });
+
+  it('should throw when factory resolves to incorrect result', () => {
+    expect(() => {
+      store(() => 'foo');
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from String. Reason - Non object value"`,
+    );
+
+    expect(() => {
+      store(() => /a/);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from RegExp. Reason - Built in object or accessable in global / window"`,
+    );
+  });
+
+  it('should allow creating store from class instance', () => {
     class Foo {
       bar = 1;
     }
@@ -28,20 +50,20 @@ describe('observable', () => {
     }).not.toThrow();
   });
 
-  it('should return an observable wrapping of an object argument', () => {
+  it('should return an store wrapping of an object argument', () => {
     const obj = { prop: 'value' };
     const obs = store(obj);
     expect(obs).not.toBe(obj);
     expect(isStore(obs)).toBe(true);
   });
 
-  it('should return the argument if it is already an observable', () => {
+  it('should return the argument if it is already an store', () => {
     const obs1 = store({});
     const obs2 = store(obs1);
     expect(obs1).toBe(obs2);
   });
 
-  it('should return the same observable wrapper when called repeatedly with the same argument', () => {
+  it('should return the same store wrapper when called repeatedly with the same argument', () => {
     const obj = { prop: 'value' };
     const obs1 = store(obj);
     const obs2 = store(obj);
@@ -76,14 +98,14 @@ describe('observable', () => {
   });
 });
 
-describe('isObservable', () => {
-  it('should return true if an observable is passed as argument', () => {
+describe('isStore', () => {
+  it('should return true if an store is passed as argument', () => {
     const obs = store({});
     const isObs = isStore(obs);
     expect(isObs).toBe(true);
   });
 
-  it('should return false if a non observable is passed as argument', () => {
+  it('should return false if a non store is passed as argument', () => {
     const obj1 = { prop: 'value' };
     const obj2 = new Proxy({}, {});
     const isObs1 = isStore(obj1);
@@ -98,7 +120,7 @@ describe('isObservable', () => {
   });
 });
 
-describe('raw', () => {
+describe('getStoreRaw', () => {
   it('should return the raw non-reactive object', () => {
     const obj: any = {};
     const obs = store(obj);

@@ -1,4 +1,5 @@
 import { dontWatchManager } from './batch';
+import { warnIfUsingInternal } from './internal';
 import { ReadOperationInfo } from './operations';
 import {
   cleanReactionReadData,
@@ -20,6 +21,7 @@ const currentReactionHooks = new Set<CurrentReactionHook>();
  * @internal
  */
 export function registerReadOperationReactionHook(hook: CurrentReactionHook) {
+  warnIfUsingInternal('registerReadOperationReactionHook');
   currentReactionHooks.add(hook);
 
   return function remove() {

@@ -1,4 +1,5 @@
 import { ReactionScheduler } from './batch';
+import { warnIfUsingInternal } from './internal';
 import { OperationInfo } from './operations';
 
 export type ReactionsSet = Set<ReactionCallback>;
@@ -28,6 +29,9 @@ export const lazyReactionsCallbacks = new WeakMap<
   ReactionCallback
 >();
 
+/**
+ * @internal
+ */
 export function registerLazyReactionCallback(
   reaction: ReactionCallback,
   callback: ReactionCallback,
@@ -96,6 +100,8 @@ export function registerReaction(
   originalCallback: ReactionCallback,
   options: ReactionOptions = {},
 ) {
+  warnIfUsingInternal('registerReaction');
+
   if (callbacksReactions.has(reaction)) {
     throw new Error('This reactions is already registered');
   }

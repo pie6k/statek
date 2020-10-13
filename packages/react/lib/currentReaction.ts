@@ -4,6 +4,7 @@ import {
   registerReaction,
   ReadOperationInfo,
   isStore,
+  allowPublicInternal,
 } from '@statek/core';
 import { updateClassComponentByFiber } from './classFiberUpdater';
 import { isClassComponent } from './componentTypes';
@@ -13,7 +14,9 @@ import { fiberViewsUpdaters } from './useView';
 import { getComponentTypeNiceName, warnOnce } from './utils';
 import { WatchStore, WatchedStoriesContext } from './WatchStore';
 
-registerReadOperationReactionHook(getCurrentFiberUpdateReaction);
+allowPublicInternal(() => {
+  registerReadOperationReactionHook(getCurrentFiberUpdateReaction);
+});
 
 export function getCurrentFiberUpdateReaction(
   readOperation: ReadOperationInfo,
@@ -57,7 +60,9 @@ export function getCurrentFiberUpdateReaction(
       updateClassComponentByFiber(fiber);
     };
 
-    registerReaction(update, update, { scheduler: reactScheduler });
+    allowPublicInternal(() => {
+      registerReaction(update, update, { scheduler: reactScheduler });
+    });
 
     // Save it in cache.
     fiberViewsUpdaters.set(fiber, update);

@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMethod } from './useMethod';
 import { reactWatch } from './scheduler';
+import { store } from '@statek/core';
+
+export function useStore<T>(storeFactory: () => T) {
+  const [createdStore] = useState(() => {
+    return store(storeFactory);
+  });
+
+  return createdStore;
+}
 
 export function useStoreSelector<T>(getter: () => T): T {
   const [value, setValue] = useState(getter);
@@ -15,7 +24,10 @@ export function useStoreSelector<T>(getter: () => T): T {
   return value;
 }
 
-export function useStoreEffect(callback: () => void, deps: any[] = []) {
+export function useStoreEffect(
+  callback: () => void,
+  forceWatchAgainDeps: any[] = [],
+) {
   const callbackRef = useMethod(callback);
   useEffect(() => {
     const clear = reactWatch(() => {
@@ -25,10 +37,13 @@ export function useStoreEffect(callback: () => void, deps: any[] = []) {
     return () => {
       clear();
     };
-  }, deps);
+  }, forceWatchAgainDeps);
 }
 
-export function useStatefulStoreEffect(factory: () => () => void, deps: any[]) {
+export function useStatefulStoreEffect(
+  factory: () => () => void,
+  forceWatchAgainDeps: any[],
+) {
   useEffect(() => {
     const effectCallback = factory();
     const clearEffect = reactWatch(() => {
@@ -38,7 +53,7 @@ export function useStatefulStoreEffect(factory: () => () => void, deps: any[]) {
     return () => {
       clearEffect();
     };
-  }, [deps]);
+  }, [forceWatchAgainDeps]);
 }
 
 type DebounceTime<T> = number | ((value: T) => number);

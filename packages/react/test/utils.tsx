@@ -49,15 +49,12 @@ export function render(node: ReactElement) {
   return ReactTestRenderer.create(node);
 }
 
-export function itRenders(
-  description: string,
-  callback: (utils: RenderTestUtils) => any,
-) {
+export function itRenders(description: string, callback: () => any) {
   it(description, () => {
     // console.log('a');
     // sync(() => {
     sync(() => {
-      callback(buildUtils());
+      callback();
     });
     // });
     // console.log('b');
@@ -71,29 +68,20 @@ export function expectContent(
   expect(r.toJSON()).toEqual(content);
 }
 
-export function buildUtils(): RenderTestUtils {
-  let currentRender: ReactTestRenderer.ReactTestRenderer;
-  function expectContent(content: any) {
-    expect(currentRender.toJSON()).toEqual(content);
-  }
+// export function buildUtils(): RenderTestUtils {
+//   let currentRender: ReactTestRenderer.ReactTestRenderer;
+//   function expectContent(content: any) {
+//     expect(currentRender.toJSON()).toEqual(content);
+//   }
 
-  function render(node: ReactElement) {
-    currentRender = ReactTestRenderer.create(node);
-  }
+//   function render(node: ReactElement) {
+//     currentRender = ReactTestRenderer.create(node);
+//   }
 
-  async function asyncExpectContent(content: any) {
-    await waitForSchedulersToFlush();
-    expectContent(content);
-  }
+//   async function asyncExpectContent(content: any) {
+//     await waitForSchedulersToFlush();
+//     expectContent(content);
+//   }
 
-  return { expectContent, render, asyncExpectContent };
-}
-
-export function itRendersRaw(
-  description: string,
-  callback: (utils: RenderTestUtils) => any,
-) {
-  it(description, () => {
-    callback(buildUtils());
-  });
-}
+//   return { expectContent, render, asyncExpectContent };
+// }

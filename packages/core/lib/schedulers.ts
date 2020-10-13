@@ -1,4 +1,5 @@
 import { ReactionScheduler } from './batch';
+import { warnIfUsingInternal } from './internal';
 import { applyReaction, ReactionCallback } from './reaction';
 
 type Timeout = ReturnType<typeof setTimeout>;
@@ -9,6 +10,7 @@ type Task = () => void;
  * @internal
  */
 export async function waitForSchedulersToFlush() {
+  warnIfUsingInternal('waitForSchedulersToFlush');
   await Promise.all(Array.from(flushPromises));
 }
 

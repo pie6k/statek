@@ -10,9 +10,11 @@ describe('none observable built-ins', () => {
     window.MyClass = class MyClass {};
     // @ts-ignore
     const obj = new window.MyClass();
-    const obs = store(obj);
-    expect(obs).toBe(obj);
-    expect(isStore(obs)).toBe(false);
+    expect(() => {
+      const obs = store(obj);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from MyClass. Reason - Built in object or accessable in global / window"`,
+    );
   });
 
   it('objects with local constructors should be converted to observables', () => {
@@ -34,23 +36,28 @@ describe('none observable built-ins', () => {
   });
 
   it('Date should not be converted to observable', () => {
-    const date = new Date();
-    const obsDate = store(date);
-    expect(obsDate).toBe(date);
-    expect(isStore(obsDate)).toBe(false);
+    expect(() => {
+      const date = new Date();
+
+      const obsDate = store(date);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from Date. Reason - Built in object or accessable in global / window"`,
+    );
   });
 
   it('RegExp should not be converted to observable', () => {
-    const regex = new RegExp('/a/');
-    const obsRegex = store(regex);
-    expect(obsRegex).toBe(regex);
-    expect(isStore(obsRegex)).toBe(false);
+    expect(() => {
+      store(/a/);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from RegExp. Reason - Built in object or accessable in global / window"`,
+    );
   });
 
   it('Node should not be converted to observable', () => {
-    const node = document;
-    const obsNode = store(node);
-    expect(obsNode).toBe(node);
-    expect(isStore(obsNode)).toBe(false);
+    expect(() => {
+      const obsNode = store(document);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Observable cannot be created from Document. Reason - Built in object or accessable in global / window"`,
+    );
   });
 });

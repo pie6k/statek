@@ -1,5 +1,4 @@
 import './currentReaction';
-export { storeSelector, StoreCreator } from './store';
 export { view } from './view';
 export {
   useStoreEffect,

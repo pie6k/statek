@@ -1,6 +1,4 @@
-import { waitForSchedulersToFlush } from '@statek/core';
 import React, { Component } from 'react';
-import ReactTestRenderer from 'react-test-renderer';
 import { store } from '../lib';
 import { actSync, expectContent, itRenders, render } from './utils';
 

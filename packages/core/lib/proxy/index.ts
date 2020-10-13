@@ -8,7 +8,7 @@ const globalObj =
 // their methods expect the object instance as the 'this' instead of the Proxy wrapper
 // complex objects are wrapped with a Proxy of instrumented methods
 // which switch the proxy to the raw object and to add reactive wiring
-const supportedBuiltInTypes = new Map<object, ProxyHandler<any>>([
+export const builtInProxyHandlers = new Map<object, ProxyHandler<any>>([
   [Map, mapLikeProxyHandlers],
   [Set, mapLikeProxyHandlers],
   [WeakMap, mapLikeProxyHandlers],
@@ -27,14 +27,18 @@ const supportedBuiltInTypes = new Map<object, ProxyHandler<any>>([
   [Float64Array, basicProxyHandlers],
 ]);
 
-export function canWrapInProxy(input: object) {
-  if (!input) {
-    return false;
+export function canWrapInProxy(input: object): string | true {
+  if (isPrimitive(input)) {
+    return 'Non object value';
+  }
+
+  if (typeof input === 'function') {
+    return 'Non object value';
   }
 
   const { constructor } = input;
 
-  if (supportedBuiltInTypes.has(constructor)) {
+  if (builtInProxyHandlers.has(constructor)) {
     return true;
   }
 
@@ -43,7 +47,11 @@ export function canWrapInProxy(input: object) {
     constructor.name in globalObj &&
     globalObj[constructor.name as any] === (constructor as any);
 
-  return !isBuiltIn;
+  if (isBuiltIn) {
+    return 'Built in object or accessable in global / window';
+  }
+
+  return true;
 }
 
 export function wrapObjectInProxy<T extends object>(input: T): T {
@@ -53,6 +61,10 @@ export function wrapObjectInProxy<T extends object>(input: T): T {
 
   return new Proxy<any>(
     input,
-    supportedBuiltInTypes.get(input.constructor) ?? basicProxyHandlers,
+    builtInProxyHandlers.get(input.constructor) ?? basicProxyHandlers,
   );
+}
+
+function isPrimitive(input: any) {
+  return input !== Object(input);
 }

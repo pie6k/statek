@@ -1,6 +1,13 @@
-export { getStoreRaw, store, isStore } from './observable';
-export { watch, lazyWatch, watchSelected } from './watch';
-export { batch, sync, syncEvery, dontWatch, selectInStore } from './batch';
+export { getStoreRaw, store, isStore } from './store';
+export { watch, lazyWatch, watchSelected, LazyReaction } from './watch';
+export {
+  batch,
+  sync,
+  syncEvery,
+  dontWatch,
+  selectInStore,
+  ReactionScheduler,
+} from './batch';
 export {
   syncScheduler,
   asyncScheduler,
@@ -9,10 +16,11 @@ export {
   waitForSchedulersToFlush,
 } from './schedulers';
 export { registerReadOperationReactionHook } from './reactionsStack';
-export { registerReaction } from './reaction';
-
-// Types.
-export type { ReadOperationInfo } from './operations';
-export type { LazyReaction } from './watch';
-export type { ReactionCallback, ReactionOptions } from './reaction';
-export type { ReactionScheduler } from './batch';
+export {
+  registerReaction,
+  ReactionCallback,
+  ReactionOptions,
+} from './reaction';
+export { storeSelector } from './storeSelector';
+export { ReadOperationInfo } from './operations';
+export { allowPublicInternal } from './internal';

@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { store, watchSelected } from '@statek/core/lib';
+import { store, watch, watchSelected } from '@statek/core/lib';
 
 describe('watchSingleObservable', () => {
   it('should run the passed function once (wrapped by a reaction)', () => {
@@ -42,6 +42,24 @@ describe('watchSingleObservable', () => {
     obj.foo++;
 
     expect(spy).toBeCalledTimes(1);
+  });
+
+  it('should watch selected even if its watched by other reaction', () => {
+    const obj = store({ foo: 1 });
+
+    const selectedChangeCallback = jest.fn(() => {});
+    const watchSpy = jest.fn(() => obj.foo);
+
+    watchSelected(() => obj, selectedChangeCallback);
+    watch(watchSpy);
+
+    expect(watchSpy).toBeCalledTimes(1);
+    expect(selectedChangeCallback).toBeCalledTimes(0);
+
+    obj.foo++;
+
+    expect(watchSpy).toBeCalledTimes(2);
+    expect(selectedChangeCallback).toBeCalledTimes(1);
   });
 
   it('should allow multiple watchers to work independently', () => {

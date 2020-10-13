@@ -4,13 +4,10 @@
   "main": "./lib",
   "scripts": {
     "test": "jest --watch",
-    "benchmark": "parcel ./benchmark/index.html"
+    "benchmark": "parcel ./benchmark/index.html",
+    "build": "rollup --config"
   },
-  "peerDependencies": {
-    "react": "*",
-    "react-dom": "*"
-  },
-  "peerDependenciesMeta": {
-    
+  "dependencies": {
+    "tslib": "^2.0.0"
   }
 }

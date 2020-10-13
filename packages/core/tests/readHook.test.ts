@@ -2,16 +2,18 @@
  * @jest-environment jsdom
  */
 import {
-  store,
-  watchSelected,
   registerReadOperationReactionHook,
+  store,
   watch,
 } from '@statek/core/lib/';
+import { allowPublicInternal } from '../lib/internal';
 
 describe('readOperationHook', () => {
   it('calls read operation if no reaction found', () => {
     const spy = jest.fn();
-    const stop = registerReadOperationReactionHook(spy);
+    const stop = allowPublicInternal(() =>
+      registerReadOperationReactionHook(spy),
+    );
 
     const obj = store({ foo: 1 });
 
@@ -26,11 +28,12 @@ describe('readOperationHook', () => {
     const objRaw = { foo: 1 };
 
     let foundObj: any;
-    const spy = jest.fn();
-    const stop = registerReadOperationReactionHook(operation => {
-      foundObj = operation.target;
-      return null;
-    });
+    const stop = allowPublicInternal(() =>
+      registerReadOperationReactionHook(operation => {
+        foundObj = operation.target;
+        return null;
+      }),
+    );
 
     const obj = store(objRaw);
 
@@ -43,7 +46,9 @@ describe('readOperationHook', () => {
 
   it('dont call hook if reaction is found', () => {
     const spy = jest.fn();
-    const stop = registerReadOperationReactionHook(spy);
+    const stop = allowPublicInternal(() =>
+      registerReadOperationReactionHook(spy),
+    );
 
     const obj = store({ foo: 1 });
 
