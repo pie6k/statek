@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "clean": "ts-node ./clean.ts"
+    "clean": "ts-node ./clean.ts",
+    "versions": "ts-node ./clean.ts"
   }
 }
