@@ -1,5 +1,8 @@
 import { readStoreManager } from './batch';
-import { initializeObjectReadOperationsRegistry } from './operations';
+import {
+  initializeObjectReadOperationsRegistry,
+  ReadOperationInfo,
+} from './operations';
 import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isReaction, ReactionCallback, ReactionsSet } from './reaction';
 import { isAnyReactionRunning } from './reactionsStack';
@@ -156,6 +159,7 @@ export function store<T extends object>(initialStateOrStore: T): T {
 export function createChildStoreIfNeeded(
   storePartRaw: object,
   parentRaw: object,
+  readOperation: ReadOperationInfo,
 ) {
   const observableObj = rawToStoreMap.get(storePartRaw);
 
@@ -180,7 +184,7 @@ export function createChildStoreIfNeeded(
 
   if (
     !readStoreManager.isRunning() &&
-    !isAnyReactionRunning() &&
+    !isAnyReactionRunning(readOperation) &&
     !isSelectedAnyChangeWatched(parentRaw)
   ) {
     return storePartRaw;

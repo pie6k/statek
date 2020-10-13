@@ -1,3 +1,4 @@
+import './currentReaction';
 export { storeSelector, StoreCreator } from './store';
 export { view } from './view';
 export {
@@ -7,6 +8,7 @@ export {
   useDebouncedStoreSelector,
 } from './hooks';
 export { createContextStore } from './context';
-export { useView, useUpdateOnStoreChanges } from './useObserve';
+export { useView } from './useView';
+export { useWatchSelected } from './useWatchSelected';
 export { store } from '@statek/core';
 export { WatchStore } from './WatchStore';

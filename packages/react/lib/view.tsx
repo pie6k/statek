@@ -13,13 +13,8 @@ import {
   useReducer,
 } from 'react';
 import { act } from 'react-test-renderer';
-import { isClassComponent, isFunctionalComponent } from '../componentTypes';
-import { reactScheduler } from '../scheduler';
-import { renderStatus } from './renderState';
-export {
-  renderStatus,
-  warnIfAccessingInNonReactiveComponent,
-} from './renderState';
+import { isClassComponent, isFunctionalComponent } from './componentTypes';
+import { reactScheduler } from './scheduler';
 
 type InferComponentProps<
   C extends ComponentType<any>
@@ -33,6 +28,8 @@ type ComponentPropsComparator<
 
 const registeredViewComponents = new WeakSet<ComponentType<any>>();
 
+const viewsRenderStack: any[] = [];
+
 function createFunctionalView<C extends FunctionComponent<any>>(
   BaseComponent: C,
   memoCompareProps?: ComponentPropsComparator<C>,
@@ -42,7 +39,7 @@ function createFunctionalView<C extends FunctionComponent<any>>(
     props: Props,
     context,
   ): ReactElement<any, any> {
-    renderStatus.currentRenderingReactiveComponent = BaseComponent;
+    viewsRenderStack.push(BaseComponent);
 
     const forceUpdate = useForceUpdate();
     const reactiveRender = useMemo(
@@ -72,7 +69,7 @@ function createFunctionalView<C extends FunctionComponent<any>>(
     } catch (error) {
       throw error;
     } finally {
-      renderStatus.currentRenderingReactiveComponent = null;
+      viewsRenderStack.pop();
     }
   };
 

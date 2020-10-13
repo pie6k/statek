@@ -108,7 +108,7 @@ function getMutationImpactedReactions(
 // register the currently running reaction to be queued again on obj.key mutations
 export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
   // get the current reaction from the top of the stack
-  const runningReaction = getCurrentReaction();
+  const runningReaction = getCurrentReaction(readOperation);
 
   if (!runningReaction) {
     return;

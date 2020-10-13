@@ -57,10 +57,7 @@ export function watchSelected(
   return stop;
 }
 
-export type ObseringReactionCallback<A extends any[], R> = LazyReactionCallback<
-  A,
-  R
-> & {
+export type LazyReaction<A extends any[], R> = LazyReactionCallback<A, R> & {
   unsubscribe(): void;
 };
 
@@ -70,7 +67,7 @@ export function lazyWatch<A extends any[], R>(
   lazyWatcher: LazyReactionCallback<A, R>,
   onWatchedChange: () => void = noop,
   options?: ReactionOptions,
-): ObseringReactionCallback<A, R> {
+): LazyReaction<A, R> {
   function reactionCallback(...args: A): R {
     if (unsubscribedReactions.has(reactionCallback)) {
       throw new Error(

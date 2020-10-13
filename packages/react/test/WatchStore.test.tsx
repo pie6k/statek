@@ -4,7 +4,7 @@ import { act } from 'react-test-renderer';
 import { store, WatchStore } from '../lib';
 import { itRenders } from './utils';
 
-describe.skip('WatchStore', () => {
+describe('WatchStore', () => {
   itRenders(
     'WatchStore updates on changes used by children',
     ({ render, expectContent }) => {

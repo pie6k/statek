@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Context } from 'react';
 
 /**
  * This part is experimental and can break as it's using undocumented React features.
@@ -16,6 +16,11 @@ interface SimpleRef<T = any> {
 
 interface Internals {
   ReactCurrentOwner: SimpleRef<Fiber | null>;
+  ReactCurrentDispatcher: SimpleRef<Dispatcher | null>;
+}
+
+interface Dispatcher {
+  readContext: any;
 }
 
 export interface Fiber {
@@ -52,4 +57,12 @@ export function isAnyComponentRendering() {
 
 function reverseString(input: string) {
   return input.split('').reverse().join('');
+}
+
+export function readContext<T>(context: Context<T>): T | null {
+  if (!internals.ReactCurrentDispatcher.current) {
+    return null;
+  }
+
+  return internals.ReactCurrentDispatcher.current.readContext(context);
 }

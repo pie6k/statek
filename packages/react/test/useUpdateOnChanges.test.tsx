@@ -1,5 +1,5 @@
 import React from 'react';
-import { store, useUpdateOnStoreChanges } from '../lib';
+import { store, useWatchSelected } from '../lib';
 import { actSync, itRenders } from './utils';
 
 describe('useUpdateOnChanges', () => {
@@ -9,7 +9,7 @@ describe('useUpdateOnChanges', () => {
       const obj = store({ foo: 1 });
       const spy = jest.fn();
       function Test() {
-        useUpdateOnStoreChanges(() => obj);
+        useWatchSelected(() => obj);
         spy();
         return <>1</>;
       }

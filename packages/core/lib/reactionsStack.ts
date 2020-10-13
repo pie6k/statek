@@ -1,4 +1,5 @@
 import { dontWatchManager } from './batch';
+import { ReadOperationInfo } from './operations';
 import {
   cleanReactionReadData,
   ReactionCallback,
@@ -9,18 +10,20 @@ import {
 // reactions can call each other and form a call stack
 const watchingReactionsStack: ReactionCallback[] = [];
 
-type CurrentReactionHook = () => ReactionCallback | null;
+type CurrentReactionHook = (
+  readOperation: ReadOperationInfo,
+) => ReactionCallback | null;
 
-const currentReactionHooks: CurrentReactionHook[] = [];
+const currentReactionHooks = new Set<CurrentReactionHook>();
 
 /**
  * @internal
  */
-export function registerCurrentReactionHook(hook: CurrentReactionHook) {
-  currentReactionHooks.push(hook);
+export function registerReadOperationReactionHook(hook: CurrentReactionHook) {
+  currentReactionHooks.add(hook);
 
   return function remove() {
-    // TODO implement
+    currentReactionHooks.delete(hook);
   };
 }
 
@@ -54,11 +57,15 @@ export function callWithReactionsStack<C extends ReactionCallback>(
   }
 }
 
-export function isAnyReactionRunning(): boolean {
-  return !!getCurrentReaction();
+export function isAnyReactionRunning(
+  readOperation: ReadOperationInfo,
+): boolean {
+  return !!getCurrentReaction(readOperation);
 }
 
-export function getCurrentReaction(): ReactionCallback | null {
+export function getCurrentReaction(
+  readOperation: ReadOperationInfo,
+): ReactionCallback | null {
   if (dontWatchManager.isRunning()) {
     return null;
   }
@@ -70,9 +77,9 @@ export function getCurrentReaction(): ReactionCallback | null {
     return foundReaction;
   }
 
-  if (currentReactionHooks.length > 0) {
+  if (currentReactionHooks.size > 0) {
     for (let reactionCreator of currentReactionHooks) {
-      foundReaction = reactionCreator();
+      foundReaction = reactionCreator(readOperation);
 
       if (foundReaction) {
         return foundReaction;

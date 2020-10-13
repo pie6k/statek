@@ -2,6 +2,7 @@ import { createChildStoreIfNeeded, storeToRawMap } from '../observable';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,
+  ReadOperationInfo,
 } from '../operations';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
 
@@ -24,12 +25,15 @@ export const basicProxyHandlers: ProxyHandler<object> = {
     if (typeof key === 'symbol' && wellKnownSymbols.has(key)) {
       return result;
     }
-    // register and save (observable.prop -> runningReaction)
-    handleStoreReadOperation({
+
+    const operation: ReadOperationInfo = {
       target,
       key,
       type: 'get',
-    });
+    };
+
+    // register and save (observable.prop -> runningReaction)
+    handleStoreReadOperation(operation);
 
     // do not violate the none-configurable none-writable prop get handler invariant
     // fall back to none reactive mode in this case, instead of letting the Proxy throw a TypeError
@@ -41,7 +45,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
 
     // if we are inside a reaction and observable.prop is an object wrap it in an observable too
     // this is needed to intercept property access on that object too (dynamic observable tree)
-    return createChildStoreIfNeeded(result, target);
+    return createChildStoreIfNeeded(result, target, operation);
   },
 
   has(target, key) {
