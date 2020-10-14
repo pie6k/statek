@@ -5,9 +5,10 @@ import {
   ReadOperationInfo,
 } from '../operations';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
+import { createIterationCallback } from './utils';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
-const wellKnownSymbols = new Set<Symbol>(
+export const wellKnownSymbols = new Set<Symbol>(
   typedOwnPropertyNames(Symbol)
     .map(key => {
       return Symbol[key];

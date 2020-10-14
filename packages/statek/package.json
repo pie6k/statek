@@ -1,10 +1,9 @@
 {
   "name": "statek",
   "version": "0.1.0",
-  "main": "./src",
+  "main": "./lib",
   "scripts": {
-    "test": "jest --watch",
-    "benchmark": "parcel ./benchmark/index.html"
+    "test": "jest --watch"
   },
   "devDependencies": {
     "@statek/core": "0.1.0",

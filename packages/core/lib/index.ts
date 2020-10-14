@@ -15,7 +15,7 @@ export {
   setDefaultScheduler,
   waitForSchedulersToFlush,
 } from './schedulers';
-export { registerReadOperationReactionHook } from './reactionsStack';
+export { registerGetCurrentReactionHook } from './reactionsStack';
 export {
   registerReaction,
   ReactionCallback,

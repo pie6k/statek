@@ -148,15 +148,20 @@ export function resolveThunk<T>(
   return thunk as T;
 }
 
-export function createStackCallback(onFinish: () => void) {
-  const callsStack: boolean[] = [];
+export function createStackCallback<Data = any>(onFinish: () => void) {
+  const callsStack: Array<Data | null> = [];
   let isEnabled = true;
 
-  function perform<T>(fn: (args: any) => T, args?: any, ctx?: any): T {
-    callsStack.push(true);
+  function perform<A extends any[], R>(
+    this: any,
+    fn: (...args: A) => R,
+    args?: A,
+    data?: Data,
+  ): R {
+    callsStack.push(data ?? null);
 
     try {
-      return fn.apply(args, ctx);
+      return fn.apply(this, args!);
     } finally {
       callsStack.pop();
 
@@ -164,17 +169,17 @@ export function createStackCallback(onFinish: () => void) {
     }
   }
 
-  function setEnabled(newIsEnabled: boolean) {
-    isEnabled = newIsEnabled;
-  }
-
   function isRunning() {
     return callsStack.length > 0;
   }
 
+  function getCurrentData(): Data | null {
+    return callsStack[callsStack.length - 1] ?? null;
+  }
+
   const manager = {
     isRunning,
-    setEnabled,
+    getCurrentData,
   };
 
   return [perform, manager] as const;

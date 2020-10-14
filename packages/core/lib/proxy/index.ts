@@ -1,5 +1,6 @@
 import { mapLikeProxyHandlers } from './collection';
 import { basicProxyHandlers } from './basic';
+import { arrayProxyHandlers } from './array';
 
 const globalObj =
   typeof window === 'object' ? window : (Function('return this')() as Window);
@@ -15,7 +16,7 @@ export const builtInProxyHandlers = new Map<object, ProxyHandler<any>>([
   [WeakSet, mapLikeProxyHandlers],
   // basic
   [Object, basicProxyHandlers],
-  [Array, basicProxyHandlers],
+  [Array, arrayProxyHandlers],
   [Int8Array, basicProxyHandlers],
   [Uint8Array, basicProxyHandlers],
   [Uint8ClampedArray, basicProxyHandlers],

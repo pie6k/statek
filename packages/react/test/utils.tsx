@@ -4,10 +4,6 @@ import ReactTestRenderer, { act, create } from 'react-test-renderer';
 
 type ReactionModule = typeof import('@statek/core/lib/reaction');
 
-// const aaa = ;
-
-// console.log({ aaa });
-
 jest.mock(
   require.resolve('@statek/core/lib/reaction'),
   () => {
@@ -51,13 +47,9 @@ export function render(node: ReactElement) {
 
 export function itRenders(description: string, callback: () => any) {
   it(description, () => {
-    // console.log('a');
-    // sync(() => {
     sync(() => {
       callback();
     });
-    // });
-    // console.log('b');
   });
 }
 

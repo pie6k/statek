@@ -10,9 +10,10 @@
   "scripts": {
     "core": "yarn workspace @statek/core",
     "react": "yarn workspace @statek/react",
-    "playground": "yarn workspace playground",
+    "benchmark": "yarn workspace @statek/benchmark",
     "clean": "del packages/**/lib/**/*.js",
-    "tooling": "yarn workspace @statek/tooling"
+    "tooling": "yarn workspace @statek/tooling",
+    "docs": "yarn workspace @statek/docs"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^6.0.0",

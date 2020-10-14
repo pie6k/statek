@@ -20,7 +20,7 @@ const currentReactionHooks = new Set<CurrentReactionHook>();
 /**
  * @internal
  */
-export function registerReadOperationReactionHook(hook: CurrentReactionHook) {
+export function registerGetCurrentReactionHook(hook: CurrentReactionHook) {
   warnIfUsingInternal('registerReadOperationReactionHook');
   currentReactionHooks.add(hook);
 

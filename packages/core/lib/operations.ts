@@ -34,6 +34,23 @@ type ReactionsMapForKeys = Map<TargetKey, Set<ReactionCallback>>;
 
 const readOperationsRegistry = new WeakMap<object, ReactionsMapForKeys>();
 
+export let readOperationsCount = 0;
+export let mutationOperationsCount = 0;
+
+export function _countReadOperations() {
+  let startCount = readOperationsCount;
+
+  return function countNow() {
+    const result = readOperationsCount - startCount;
+    return result;
+  };
+}
+
+// const _c = _countReadOperations();
+// setInterval(() => {
+//   console.log(_c());
+// }, 500);
+
 export function initializeObjectReadOperationsRegistry(rawObject: object) {
   // this will be used to save (obj.key -> reaction) connections later
   readOperationsRegistry.set(rawObject, new Map());
@@ -90,13 +107,14 @@ function getMutationImpactedReactions(
   if (
     mutationOperation.type === 'add' ||
     mutationOperation.type === 'delete' ||
-    mutationOperation.type === 'clear'
+    mutationOperation.type === 'clear' ||
+    mutationOperation.type === 'set'
   ) {
     const iterationKey = Array.isArray(mutationOperation.target)
       ? 'length'
       : ITERATION_KEY;
 
-    const reactionsForIteration = targetKeysReactionsMap.get(iterationKey);
+    const reactionsForIteration = targetKeysReactionsMap.get(ITERATION_KEY);
 
     reactionsForIteration &&
       appendSet(impactedReactions, reactionsForIteration);
@@ -107,6 +125,8 @@ function getMutationImpactedReactions(
 
 // register the currently running reaction to be queued again on obj.key mutations
 export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
+  readOperationsCount++;
+
   // get the current reaction from the top of the stack
   const runningReaction = getCurrentReaction(readOperation);
 

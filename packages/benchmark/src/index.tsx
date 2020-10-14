@@ -25,7 +25,6 @@ declare global {
 
 window.a = new Set();
 
-console.log(React);
 function App() {
   const [, set] = useState({});
 
@@ -35,9 +34,6 @@ function App() {
   }, []);
   saveFiber();
 
-  useEffect(() => {
-    console.log(window.a);
-  });
   return (
     <div onClick={() => set({})}>
       {[1, 2, 3].map(a => {

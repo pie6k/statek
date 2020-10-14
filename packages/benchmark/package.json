@@ -1,0 +1,11 @@
+{
+  "name": "@statek/benchmark",
+  "private": true,
+  "version": "0.1.0",
+  "dependencies": {
+    "statek": "0.1.0"
+  },
+  "scripts": {
+    "start": "parcel src/index.html"
+  }
+}

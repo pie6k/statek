@@ -121,4 +121,6 @@ export function registerReaction(
   }
 
   reactionWatchedPropertiesMemberships.set(reaction, new Set());
+
+  return reaction;
 }

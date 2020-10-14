@@ -1,6 +1,6 @@
 import {
   ReactionCallback,
-  registerReadOperationReactionHook,
+  registerGetCurrentReactionHook,
   registerReaction,
   ReadOperationInfo,
   isStore,
@@ -15,7 +15,7 @@ import { getComponentTypeNiceName, warnOnce } from './utils';
 import { WatchStore, WatchedStoriesContext } from './WatchStore';
 
 allowPublicInternal(() => {
-  registerReadOperationReactionHook(getCurrentFiberUpdateReaction);
+  registerGetCurrentReactionHook(getCurrentFiberUpdateReaction);
 });
 
 export function getCurrentFiberUpdateReaction(
