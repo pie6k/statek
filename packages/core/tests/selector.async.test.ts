@@ -50,9 +50,7 @@ describe('selector - async', () => {
     expect(watchSpy).toReturnTimes(0);
     expect(watchSpy).toBeCalledTimes(1);
 
-    resolve('foo');
-
-    await expect(promise).resolves.toBe('foo');
+    await resolve('foo');
 
     expect(watchSpy).toReturnTimes(1);
 

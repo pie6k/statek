@@ -21,16 +21,12 @@ describe('suspense', () => {
 
     expect(spy).toBeCalledTimes(1);
 
-    resolve1('foo');
-
-    await expect(p1).resolves.toBe('foo');
+    await resolve1('foo');
 
     // Not all promises resolved - it should still wait
     expect(spy).toBeCalledTimes(1);
 
-    resolve2('bar');
-
-    await expect(p2).resolves.toBe('bar');
+    await resolve2('bar');
 
     expect(spy).toBeCalledTimes(2);
     expect(spy).toHaveLastReturnedWith('foo + bar');

@@ -1,3 +1,5 @@
+import { nextTick } from 'process';
+
 type Callback<T> = (value: T) => void;
 
 export async function awaitSuspended<R>(
@@ -37,7 +39,10 @@ export function manualPromise<T = string>() {
   let _reject: any;
 
   const promise = new Promise<T>((resolve, reject) => {
-    _resolve = resolve;
+    _resolve = async (value: T) => {
+      resolve(value);
+      await waitNextTick();
+    };
     _reject = reject;
   });
 
