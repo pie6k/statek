@@ -25,6 +25,12 @@ export async function awaitSuspended<R>(
 
 let promiseId = 0;
 
+export function waitNextTick() {
+  return new Promise<void>(resolve => {
+    process.nextTick(resolve);
+  });
+}
+
 export function manualPromise<T = string>() {
   promiseId++;
   let _resolve: any;

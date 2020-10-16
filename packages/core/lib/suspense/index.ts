@@ -80,24 +80,32 @@ function suspendReaction(reaction: ReactionCallback, promise: Promise<any>) {
 //   }
 // }
 
+const reactionSuspendRetries = new WeakMap<ReactionCallback, number>();
+
+const MAX_ALLOWED_SUSPENSE_RETRIES = 5;
+
 export function callWithSuspense(
   callback: ReactionCallback,
   reaction: ReactionCallback,
-  depth = 0,
 ): void {
-  if (depth === 0) {
-    clearReactionPendingPromises(reaction);
-  }
+  const retries = reactionSuspendRetries.get(reaction) ?? 0;
 
-  if (depth > 5) {
-    throw new Error(
-      'The same reaction suspended 5 times in a row. Assuming error to avoid infinite loop. Some promise is that is suspending is probably re-created on each call',
-    );
+  if (retries > MAX_ALLOWED_SUSPENSE_RETRIES) {
+    const errorMessage =
+      'The same reaction suspended 5 times in a row. Assuming error to avoid infinite loop. Some promise is that is suspending is probably re-created on each call';
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(errorMessage);
+    }
+    throw new Error(errorMessage);
   }
 
   try {
-    return callback();
+    callback();
+    // Did properly resolve. Let's reset suspended retries counter
+    reactionSuspendRetries.delete(reaction);
   } catch (errorOrPromise) {
+    reactionSuspendRetries.set(reaction, retries + 1);
+
     if (errorOrPromise instanceof Promise) {
       addReactionPendingPromise(reaction, errorOrPromise);
       const allPendingResolvedPromise = getAllPendingReactionsResolvedPromise(
@@ -110,7 +118,10 @@ export function callWithSuspense(
           requestReactionCallNeeded(reaction);
         })
         .catch(error => {
-          console.log('err');
+          // since watch is called by itself after suspended and retried - there is no way this error could be catched.
+          // As promises it suspended with are provided by user - if they don't have .catch by themselves - it seems ok to
+          // result with uncaught promise exception.
+          // ? throw error;
         });
 
       return;
