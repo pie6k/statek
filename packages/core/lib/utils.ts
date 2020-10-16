@@ -1,5 +1,6 @@
 import { isStore } from './store';
 import { ReactionCallback } from './reaction';
+import { dontWatch } from './batch';
 
 export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
   return Object.getOwnPropertyNames(obj) as Array<keyof T>;
@@ -69,13 +70,19 @@ export function createStackCallback<Data = any>(onFinish: () => void) {
   return [perform, manager] as const;
 }
 
+const serializationCache = new WeakMap<any, string>();
+
 export function serialize(input: any): string {
+  if (!isPlainObject(input) && serializationCache.has(input)) {
+    return serializationCache.get(input)!;
+  }
+
   // TODO - validate
   if (process.env.NODE_ENV !== 'production' && !isSerializable(input)) {
     throw new Error('It is not possible to serialize provided value');
   }
 
-  return JSON.stringify(input);
+  return JSON.stringify(dontWatch(() => input));
 }
 
 function isShallowSerializable(value: any): boolean {

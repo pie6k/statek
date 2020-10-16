@@ -1,79 +1,161 @@
 import { serialize } from './utils';
 
-export type WrappedValue<T> = {
-  value: T;
-};
-
-export type ResourceValue<T> = {
-  promise: Promise<T>;
-  wrappedValue: WrappedValue<T> | null;
-};
-
 export type SyncValue<T> = T extends Promise<infer U> ? U : T;
 
-export type Resource<Args extends any[], R> = ((
-  ...args: Args
-) => SyncValue<R>) & {
-  getRaw(...args: Args): R;
+export type SingleValueResource<T> = {
+  read(): SyncValue<T>;
+  forceUpdate(): void;
+  getStatus(): SingleValueResourceStatus<SyncValue<T>>;
 };
 
-function isResourceValue(input: any): input is ResourceValue<any> {
-  return input && input.promise;
+export type SingleValueResourceStatus<T> =
+  | { state: 'unstarted' }
+  | { state: 'pending'; promise: Promise<T> }
+  | { state: 'resolved'; value: T }
+  | { state: 'rejected'; error: any }
+  | { state: 'getterError'; error: any };
+
+interface SingleValueResourceOptions<T> {
+  onResolved?: (value: SyncValue<T>) => void;
+  onRejected?: (error: any) => void;
+  lazy?: boolean;
 }
+
+export function singleValueResource<T>(
+  getter: () => T,
+  options?: SingleValueResourceOptions<T>,
+): SingleValueResource<T> {
+  let status: SingleValueResourceStatus<SyncValue<T>> = { state: 'unstarted' };
+
+  function getStatus() {
+    return status;
+  }
+
+  function resolve(value: SyncValue<T>) {
+    status = {
+      state: 'resolved',
+      value,
+    };
+
+    options?.onResolved?.(value);
+
+    return value;
+  }
+
+  function forceUpdate() {
+    status = { state: 'unstarted' };
+    try {
+      getInitial();
+    } catch (error) {}
+  }
+
+  function getInitial() {
+    if (status.state !== 'unstarted') {
+      throw new Error('Cannot initialize resource twice');
+    }
+
+    let getterResult: T;
+    // Make sure getter error itself is handled
+    try {
+      getterResult = getter();
+    } catch (error) {
+      // getter() function thrown. Mark as rejected
+      status = {
+        state: 'getterError',
+        error,
+      };
+
+      throw error;
+    }
+
+    // Resource is sync. Result instantly and mark as resolved.
+    if (!(getterResult instanceof Promise)) {
+      return resolve(getterResult as SyncValue<T>);
+    }
+
+    // Resource is a promise.
+    status = {
+      state: 'pending',
+      promise: getterResult,
+    };
+
+    // Wait for promise to resolve and instantly update state.
+    getterResult
+      .then(value => {
+        resolve(value);
+      })
+      .catch(resolveError => {
+        status = {
+          state: 'rejected',
+          error: resolveError,
+        };
+        options?.onRejected?.(resolveError);
+      });
+
+    // Suspend with promise.
+    throw getterResult;
+  }
+
+  function read(): SyncValue<T> {
+    if (status.state === 'pending') {
+      throw status.promise;
+    }
+
+    if (status.state === 'resolved') {
+      return status.value;
+    }
+
+    if (status.state === 'rejected') {
+      throw status.error;
+    }
+
+    if (status.state === 'getterError') {
+      throw status.error;
+    }
+
+    if (status.state === 'unstarted') {
+      return getInitial();
+    }
+
+    throw new Error('Invalid resource state');
+  }
+
+  return {
+    read,
+    getStatus,
+    forceUpdate,
+  };
+}
+
+export type Resource<Args extends any[], R> = {
+  read(...args: Args): SyncValue<R>;
+};
 
 export function resource<Args extends any[], R>(
   getter: (...args: Args) => R,
 ): Resource<Args, R> {
-  const serializedArgsSelectorsMap = new Map<string, ResourceValue<R>>();
+  const serializedArgsSelectorsMap = new Map<string, SingleValueResource<R>>();
 
-  function createValue(promise: Promise<any>): ResourceValue<R> {
-    return {
-      promise,
-      wrappedValue: null,
-    };
-  }
-
-  function getResourceValue(...args: Args): ResourceValue<R> | R {
+  function getSingleResource(...args: Args): SingleValueResource<R> {
     const serializedArgs = serialize(args);
     if (serializedArgsSelectorsMap.has(serializedArgs)) {
       return serializedArgsSelectorsMap.get(serializedArgs)!;
     }
 
-    const valueOrPromise = getter(...args);
+    const singleResource = singleValueResource(() => getter(...args));
 
-    if (!(valueOrPromise instanceof Promise)) {
-      return valueOrPromise;
-    }
-    const resourceValue = createValue(valueOrPromise);
+    serializedArgsSelectorsMap.set(serializedArgs, singleResource);
 
-    serializedArgsSelectorsMap.set(serializedArgs, resourceValue);
-
-    return resourceValue;
+    return singleResource;
   }
 
-  function getOrSuspend(value: ResourceValue<R>): SyncValue<R> {
-    if (!value.wrappedValue) {
-      throw value.promise;
-    }
+  function read(...args: Args): SyncValue<R> {
+    const resourceValue = getSingleResource(...args);
 
-    return value.wrappedValue.value as SyncValue<R>;
+    return resourceValue.read();
   }
 
-  function get(...args: Args): SyncValue<R> {
-    const resourceValue = getResourceValue(...args);
-
-    if (isResourceValue(resourceValue)) {
-      return getOrSuspend(resourceValue);
-    }
-
-    return resourceValue as SyncValue<R>;
-  }
-
-  function getRaw(...args: Args): R {
-    return getter(...args);
-  }
-
-  get.getRaw = getRaw;
-
-  return get;
+  return {
+    read,
+  };
 }

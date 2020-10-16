@@ -1,24 +1,35 @@
 type Callback<T> = (value: T) => void;
 
+export async function awaitSuspended<R>(callback: () => R, depth = 0): R {
+  if (depth > 5) {
+    throw new Error('Await suspended has 5 levels depth. Assuming error');
+  }
+  try {
+    return callback();
+  } catch (error) {
+    if (error instanceof Promise) {
+      try {
+        await error;
+        return await awaitSuspended(callback, depth + 1);
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    throw error;
+  }
+}
+
 export function manualPromise<T>() {
-  const listeners = new Set<Callback<T>>();
+  let _resolve: any;
+  let _reject: any;
 
-  const promise = new Promise<T>(() => {});
+  const promise = new Promise<T>((resolve, reject) => {
+    _resolve = resolve;
+    _reject = reject;
+  });
 
-  function then(callback: Callback<T>) {
-    listeners.add(callback);
-  }
-
-  // @ts-ignore
-  promise.then = then;
-
-  function resolve(value: T) {
-    listeners.forEach(listener => {
-      listener(value);
-    });
-  }
-
-  return [(promise as any) as Promise<T>, resolve] as const;
+  return [promise, _resolve, _reject] as const;
 }
 
 let consoleSpies = new Set<jest.SpyInstance>();
@@ -38,8 +49,8 @@ export function watchWarn() {
     return warnSpy.mock.calls[warnSpy.mock.calls.length - 1];
   }
 
-  function getLast(): string | null {
-    return getLastCall()?.[0] ?? null;
+  function getLast(): any[] | null {
+    return getLastCall() ?? null;
   }
 
   function count() {

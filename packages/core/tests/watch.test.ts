@@ -409,9 +409,11 @@ describe('watch', () => {
     const reaction1 = watch(greet);
     const warn = watchWarn();
     const reaction2 = watch(greet);
-    expect(warn.getLast()).toMatchInlineSnapshot(
-      `"You're calling watch on callback that is already running. It will have no effect."`,
-    );
+    expect(warn.getLast()).toMatchInlineSnapshot(`
+      Array [
+        "You're calling watch on callback that is already running. It will have no effect.",
+      ]
+    `);
     expect(reaction1).toBeInstanceOf(Function);
     expect(reaction2).toBeInstanceOf(Function);
     expect(reaction1).not.toBe(greet);

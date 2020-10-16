@@ -59,13 +59,16 @@ function createFunctionalView<C extends FunctionComponent<any>>(
     );
 
     useEffect(() => {
-      return () => reactiveRender.stop();
+      return () => {
+        // If Base Component changes (eg. duea to fast refresh) - stop previous one watching.
+        reactiveRender.stop();
+      };
     }, [reactiveRender]);
 
     try {
       return reactiveRender(props, context) as any;
-    } catch (error) {
-      throw error;
+    } catch (errorOrPromise) {
+      throw errorOrPromise;
     } finally {
       viewsRenderStack.pop();
     }

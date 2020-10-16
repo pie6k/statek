@@ -6,45 +6,35 @@ import {
   selector,
   manualWatch,
 } from '@statek/core/lib';
-import { manualPromise } from './utils';
+import { awaitSuspended, manualPromise } from './utils';
 
 describe('selector - async', () => {
   it('should suspend async selector if used', async () => {
     const selectorFn = jest.fn(async () => 'foo');
-    const getIsBig = selector(selectorFn);
-
-    let promise: any = null;
+    const isBig = selector(selectorFn);
 
     const getWatched = manualWatch(() => {
-      return getIsBig();
+      return isBig.value;
     });
 
-    expect(() => {
-      try {
-        getWatched();
-      } catch (error) {
-        promise = error;
-        throw error;
-      }
-    }).toThrow(Promise);
+    const suspendedValue = await awaitSuspended(() => getWatched());
 
-    await promise;
-
-    expect(getWatched()).toEqual('foo');
+    expect(suspendedValue).toEqual('foo');
   });
 
   it('async selectors should properly wrap observables', async () => {
     const s = store({ foo: { bar: 2 } });
+
     const selectorFn = jest.fn(async () => s.foo);
     const sel = selector(selectorFn);
 
-    const resolve = manualWatch(() => {
-      return sel.getRaw();
+    const suspendedCall = manualWatch(() => {
+      return sel.value;
     });
 
-    const resolved = await resolve();
+    const nestedObsFromSuspense = await awaitSuspended(() => suspendedCall());
 
-    expect(isStore(resolved)).toBe(true);
+    expect(isStore(nestedObsFromSuspense)).toBe(true);
   });
 
   it('async selectors can be used in watch sync-like', async () => {
@@ -52,7 +42,7 @@ describe('selector - async', () => {
     const sel = selector(() => promise);
 
     const watchSpy = jest.fn(() => {
-      return sel();
+      return sel.value;
     });
 
     watch(watchSpy);
@@ -61,6 +51,8 @@ describe('selector - async', () => {
     expect(watchSpy).toBeCalledTimes(1);
 
     resolve('foo');
+
+    await promise;
 
     expect(watchSpy).toReturnTimes(1);
 

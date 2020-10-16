@@ -111,9 +111,9 @@ export function manualWatch<A extends any[], R>(
     }
 
     if (getRunningReaction()) {
-      throw new Error(
-        'Manual watch cannot be called while other reaction is running',
-      );
+      // throw new Error(
+      //   'Manual watch cannot be called while other reaction is running',
+      // );
     }
     return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
   }
