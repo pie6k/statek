@@ -36,6 +36,10 @@ export const lazyReactionsCallbacks = new WeakMap<
   ReactionCallback
 >();
 
+export function isLazyReaction(reaction: ReactionCallback) {
+  return lazyReactionsCallbacks.has(reaction);
+}
+
 /**
  * @internal
  */

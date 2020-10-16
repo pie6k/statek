@@ -2,10 +2,10 @@ import { createChildStoreIfNeeded, storeToRawMap } from '../store';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,
+  MutationOperationInfo,
   ReadOperationInfo,
 } from '../operations';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
-import { createIterationCallback } from './utils';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 export const wellKnownSymbols = new Set<Symbol>(
@@ -64,8 +64,35 @@ export const basicProxyHandlers: ProxyHandler<object> = {
     }
     // save if the object had a descriptor for this key
     const hadKey = hasOwnProperty.call(target, key);
+
+    if (!hadKey) {
+      const operation: MutationOperationInfo = {
+        target,
+        key,
+        value,
+        type: 'add',
+      };
+
+      // execute the set operation before running any reaction
+      const result = Reflect.set(target, key, value, receiver);
+      handleStoreMutationOperation(operation);
+      return result;
+    }
+
     // save if the value changed because of this set operation
     const oldValue = (target as any)[key];
+
+    if (value === oldValue) {
+      return true;
+    }
+
+    const operation: MutationOperationInfo = {
+      target,
+      key,
+      value,
+      type: 'set',
+    };
+
     // execute the set operation before running any reaction
     const result = Reflect.set(target, key, value, receiver);
     // do not queue reactions if the target of the operation is not the raw receiver
@@ -74,40 +101,26 @@ export const basicProxyHandlers: ProxyHandler<object> = {
       return result;
     }
 
-    // queue a reaction if it's a new property or its value changed
-    if (!hadKey) {
-      handleStoreMutationOperation({
-        target,
-        key,
-        value,
-        type: 'add',
-      });
-      return result;
-    }
+    handleStoreMutationOperation(operation);
 
-    if (value !== oldValue) {
-      handleStoreMutationOperation({
-        target,
-        key,
-        value,
-        type: 'set',
-      });
-    }
     return result;
   },
 
   deleteProperty(target, key) {
     // save if the object had the key
     const hadKey = hasOwnProperty.call(target, key);
+
+    const operation: MutationOperationInfo = {
+      target,
+      key,
+      type: 'delete',
+    };
+
     // execute the delete operation before running any reaction
     const result = Reflect.deleteProperty(target, key);
     // only queue reactions for delete operations which resulted in an actual change
     if (hadKey) {
-      handleStoreMutationOperation({
-        target,
-        key,
-        type: 'delete',
-      });
+      handleStoreMutationOperation(operation);
     }
     return result;
   },

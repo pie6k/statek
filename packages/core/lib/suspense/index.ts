@@ -1,5 +1,10 @@
 import { requestReactionCallNeeded } from '../batch';
-import { ReactionCallback } from '../reaction';
+import {
+  isLazyReaction,
+  LazyReactionCallback,
+  lazyReactionsCallbacks,
+  ReactionCallback,
+} from '../reaction';
 
 // TODO suspense mode
 export type SuspenseMode = 'batch' | 'no-batch';
@@ -84,10 +89,11 @@ const reactionSuspendRetries = new WeakMap<ReactionCallback, number>();
 
 const MAX_ALLOWED_SUSPENSE_RETRIES = 5;
 
-export function callWithSuspense(
-  callback: ReactionCallback,
-  reaction: ReactionCallback,
-): void {
+export function callWithSuspense<A extends any[], R>(
+  callback: LazyReactionCallback<A, R>,
+  reaction: LazyReactionCallback<A, R>,
+  ...args: A
+): R {
   const retries = reactionSuspendRetries.get(reaction) ?? 0;
 
   if (retries > MAX_ALLOWED_SUSPENSE_RETRIES) {
@@ -100,9 +106,10 @@ export function callWithSuspense(
   }
 
   try {
-    callback();
+    const result = callback(...args);
     // Did properly resolve. Let's reset suspended retries counter
     reactionSuspendRetries.delete(reaction);
+    return result;
   } catch (errorOrPromise) {
     reactionSuspendRetries.set(reaction, retries + 1);
 
@@ -121,9 +128,15 @@ export function callWithSuspense(
           // since watch is called by itself after suspended and retried - there is no way this error could be catched.
           // As promises it suspended with are provided by user - if they don't have .catch by themselves - it seems ok to
           // result with uncaught promise exception.
-          // ? throw error;
+          // ?  qthrow error;
         });
 
+      if (isLazyReaction(reaction)) {
+        throw allPendingResolvedPromise;
+      }
+
+      // we don't have to return watch result value while it's suspended for non-lazy reactions
+      // @ts-ignore
       return;
     }
 

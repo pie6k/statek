@@ -74,6 +74,16 @@ describe('watch', () => {
     expect(reaction).toBeCalledTimes(2);
   });
 
+  it('should throw if mutating store during reaction', () => {
+    const counter = store({ num: 0 });
+    const reaction = jest.fn(() => counter.num);
+    expect(() => {
+      watch(() => {
+        counter.num++;
+      });
+    }).toThrow();
+  });
+
   it('if watch is called multiple times - stop call of any will stop reactions', () => {
     const counter = store({ num: 0 });
     const reaction = jest.fn(() => counter.num);
@@ -351,19 +361,36 @@ describe('watch', () => {
     expect(parentDummy).toBe(undefined);
   });
 
-  it('should avoid implicit infinite recursive loops with itself', () => {
-    const counter = store({ num: 0 });
+  it('should catch infinite loop of 2 reactions calling each other', () => {
+    let i = 0;
+    const _breakInfiniteLoopOnFailedTest = () => {
+      i++;
+      if (i > 50) {
+        throw new Error('Breaking the test to avoid infinite loop');
+      }
+    };
 
-    const counterSpy = jest.fn(() => counter.num++);
-    watch(counterSpy);
-    expect(counter.num).toBe(1);
-    expect(counterSpy).toBeCalledTimes(1);
-    counter.num = 4;
-    expect(counter.num).toBe(5);
-    expect(counterSpy).toBeCalledTimes(2);
+    const callA = manualWatch(() => {
+      _breakInfiniteLoopOnFailedTest();
+      b();
+    });
+
+    const callB = manualWatch(() => {
+      _breakInfiniteLoopOnFailedTest();
+      a();
+    });
+
+    let a = callA;
+    let b = callB;
+
+    expect(() => {
+      a();
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Recursive reaction calling itself detected. It might be caused by reaction mutating the store in a way that triggers it before it has finished or by 2 different manual reactions calling each other."`,
+    );
   });
 
-  it('should allow explicitly recursive raw function loops', () => {
+  it('should not allow recursive reactions on itself', () => {
     const counter = store<any>({ num: 0 });
 
     // TODO: this should be changed to reaction loops, can it be done?
@@ -373,10 +400,11 @@ describe('watch', () => {
         numSpy();
       }
     });
-    watch(numSpy);
-
-    expect(counter.num).toBe(10);
-    expect(numSpy).toBeCalledTimes(10);
+    expect(() => {
+      watch(numSpy);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Recursive reaction calling itself detected. It might be caused by reaction mutating the store in a way that triggers it before it has finished or by 2 different manual reactions calling each other."`,
+    );
   });
 
   it('should avoid infinite loops with other reactions', () => {

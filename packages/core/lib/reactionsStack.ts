@@ -94,7 +94,9 @@ export function callWithReactionsStack<C extends ReactionCallback>(
   }
 
   if (watchingReactionsStack.includes(reactionCallback)) {
-    return;
+    throw new Error(
+      'Recursive reaction calling itself detected. It might be caused by reaction mutating the store in a way that triggers it before it has finished or by 2 different manual reactions calling each other.',
+    );
   }
 
   // release the (obj -> key -> reactions) connections

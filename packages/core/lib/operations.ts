@@ -83,7 +83,7 @@ function registerReactionReadOperation(
   }
 }
 
-function getMutationImpactedReactions(
+export function getMutationImpactedReactions(
   mutationOperation: MutationOperationInfo,
 ) {
   const impactedReactions = getSelectedAnyChangeReactions(

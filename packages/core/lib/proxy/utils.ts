@@ -53,5 +53,3 @@ export const [
   createIterationCallback,
   { isTargetMarked: isTargetBeingIterated },
 ] = createTargetMarkerCallback();
-
-const forEach = createIterationCallback(function () {});

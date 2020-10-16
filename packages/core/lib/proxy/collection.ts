@@ -2,6 +2,7 @@ import { createChildStoreIfNeeded, storeToRawMap } from '../store';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,
+  MutationOperationInfo,
   ReadOperationInfo,
 } from '../operations';
 
@@ -49,15 +50,17 @@ function add(this: any, key: string) {
   const target = storeToRawMap.get(this);
   const proto = Reflect.getPrototypeOf(this) as Iterable;
   const hadKey = proto.has.call(target, key);
+  const operation: MutationOperationInfo = {
+    target,
+    key,
+    value: key,
+    type: 'add',
+  };
+
   // forward the operation before queueing reactions
   const result = proto.add.apply(target, arguments as any);
   if (!hadKey) {
-    handleStoreMutationOperation({
-      target,
-      key,
-      value: key,
-      type: 'add',
-    });
+    handleStoreMutationOperation(operation);
   }
   return result;
 }
@@ -65,44 +68,59 @@ function set(this: any, key: string, value: any) {
   const target = storeToRawMap.get(this);
   const proto = Reflect.getPrototypeOf(this) as Iterable;
   const hadKey = proto.has.call(target, key);
-  const oldValue = proto.get.call(target, key);
-  // forward the operation before queueing reactions
-  const result = proto.set.apply(target, arguments as any);
-  if (!hadKey) {
-    handleStoreMutationOperation({ target, key, value, type: 'add' });
-  } else if (value !== oldValue) {
-    handleStoreMutationOperation({
+
+  if (hadKey) {
+    const oldValue = proto.get.call(target, key);
+    if (value === oldValue) {
+      return;
+    }
+    const operation: MutationOperationInfo = {
       target,
       key,
       value,
       type: 'set',
-    });
+    };
+
+    // forward the operation before queueing reactions
+    const result = proto.set.apply(target, arguments as any);
+    handleStoreMutationOperation(operation);
+    return result;
   }
+
+  const operation: MutationOperationInfo = { target, key, value, type: 'add' };
+
+  const result = proto.set.apply(target, arguments as any);
+
+  handleStoreMutationOperation(operation);
+
   return result;
 }
 function deleteImplementation(this: any, key: string) {
   const target = storeToRawMap.get(this);
+  const operation: MutationOperationInfo = {
+    target,
+    key,
+    type: 'delete',
+  };
   const proto = Reflect.getPrototypeOf(this) as Iterable;
   const hadKey = proto.has.call(target, key);
   // forward the operation before queueing reactions
   const result = proto.delete.apply(target, arguments as any);
   if (hadKey) {
-    handleStoreMutationOperation({
-      target,
-      key,
-      type: 'delete',
-    });
+    handleStoreMutationOperation(operation);
   }
   return result;
 }
 function clear(this: any) {
   const target = storeToRawMap.get(this);
+  const operation: MutationOperationInfo = { target, type: 'clear' };
+
   const proto = Reflect.getPrototypeOf(this) as Iterable;
   const hadItems = target.size !== 0;
   // forward the operation before queueing reactions
   const result = proto.clear.apply(target, arguments as any);
   if (hadItems) {
-    handleStoreMutationOperation({ target, type: 'clear' });
+    handleStoreMutationOperation(operation);
   }
   return result;
 }

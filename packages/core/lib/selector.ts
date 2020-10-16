@@ -241,7 +241,9 @@ export function warmSelectors(...selectors: Selector<any>[]) {
   warming(() => {
     selectors.forEach(selector => {
       try {
+        // request selector value.
         selector.value;
+        // if it's
       } catch (errorOrPromise) {
         // Selectors might suspend during warming, but we still want to warm all of them.
         // We're however adding all pending promises to this reaction to be able to wait for them all before

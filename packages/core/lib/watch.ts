@@ -120,12 +120,14 @@ export function manualWatch<A extends any[], R>(
       );
     }
 
-    if (getRunningReaction()) {
-      // throw new Error(
-      //   'Manual watch cannot be called while other reaction is running',
-      // );
-    }
-    return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
+    // return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
+    return callWithSuspense(
+      (...args: A) => {
+        return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
+      },
+      reactionCallback,
+      ...args,
+    );
   }
 
   allowInternal(() => {
