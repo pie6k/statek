@@ -4,9 +4,7 @@ export type ReactionScheduler = (
   reaction: ReactionCallback,
 ) => Promise<void> | void;
 
-export const [allowPublicInternal, allowInternalManager] = createStackCallback(
-  noop,
-);
+export const [allowInternal, allowInternalManager] = createStackCallback(noop);
 
 export function warnIfUsingInternal(internalName: string) {
   if (process.env.NODE_ENV === 'production') {

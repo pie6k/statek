@@ -1,4 +1,4 @@
-import { isStore, lazyWatch, store, watch } from '../lib';
+import { isStore, manualWatch, store, watch } from '../lib';
 import { _countReadOperations } from '../lib/operations';
 
 describe('iteration', () => {
@@ -7,7 +7,7 @@ describe('iteration', () => {
 
     let getCount = _countReadOperations();
 
-    const call = lazyWatch((deep: boolean) => {
+    const call = manualWatch((deep: boolean) => {
       s.foo.map(i => {
         if (deep) {
           i.bar;

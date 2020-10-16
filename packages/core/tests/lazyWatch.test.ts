@@ -1,14 +1,14 @@
 /**
  * @jest-environment jsdom
  */
-import { store, getStoreRaw, lazyWatch } from '@statek/core/lib';
+import { store, getStoreRaw, manualWatch, watch } from '@statek/core/lib';
 
 describe('observe', () => {
   it('should wrap the passed function seamlessly', () => {
     function greet() {
       return `Hello`;
     }
-    const reaction = lazyWatch(greet);
+    const reaction = manualWatch(greet);
 
     expect(reaction()).toBe('Hello');
   });
@@ -17,7 +17,7 @@ describe('observe', () => {
     function greet(name: string) {
       return `Hello, ${name}`;
     }
-    const reaction = lazyWatch(greet);
+    const reaction = manualWatch(greet);
 
     expect(reaction('World')).toBe('Hello, World');
   });
@@ -28,7 +28,7 @@ describe('observe', () => {
 
     const reaction = jest.fn(() => obj.prop);
     const depsChangeCallback = jest.fn(() => {});
-    const call = lazyWatch(reaction, depsChangeCallback);
+    const call = manualWatch(reaction, depsChangeCallback);
 
     expect(reaction).toBeCalledTimes(0);
     expect(depsChangeCallback).toBeCalledTimes(0);
@@ -60,7 +60,7 @@ describe('observe', () => {
       dummy = this;
       return `Hello`;
     }
-    const call = lazyWatch(greet, () => {}, { context: 'foo' });
+    const call = manualWatch(greet, () => {}, { context: 'foo' });
 
     call();
 
@@ -71,13 +71,13 @@ describe('observe', () => {
     const obj = store({ prop: 'foo' });
     const spy = jest.fn(() => obj.prop);
 
-    const call = lazyWatch(spy, spy);
+    const call = manualWatch(spy, spy);
 
     expect(() => {
       call();
     }).not.toThrow();
 
-    call.unsubscribe();
+    call.stop();
 
     expect(() => {
       call();
@@ -89,7 +89,7 @@ describe('observe', () => {
     const reaction = jest.fn(() => obj.prop);
     const changeCallback = jest.fn(() => {});
 
-    lazyWatch(reaction, changeCallback);
+    manualWatch(reaction, changeCallback);
 
     expect(reaction).toBeCalledTimes(0);
     expect(changeCallback).toBeCalledTimes(0);
@@ -105,7 +105,7 @@ describe('observe', () => {
     const reaction = jest.fn(() => obj.prop);
     const changeCallback = jest.fn(() => {});
 
-    const call = lazyWatch(reaction, changeCallback);
+    const call = manualWatch(reaction, changeCallback);
 
     call();
 
@@ -115,18 +115,36 @@ describe('observe', () => {
 
     expect(changeCallback).toBeCalledTimes(1);
 
-    call.unsubscribe();
+    call.stop();
 
     obj.prop = 'baz';
 
     expect(changeCallback).toBeCalledTimes(1);
   });
 
+  it('the same callback can be added to multiple manual watchings', () => {
+    const cb = jest.fn();
+    const s = store({ a: 0 });
+
+    const call1 = manualWatch(() => s.a, cb);
+    const call2 = manualWatch(() => s.a, cb);
+
+    expect(cb).toBeCalledTimes(0);
+
+    call1();
+    call2();
+
+    expect(cb).toBeCalledTimes(0);
+    s.a++;
+
+    expect(cb).toBeCalledTimes(2);
+  });
+
   it('lazy callback could be subscribed again after unsubscribing', () => {
     const obj = store({ num: 0 });
     const reaction = jest.fn(() => obj.num);
     const callback = jest.fn();
-    const call = lazyWatch(reaction, callback);
+    const call = manualWatch(reaction, callback);
 
     call();
 
@@ -136,13 +154,13 @@ describe('observe', () => {
 
     expect(callback).toBeCalledTimes(1);
 
-    call.unsubscribe();
+    call.stop();
 
     obj.num++;
 
     expect(callback).toBeCalledTimes(1);
 
-    const callAgain = lazyWatch(reaction, callback);
+    const callAgain = manualWatch(reaction, callback);
 
     callAgain();
 
@@ -160,7 +178,7 @@ describe('observe', () => {
     const spy = jest.fn(() => {
       dummy = run ? obj.prop : 'other';
     });
-    const reaction = lazyWatch(spy, spy);
+    const reaction = manualWatch(spy, spy);
 
     expect(dummy).toBe(undefined);
     reaction();
@@ -176,7 +194,7 @@ describe('observe', () => {
 describe('lazyWatch - options', () => {
   it('should not run the passed function, if set to true', () => {
     const fnSpy = jest.fn(() => {});
-    lazyWatch(fnSpy);
+    manualWatch(fnSpy);
     expect(fnSpy).toBeCalledTimes(0);
   });
 });

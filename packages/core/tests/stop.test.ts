@@ -1,25 +1,26 @@
 import { store, watch } from '@statek/core/lib';
+import { watchWarn } from './utils';
 
-describe('unobserve', () => {
-  it('should unobserve the observed function', () => {
+describe('stop reaction', () => {
+  it('stopped watching function should not be called on changes', () => {
     let dummy;
     const counter = store({ num: 0 });
     const counterSpy = jest.fn(() => (dummy = counter.num));
     const stop = watch(counterSpy);
 
     expect(counterSpy).toBeCalledTimes(1);
-    // @ts-expect-error
-    counter.num = 'Hello';
+
+    counter.num++;
     expect(counterSpy).toBeCalledTimes(2);
-    expect(dummy).toBe('Hello');
+    expect(dummy).toBe(1);
     stop();
-    // @ts-expect-error
-    counter.num = 'World';
+
+    counter.num++;
     expect(counterSpy).toBeCalledTimes(2);
-    expect(dummy).toBe('Hello');
+    expect(dummy).toBe(1);
   });
 
-  it('should unobserve when the same key is used multiple times', () => {
+  it('should stop when the same key is used multiple times', () => {
     let dummy;
     const user = store({ name: { name: 'Bob' } });
     const nameSpy = jest.fn(() => (dummy = user.name.name));
@@ -59,7 +60,6 @@ describe('unobserve', () => {
 
     expect(dummy).toBe(undefined);
     stop();
-    stop();
     obj.prop = 12;
     expect(dummy).toBe(undefined);
   });
@@ -74,16 +74,18 @@ describe('unobserve', () => {
     counter.num = 'Hello';
     expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
+    const warn = watchWarn();
     stop();
     stop();
     stop();
+    expect(warn.count()).toBe(2);
     counter.num = 'World';
     stop();
     expect(counterSpy).toBeCalledTimes(2);
     expect(dummy).toBe('Hello');
   });
 
-  it('should restore unobserved reaction if watch called again', () => {
+  it('should restore stopped reaction if watch called again', () => {
     const counter = store({ num: 0 });
     const counterSpy = jest.fn(() => counter.num);
     const stop = watch(counterSpy);
@@ -92,6 +94,7 @@ describe('unobserve', () => {
     counter.num++;
     expect(counterSpy).toBeCalledTimes(2);
     stop();
+
     counter.num++;
     expect(counterSpy).toBeCalledTimes(2);
 

@@ -60,6 +60,55 @@ export function expectContent(
   expect(r.toJSON()).toEqual(content);
 }
 
+export function watchWarn() {
+  const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+  function getLastCall() {
+    return warnSpy.mock.calls[warnSpy.mock.calls.length - 1];
+  }
+
+  function getLast(): string | null {
+    return getLastCall()?.[0] ?? null;
+  }
+
+  function count() {
+    return warnSpy.mock.calls.length;
+  }
+
+  function stop() {
+    warnSpy.mockRestore();
+  }
+
+  return {
+    getLast,
+    stop,
+    count,
+  };
+}
+
+type Callback<T> = (value: T) => void;
+
+export function manualPromise<T>() {
+  const listeners = new Set<Callback<T>>();
+
+  const promise = new Promise<T>(() => {});
+
+  function then(callback: Callback<T>) {
+    listeners.add(callback);
+  }
+
+  // @ts-ignore
+  promise.then = then;
+
+  function resolve(value: T) {
+    listeners.forEach(listener => {
+      listener(value);
+    });
+  }
+
+  return [(promise as any) as Promise<T>, resolve] as const;
+}
+
 // export function buildUtils(): RenderTestUtils {
 //   let currentRender: ReactTestRenderer.ReactTestRenderer;
 //   function expectContent(content: any) {

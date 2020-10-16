@@ -1,6 +1,6 @@
 import React from 'react';
-import { store } from '../lib';
-import { itRenders, render, expectContent } from './utils';
+import { store } from 'statek';
+import { itRenders, render, expectContent, watchWarn } from './utils';
 
 describe('warn', () => {
   itRenders(
@@ -11,15 +11,35 @@ describe('warn', () => {
         return <>{obj.foo}</>;
       }
 
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const warn = watchWarn();
 
       render(<Test />);
 
-      expect(warnSpy.mock.calls[0][0]).toMatchInlineSnapshot(
+      expect(warn.getLast()).toMatchInlineSnapshot(
         `"Accessing store property inside functional <Test /> component that is not reactive. Either use useView hook inside of it or render <Test /> inside <WatchStore /> provider."`,
       );
 
-      warnSpy.mockRestore();
+      warn.stop();
+    },
+  );
+
+  itRenders(
+    'should warn about Unknown if not able to get component name',
+    () => {
+      const obj = store({ foo: 1 });
+      const Test = () => {
+        return <>{obj.foo}</>;
+      };
+
+      const warn = watchWarn();
+
+      render(<Test />);
+
+      expect(warn.getLast()).toMatchInlineSnapshot(
+        `"Accessing store property inside functional <Test /> component that is not reactive. Either use useView hook inside of it or render <Test /> inside <WatchStore /> provider."`,
+      );
+
+      warn.stop();
     },
   );
 });

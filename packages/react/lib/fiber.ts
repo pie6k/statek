@@ -66,3 +66,7 @@ export function readContext<T>(context: Context<T>): T | null {
 
   return internals.ReactCurrentDispatcher.current.readContext(context);
 }
+
+export function isFiberRunning(fiber: Fiber) {
+  return getCurrentFiber() === fiber;
+}

@@ -1,12 +1,8 @@
-import { readStoreManager } from './batch';
-import {
-  initializeObjectReadOperationsRegistry,
-  ReadOperationInfo,
-} from './operations';
+import { dontWatchManager } from './batch';
+import { initializeObjectReadOperationsRegistry } from './operations';
 import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isReaction, ReactionCallback, ReactionsSet } from './reaction';
-import { isAnyReactionRunning } from './reactionsStack';
-import { appendSet, isPrimitive } from './utils';
+import { appendSet } from './utils';
 
 export const storeToRawMap = new WeakMap();
 export const rawToStoreMap = new WeakMap();
@@ -60,32 +56,6 @@ export function registerSelectedAnyChangeReaction(
   return function remove() {
     currentReactionsSet!.delete(reaction);
   };
-}
-
-/**
- * Will check if store part or any parent part is watched by any change reactions.
- *
- * It is very similar to `getStoreAnyChangeWatchingReactions` which returns actual list of reactions.
- *
- * This one is however simpler and faster, because it could be called very often.
- */
-function isSelectedAnyChangeWatched(selectedRaw: object) {
-  // This store part is watched directly
-  if (selectedAnyChangeReactions.get(selectedRaw)?.size) {
-    return true;
-  }
-
-  // Check all parents to see if any is watched.
-  let parent = targetParentTarget.get(selectedRaw);
-
-  while (parent) {
-    if (selectedAnyChangeReactions.get(parent)?.size) {
-      return true;
-    }
-    parent = targetParentTarget.get(parent);
-  }
-
-  return false;
 }
 
 /**
@@ -153,8 +123,11 @@ export function store<T extends object>(storeFactory: StoreFactory<T>): T {
 export function createChildStoreIfNeeded(
   storePartRaw: object,
   parentRaw: object,
-  readOperation: ReadOperationInfo,
 ) {
+  if (dontWatchManager.isRunning()) {
+    return storeToRawMap;
+  }
+
   const observableObj = rawToStoreMap.get(storePartRaw);
 
   // If we have observable already created - always return it
@@ -164,23 +137,6 @@ export function createChildStoreIfNeeded(
 
   // If it's not possible to create observable - no point of checking if we should create it.
   if (canWrapInProxy(storePartRaw) !== true) {
-    return storePartRaw;
-  }
-
-  // Observable is not yet created.
-
-  // We'll wrap raw into proxy:
-  // If we're during read observable callback - always wrap.
-  // If any reaction is currently in progress
-  // If any reaction is watching entire parent of object we want to wrap now
-
-  // Otherwise we can safely return raw object.
-
-  if (
-    !readStoreManager.isRunning() &&
-    !isAnyReactionRunning(readOperation) &&
-    !isSelectedAnyChangeWatched(parentRaw)
-  ) {
     return storePartRaw;
   }
 

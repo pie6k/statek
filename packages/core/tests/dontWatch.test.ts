@@ -1,4 +1,4 @@
-import { dontWatch, store, sync, watch } from '@statek/core/lib';
+import { dontWatch, isStore, store, watch } from '@statek/core/lib';
 
 describe('dontWatch', () => {
   it('will ignore read access inside dontWatch', () => {
@@ -31,5 +31,20 @@ describe('dontWatch', () => {
     obj.c++;
 
     expect(spy).toBeCalledTimes(3);
+  });
+
+  it('will return raw values on read', () => {
+    const obj = store({
+      a: 1,
+      b: {
+        c: 2,
+      },
+    });
+
+    const obsraw = obj.b;
+    const raw = dontWatch(() => obj.b);
+
+    expect(isStore(raw)).toBe(false);
+    expect(isStore(obsraw)).toBe(true);
   });
 });

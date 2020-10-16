@@ -53,16 +53,12 @@ export const arrayProxyHandlers: ProxyHandler<object> = {
       return result;
     }
 
-    let operation = runInIterationManager.getCurrentData();
-
-    if (!operation) {
-      operation = {
+    if (!runInIterationManager.getCurrentData()) {
+      handleStoreReadOperation({
         target,
         key,
         type: key === 'length' ? 'iterate' : 'get',
-      };
-
-      handleStoreReadOperation(operation);
+      });
     }
 
     // do not violate the none-configurable none-writable prop get handler invariant
@@ -75,6 +71,6 @@ export const arrayProxyHandlers: ProxyHandler<object> = {
 
     // if we are inside a reaction and observable.prop is an object wrap it in an observable too
     // this is needed to intercept property access on that object too (dynamic observable tree)
-    return createChildStoreIfNeeded(result, target, operation);
+    return createChildStoreIfNeeded(result, target);
   },
 };

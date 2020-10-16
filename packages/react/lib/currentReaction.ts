@@ -1,26 +1,27 @@
 import {
-  ReactionCallback,
-  registerGetCurrentReactionHook,
-  registerReaction,
+  allowInternal,
+  InjectedReaction,
   ReadOperationInfo,
-  isStore,
-  allowPublicInternal,
+  addInjectReactionHook,
+  registerReaction,
+  injectReaction,
 } from '@statek/core';
 import { updateClassComponentByFiber } from './classFiberUpdater';
 import { isClassComponent } from './componentTypes';
-import { getCurrentFiber, readContext } from './fiber';
+import { Fiber, getCurrentFiber, isFiberRunning, readContext } from './fiber';
 import { reactScheduler } from './scheduler';
-import { fiberViewsUpdaters } from './useView';
 import { getComponentTypeNiceName, warnOnce } from './utils';
-import { WatchStore, WatchedStoriesContext } from './WatchStore';
+import { WatchedStoriesContext } from './WatchStore';
 
-allowPublicInternal(() => {
-  registerGetCurrentReactionHook(getCurrentFiberUpdateReaction);
+allowInternal(() => {
+  addInjectReactionHook(getCurrentFiberUpdateReaction);
 });
+
+export const fiberUpdaterCache = new WeakMap<Fiber, () => void>();
 
 export function getCurrentFiberUpdateReaction(
   readOperation: ReadOperationInfo,
-): ReactionCallback | null {
+): InjectedReaction | null {
   const fiber = getCurrentFiber();
 
   if (!fiber) {
@@ -28,14 +29,17 @@ export function getCurrentFiberUpdateReaction(
   }
 
   // Try to get either view updater or cached class updater
-  const viewUpdater = fiberViewsUpdaters.get(fiber);
+  const cachedUpdater = fiberUpdaterCache.get(fiber);
 
   // We're currently rendering view or have cached class updater.
-  if (viewUpdater) {
-    return viewUpdater;
+  if (cachedUpdater) {
+    return {
+      reaction: cachedUpdater,
+      getIsStillRunning: isFiberRunning.bind(null, fiber),
+    };
   }
 
-  // We're not in view.
+  // We're not in directly view.
 
   // Check if we're inside store observing context.
 
@@ -48,30 +52,40 @@ export function getCurrentFiberUpdateReaction(
     watchedStoriesContext.stores.includes(readOperation.target)
   ) {
     // If so - register context provider re-render reaction as this access change reaction.
-    return watchedStoriesContext.forceUpdateReaction;
+    return {
+      reaction: watchedStoriesContext.forceUpdateReaction,
+      getIsStillRunning: isFiberRunning.bind(null, fiber),
+    };
   }
 
   // We're not in view and not inside matching access context.
 
-  // We're during class render and forceUpdate for this fiber is not yet cached.
-  // Let's use forceUpdate of this class as reaction.
+  // The only case left where we can hook update is class component
   if (isClassComponent(fiber.type)) {
+    // We're during class render and forceUpdate for this fiber is not yet cached.
+    // Let's use forceUpdate of this class as reaction.
     const update = () => {
       updateClassComponentByFiber(fiber);
     };
 
-    allowPublicInternal(() => {
+    allowInternal(() => {
       registerReaction(update, update, { scheduler: reactScheduler });
     });
 
     // Save it in cache.
-    fiberViewsUpdaters.set(fiber, update);
+    fiberUpdaterCache.set(fiber, update);
 
-    return update;
+    return {
+      reaction: update,
+      getIsStillRunning: isFiberRunning.bind(null, fiber),
+    };
   }
 
-  // TODO - only in dev
-  warnAboutAccessToStoreInsideNonReactiveRender(fiber.type);
+  // Store is accessed during some component render, but we're not able to make it reactive
+
+  if (process.env.NODE_ENV !== 'production') {
+    warnAboutAccessToStoreInsideNonReactiveRender(fiber.type);
+  }
   return null;
 }
 

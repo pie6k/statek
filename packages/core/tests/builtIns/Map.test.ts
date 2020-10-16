@@ -286,45 +286,29 @@ describe('Map', () => {
     expect(mapSpy).toBeCalledTimes(2);
   });
 
-  it('should wrap object values with observables when requested from a reaction', () => {
+  it('should wrap object values with observables', () => {
     const map = store(new Map());
     map.set('key', {});
     map.set('key2', {});
 
-    expect(isStore(map.get('key'))).toBe(false);
-    expect(isStore(map.get('key2'))).toBe(false);
-    watch(() => expect(isStore(map.get('key'))).toBe(true));
     expect(isStore(map.get('key'))).toBe(true);
-    expect(isStore(map.get('key2'))).toBe(false);
+    expect(isStore(map.get('key2'))).toBe(true);
   });
 
-  it('should wrap object values with observables when iterated from a reaction', () => {
+  it('should wrap object values with observables', () => {
     const map = store(new Map());
     map.set('key', {});
 
-    map.forEach(value => expect(isStore(value)).toBe(false));
+    map.forEach(value => expect(isStore(value)).toBe(true));
     for (let [key, value] of map) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
     for (let [key, value] of map.entries()) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
     for (let value of map.values()) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
-
-    watch(() => {
-      map.forEach(value => expect(isStore(value)).toBe(true));
-      for (let [key, value] of map) {
-        expect(isStore(value)).toBe(true);
-      }
-      for (let [key, value] of map.entries()) {
-        expect(isStore(value)).toBe(true);
-      }
-      for (let value of map.values()) {
-        expect(isStore(value)).toBe(true);
-      }
-    });
 
     map.forEach(value => expect(isStore(value)).toBe(true));
     for (let [key, value] of map) {

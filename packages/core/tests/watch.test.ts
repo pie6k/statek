@@ -1,7 +1,9 @@
 /**
  * @jest-environment jsdom
  */
-import { store, watch, getStoreRaw, lazyWatch } from '@statek/core/lib';
+import { store, watch, getStoreRaw, manualWatch } from '@statek/core/lib';
+import { allowNestedWatch } from '../lib/batch';
+import { watchWarn } from './utils';
 
 describe('watch', () => {
   it('should run the passed function once (wrapped by a reaction)', () => {
@@ -64,9 +66,27 @@ describe('watch', () => {
     const counter = store({ num: 0 });
     const reaction = jest.fn(() => counter.num);
     watch(reaction);
+    watchWarn();
     watch(reaction);
 
     expect(reaction).toBeCalledTimes(1);
+    counter.num++;
+    expect(reaction).toBeCalledTimes(2);
+  });
+
+  it('if watch is called multiple times - stop call of any will stop reactions', () => {
+    const counter = store({ num: 0 });
+    const reaction = jest.fn(() => counter.num);
+    watchWarn();
+    const stop1 = watch(reaction);
+    const stop2 = watch(reaction);
+
+    stop2();
+
+    counter.num++;
+    expect(reaction).toBeCalledTimes(1);
+
+    stop1();
   });
 
   it('should observe nested properties', () => {
@@ -387,7 +407,11 @@ describe('watch', () => {
       return 'Hello World';
     }
     const reaction1 = watch(greet);
+    const warn = watchWarn();
     const reaction2 = watch(greet);
+    expect(warn.getLast()).toMatchInlineSnapshot(
+      `"You're calling watch on callback that is already running. It will have no effect."`,
+    );
     expect(reaction1).toBeInstanceOf(Function);
     expect(reaction2).toBeInstanceOf(Function);
     expect(reaction1).not.toBe(greet);
@@ -491,39 +515,6 @@ describe('watch', () => {
     expect(dummy).toBe(16);
     expect(spy).toBeCalledTimes(2);
   });
-
-  it('should allow nested reactions of various types', () => {
-    const nums = store({ num1: 0, num2: 1, num3: 2 });
-    const dummy: any = {};
-
-    const childSpy = jest.fn(() => (dummy.num1 = nums.num1));
-    const childReaction = lazyWatch(childSpy, childSpy);
-    const parentSpy = jest.fn(() => {
-      dummy.num2 = nums.num2;
-      childReaction();
-      dummy.num3 = nums.num3;
-    });
-    watch(parentSpy);
-
-    expect(dummy).toEqual({ num1: 0, num2: 1, num3: 2 });
-    expect(parentSpy).toBeCalledTimes(1);
-    expect(childSpy).toBeCalledTimes(1);
-    // this should only call the childReaction
-    nums.num1 = 4;
-    expect(dummy).toEqual({ num1: 4, num2: 1, num3: 2 });
-    expect(parentSpy).toBeCalledTimes(1);
-    expect(childSpy).toBeCalledTimes(2);
-    // this calls the parentReaction, which calls the childReaction once
-    nums.num2 = 10;
-    expect(dummy).toEqual({ num1: 4, num2: 10, num3: 2 });
-    expect(parentSpy).toBeCalledTimes(2);
-    expect(childSpy).toBeCalledTimes(3);
-    // this calls the parentReaction, which calls the childReaction once
-    nums.num3 = 7;
-    expect(dummy).toEqual({ num1: 4, num2: 10, num3: 7 });
-    expect(parentSpy).toBeCalledTimes(3);
-    expect(childSpy).toBeCalledTimes(4);
-  });
 });
 
 describe('watch - options', () => {
@@ -552,5 +543,52 @@ describe('watch - options', () => {
     expect(dummy).toBe(null);
     observed.obj = document;
     expect(dummy).toBe(9);
+  });
+});
+
+describe('watch - nested', () => {
+  it('should not call parent watch if has nested watch', () => {
+    const s = store({ foo: 1, bar: { baz: 1 } });
+
+    const child = jest.fn(() => {
+      s.bar.baz;
+    });
+
+    // We're calling watch multiple times on the same callback. Ignore warns.
+    watchWarn();
+
+    const parent = jest.fn(() => {
+      s.foo;
+      allowNestedWatch(() => {
+        watch(child);
+      });
+    });
+
+    watch(parent);
+
+    expect(parent).toBeCalledTimes(1);
+    expect(child).toBeCalledTimes(1);
+
+    s.foo++;
+
+    expect(parent).toBeCalledTimes(2);
+    expect(child).toBeCalledTimes(1);
+
+    s.bar.baz++;
+
+    expect(parent).toBeCalledTimes(2);
+    expect(child).toBeCalledTimes(2);
+  });
+
+  it('should throw when calling nested watch without explicit allowing', () => {
+    const s = store({ foo: { bar: 1 } });
+
+    expect(() => {
+      watch(() => {
+        watch(() => {});
+      });
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Cannot start nested watch without explicit call to allowNestedWatch. If you want to start watching inside other reaction, call it like \`allowNestedWatch(() => { watch(callback) })\`. Remember to stop nested watching when needed to avoid memory leaks."`,
+    );
   });
 });

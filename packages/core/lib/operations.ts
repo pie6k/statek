@@ -6,7 +6,7 @@ import {
   reactionDebugger,
   reactionWatchedPropertiesMemberships,
 } from './reaction';
-import { getCurrentReaction } from './reactionsStack';
+import { detectRunningReactionForOperation } from './reactionsStack';
 import { appendSet } from './utils';
 
 type TargetKey = string | number | Symbol | undefined;
@@ -48,7 +48,7 @@ export function _countReadOperations() {
 
 // const _c = _countReadOperations();
 // setInterval(() => {
-//   console.log(_c());
+//   console['log'](_c());
 // }, 500);
 
 export function initializeObjectReadOperationsRegistry(rawObject: object) {
@@ -110,10 +110,6 @@ function getMutationImpactedReactions(
     mutationOperation.type === 'clear' ||
     mutationOperation.type === 'set'
   ) {
-    const iterationKey = Array.isArray(mutationOperation.target)
-      ? 'length'
-      : ITERATION_KEY;
-
     const reactionsForIteration = targetKeysReactionsMap.get(ITERATION_KEY);
 
     reactionsForIteration &&
@@ -128,7 +124,7 @@ export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
   readOperationsCount++;
 
   // get the current reaction from the top of the stack
-  const runningReaction = getCurrentReaction(readOperation);
+  const runningReaction = detectRunningReactionForOperation(readOperation);
 
   if (!runningReaction) {
     return;

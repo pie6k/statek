@@ -7,12 +7,6 @@ import { useMethod } from './useMethod';
 // const isDOM = typeof window !== 'undefined';
 // const isNative = typeof global !== 'undefined';
 
-// export const globalObj: typeof globalThis = (isDOM
-//   ? window
-//   : isNative
-//   ? global
-//   : undefined) as any;
-
 // export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
 //   return Object.getOwnPropertyNames(obj) as Array<keyof T>;
 // }
@@ -58,5 +52,11 @@ export function getComponentTypeNiceName(type: any) {
     return 'Unknown';
   }
 
-  return type?.displayName ?? type?.name ?? 'Unknown';
+  const foundName = type?.displayName || type?.name || 'Unknown';
+
+  if (!foundName.trim()) {
+    return 'Unknown';
+  }
+
+  return foundName;
 }

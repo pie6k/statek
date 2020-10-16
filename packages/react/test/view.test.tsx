@@ -1,5 +1,6 @@
 import React from 'react';
-import { store, view } from '../lib';
+import { view } from '@statek/react';
+import { store } from 'statek';
 import { actSync, expectContent, itRenders, render, wait } from './utils';
 
 describe.only('view', () => {

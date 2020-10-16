@@ -1,27 +1,20 @@
-import { Fiber, getCurrentFiber } from './fiber';
+import { Fiber, getCurrentFiber, isFiberRunning } from './fiber';
+import { allowInternal, injectReaction } from '@statek/core';
 import { useForceUpdateReaction } from './useForceUpdate';
+import { fiberUpdaterCache } from './currentReaction';
 
 // registerCurrentReactionHook(getCurrentFiberUpdateReaction);
-
-export const fiberViewsUpdaters = new WeakMap<Fiber, () => void>();
-
-export function updateViewByFiber(fiber: Fiber) {
-  const hookBasedUpdater = fiberViewsUpdaters.get(fiber);
-
-  if (hookBasedUpdater) {
-    hookBasedUpdater();
-    return;
-  }
-}
 
 export function useView() {
   const forceUpdateReaction = useForceUpdateReaction();
 
+  // @ts-ignore
+  forceUpdateReaction.view = true;
   // We can assert we're currently rendering in functional component, because otherwise above hook
   // would throw an error.
   const fiber = getCurrentFiber()!;
 
-  fiberViewsUpdaters.set(fiber, forceUpdateReaction);
+  fiberUpdaterCache.set(fiber, forceUpdateReaction);
 }
 
 function noop() {}

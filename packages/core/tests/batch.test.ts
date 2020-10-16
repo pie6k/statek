@@ -1,7 +1,13 @@
 /**
  * @jest-environment jsdom
  */
-import { store, watch, getStoreRaw, lazyWatch, batch } from '@statek/core/lib';
+import {
+  store,
+  watch,
+  getStoreRaw,
+  manualWatch,
+  batch,
+} from '@statek/core/lib';
 
 describe('batch', () => {
   it('should call reaction once when called in batch', () => {

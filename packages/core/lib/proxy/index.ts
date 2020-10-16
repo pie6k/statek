@@ -1,9 +1,7 @@
 import { mapLikeProxyHandlers } from './collection';
 import { basicProxyHandlers } from './basic';
 import { arrayProxyHandlers } from './array';
-
-const globalObj =
-  typeof window === 'object' ? window : (Function('return this')() as Window);
+import { isPrimitive } from '../utils';
 
 // built-in object can not be wrapped by Proxies
 // their methods expect the object instance as the 'this' instead of the Proxy wrapper
@@ -45,8 +43,9 @@ export function canWrapInProxy(input: object): string | true {
 
   const isBuiltIn =
     typeof constructor === 'function' &&
-    constructor.name in globalObj &&
-    globalObj[constructor.name as any] === (constructor as any);
+    constructor.name in globalThis &&
+    // @ts-ignore
+    globalThis[constructor.name as any] === (constructor as any);
 
   if (isBuiltIn) {
     return 'Built in object or accessable in global / window';
@@ -64,8 +63,4 @@ export function wrapObjectInProxy<T extends object>(input: T): T {
     input,
     builtInProxyHandlers.get(input.constructor) ?? basicProxyHandlers,
   );
-}
-
-function isPrimitive(input: any) {
-  return input !== Object(input);
 }

@@ -85,16 +85,23 @@ describe('store - creating', () => {
     expect(dummy).toBe(12);
   });
 
-  it('should never let observables leak into the underlying raw object', () => {
-    const obj: any = {};
-    const obs = store(obj);
-    obs.nested1 = {};
+  it('should wrap into observable even if not watched', () => {
+    const obs = store({ foo: { bar: 2 } });
 
-    obs.nested2 = store({});
-    expect(isStore(obj.nested1)).toBe(false);
-    expect(isStore(obj.nested2)).toBe(false);
-    expect(isStore(obs.nested1)).toBe(false);
-    expect(isStore(obs.nested2)).toBe(true);
+    expect(isStore(obs.foo)).toBe(true);
+  });
+
+  it('should not double wrap if setting existing store', () => {
+    const obs = store({ foo: { bar: 2 } });
+
+    const previousNested = obs.foo;
+
+    obs.foo = store({ bar: 3 });
+
+    expect(isStore(obs.foo)).toBe(true);
+    expect(previousNested).not.toBe(obs.foo);
+
+    expect(store(getStoreRaw(obs.foo))).toBe(obs.foo);
   });
 });
 

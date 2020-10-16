@@ -1,7 +1,6 @@
 import { ReactNodeArray } from 'react';
 import {
   applyReaction,
-  isLazyReaction,
   ReactionCallback,
   reactionSchedulers,
 } from './reaction';
@@ -131,3 +130,7 @@ export const [selectInStore, readStoreManager] = createStackCallback(noop);
  * It can be called inside part of `watch` callback and such read access will not be registered.
  */
 export const [dontWatch, dontWatchManager] = createStackCallback(noop);
+
+export const [allowNestedWatch, allowNestedWatchManager] = createStackCallback(
+  noop,
+);

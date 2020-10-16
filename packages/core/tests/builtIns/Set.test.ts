@@ -274,33 +274,20 @@ describe('Set', () => {
     expect(setSpy).toBeCalledTimes(2);
   });
 
-  it('should wrap object values with observables when iterated from a reaction', () => {
+  it('should wrap object values with observables', () => {
     const set = store<any>(new Set());
     set.add({});
 
-    set.forEach((value: any) => expect(isStore(value)).toBe(false));
+    set.forEach((value: any) => expect(isStore(value)).toBe(true));
     for (let value of set) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
     for (let [_, value] of set.entries()) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
     for (let value of set.values()) {
-      expect(isStore(value)).toBe(false);
+      expect(isStore(value)).toBe(true);
     }
-
-    watch(() => {
-      set.forEach((value: any) => expect(isStore(value)).toBe(true));
-      for (let value of set) {
-        expect(isStore(value)).toBe(true);
-      }
-      for (let [_, value] of set.entries()) {
-        expect(isStore(value)).toBe(true);
-      }
-      for (let value of set.values()) {
-        expect(isStore(value)).toBe(true);
-      }
-    });
 
     set.forEach((value: any) => expect(isStore(value)).toBe(true));
     for (let value of set) {

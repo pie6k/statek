@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { store } from '../lib';
+import { store } from 'statek';
 import { actSync, expectContent, itRenders, render } from './utils';
 
 describe('class without view', () => {

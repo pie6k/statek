@@ -5,8 +5,11 @@ import { OperationInfo } from './operations';
 export type ReactionsSet = Set<ReactionCallback>;
 export type ReactionsMemberships = Set<ReactionsSet>;
 
-export const callbacksReactions = new WeakMap<
-  ReactionCallback,
+type ReactionStoppedCallback = () => void;
+
+const callbacksReactions = new WeakMap<
+  // Original reaction callback
+  () => void,
   ReactionCallback
 >();
 export const reactionWatchedPropertiesMemberships = new WeakMap<
@@ -18,7 +21,11 @@ export const reactionSchedulers = new WeakMap<
   ReactionScheduler
 >();
 export const reactionContext = new WeakMap<ReactionCallback, any>();
-export const unsubscribedReactions = new WeakSet<ReactionCallback>();
+const unsubscribedReactions = new WeakSet<ReactionCallback>();
+export const reactionStopSubscribers = new WeakMap<
+  ReactionCallback,
+  Set<ReactionStoppedCallback>
+>();
 export const reactionDebugger = new WeakMap<
   ReactionCallback,
   ReactionDebugger
@@ -43,14 +50,6 @@ export function registerLazyReactionCallback(
   lazyReactionsCallbacks.set(reaction, callback);
 }
 
-export function isLazyReaction(reaction: ReactionCallback) {
-  return lazyReactionsCallbacks.has(reaction);
-}
-
-export function getLazyReactionCallback(reaction: ReactionCallback) {
-  return lazyReactionsCallbacks.has(reaction);
-}
-
 export function cleanReactionReadData(reaction: ReactionCallback) {
   const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
 
@@ -73,10 +72,11 @@ export interface ReactionOptions {
   scheduler?: ReactionScheduler;
   debug?: (operation: OperationInfo) => {};
   context?: any;
+  name?: string;
 }
 
-export function hasCallbackReaction(input: ReactionCallback) {
-  return callbacksReactions.has(input);
+export function getCallbackWrapperReaction(input: ReactionCallback) {
+  return callbacksReactions.get(input);
 }
 
 export function applyReaction(reaction: ReactionCallback) {
@@ -120,7 +120,79 @@ export function registerReaction(
     reactionDebugger.set(reaction, options.debug);
   }
 
+  if (options.name) {
+    Object.defineProperty(reaction, 'name', { value: options.name });
+  }
+
   reactionWatchedPropertiesMemberships.set(reaction, new Set());
 
   return reaction;
+}
+
+export function stopReaction(reaction: ReactionCallback) {
+  if (isReactionStopped(reaction)) {
+    console.warn(`Stopping the reaction that is already stopped.`);
+    return;
+  }
+
+  if (!isReaction(reaction)) {
+    throw new Error('Cannot stop function that is not a reaction');
+  }
+
+  if (unsubscribedReactions.has(reaction)) {
+    return;
+  }
+
+  unsubscribedReactions.add(reaction);
+  cleanReactionReadData(reaction);
+  callbacksReactions.delete(reaction);
+
+  const stopSubscribers = reactionStopSubscribers.get(reaction);
+
+  if (stopSubscribers) {
+    stopSubscribers.forEach(subscriber => {
+      subscriber();
+    });
+  }
+}
+
+export function resetReaction(reaction: ReactionCallback) {
+  if (!isReaction(reaction)) {
+    throw new Error('Cannot stop non reaction');
+  }
+
+  unsubscribedReactions.delete(reaction);
+  cleanReactionReadData(reaction);
+}
+
+export function isReactionStopped(reaction: ReactionCallback) {
+  if (!isReaction(reaction)) {
+    throw new Error('Checking if reaction is stopped providing non reaction');
+  }
+
+  return unsubscribedReactions.has(reaction);
+}
+
+export function subscribeToReactionStopped(
+  reaction: ReactionCallback,
+  callback: ReactionStoppedCallback,
+) {
+  if (!isReaction(reaction)) {
+    throw new Error('Cannot subscribe to stop of non-reaction');
+  }
+
+  // If this reaction is already stopped - call callback instantly
+  if (unsubscribedReactions.has(reaction)) {
+    callback();
+    // but still add it to list of listeners in case this reaction is started and stopped again.
+  }
+
+  let subscribers = reactionStopSubscribers.get(reaction);
+
+  if (!subscribers) {
+    subscribers = new Set();
+    reactionStopSubscribers.set(reaction, subscribers);
+  }
+
+  subscribers.add(callback);
 }

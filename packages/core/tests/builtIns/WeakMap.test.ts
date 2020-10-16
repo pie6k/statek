@@ -83,17 +83,14 @@ describe('WeakMap', () => {
     expect(dummy).toBe(undefined);
   });
 
-  it('should wrap object values with observables when requested from a reaction', () => {
+  it('should wrap object values with observables', () => {
     const key = {};
     const key2 = {};
     const map = store(new Map());
     map.set(key, {});
     map.set(key2, {});
 
-    expect(isStore(map.get(key))).toBe(false);
-    expect(isStore(map.get(key2))).toBe(false);
-    watch(() => expect(isStore(map.get(key))).toBe(true));
     expect(isStore(map.get(key))).toBe(true);
-    expect(isStore(map.get(key2))).toBe(false);
+    expect(isStore(map.get(key2))).toBe(true);
   });
 });

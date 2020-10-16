@@ -9,5 +9,4 @@ export {
 export { createContextStore } from './context';
 export { useView } from './useView';
 export { useWatchSelected } from './useWatchSelected';
-export { store } from '@statek/core';
 export { WatchStore } from './WatchStore';

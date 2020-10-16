@@ -1,5 +1,5 @@
 import {
-  allowPublicInternal,
+  allowInternal,
   ReactionCallback,
   registerReaction,
 } from '@statek/core';
@@ -17,7 +17,7 @@ export function useForceUpdateReaction(): ReactionCallback {
   const forceUpdate = useForceUpdate();
 
   useMemo(() => {
-    allowPublicInternal(() => {
+    allowInternal(() => {
       registerReaction(forceUpdate, forceUpdate, { scheduler: reactScheduler });
     });
   }, [forceUpdate]);

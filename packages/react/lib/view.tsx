@@ -1,4 +1,4 @@
-import { lazyWatch } from '@statek/core';
+import { manualWatch } from '@statek/core';
 import {
   Component,
   ComponentClass,
@@ -12,6 +12,7 @@ import {
   useMemo,
   useReducer,
 } from 'react';
+import { actSync } from '../test/utils';
 import { isClassComponent, isFunctionalComponent } from './componentTypes';
 import { reactScheduler } from './scheduler';
 
@@ -43,7 +44,7 @@ function createFunctionalView<C extends FunctionComponent<any>>(
     const forceUpdate = useForceUpdate();
     const reactiveRender = useMemo(
       () => {
-        return lazyWatch(
+        return manualWatch(
           (props: Props, context: any) => {
             return BaseComponent(props, context);
           },
@@ -58,7 +59,7 @@ function createFunctionalView<C extends FunctionComponent<any>>(
     );
 
     useEffect(() => {
-      return () => reactiveRender.unsubscribe();
+      return () => reactiveRender.stop();
     }, [reactiveRender]);
 
     try {
@@ -116,7 +117,7 @@ function createClassView<C extends ComponentClass<any, any>>(
 
       this.state = baseInstance.state;
 
-      const reactiveRender = lazyWatch<[], ReactNode>(
+      const reactiveRender = manualWatch<[], ReactNode>(
         BaseComponent.prototype.render,
         () => {
           this.forceUpdate();
@@ -124,7 +125,7 @@ function createClassView<C extends ComponentClass<any, any>>(
         { context: this, scheduler: reactScheduler },
       );
 
-      this[unsubscribeSymbol] = reactiveRender.unsubscribe;
+      this[unsubscribeSymbol] = reactiveRender.stop;
 
       this.render = reactiveRender;
 

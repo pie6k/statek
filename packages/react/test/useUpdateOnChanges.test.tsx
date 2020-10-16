@@ -1,5 +1,6 @@
 import React from 'react';
-import { store, useWatchSelected } from '../lib';
+import { useWatchSelected } from '@statek/react';
+import { store } from 'statek';
 import { actSync, expectContent, itRenders, render } from './utils';
 
 describe('useUpdateOnChanges', () => {

@@ -1,7 +1,7 @@
-import { sync } from '@statek/core';
+import { sync, store } from 'statek';
 import React from 'react';
 import { act } from 'react-test-renderer';
-import { store, WatchStore } from '../lib';
+import { WatchStore } from '@statek/react';
 import { expectContent, itRenders, render } from './utils';
 
 describe('WatchStore', () => {

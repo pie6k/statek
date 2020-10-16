@@ -27,14 +27,12 @@ export const basicProxyHandlers: ProxyHandler<object> = {
       return result;
     }
 
-    const operation: ReadOperationInfo = {
+    // register and save (observable.prop -> runningReaction)
+    handleStoreReadOperation({
       target,
       key,
       type: 'get',
-    };
-
-    // register and save (observable.prop -> runningReaction)
-    handleStoreReadOperation(operation);
+    });
 
     // do not violate the none-configurable none-writable prop get handler invariant
     // fall back to none reactive mode in this case, instead of letting the Proxy throw a TypeError
@@ -44,9 +42,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
       return result;
     }
 
-    // if we are inside a reaction and observable.prop is an object wrap it in an observable too
-    // this is needed to intercept property access on that object too (dynamic observable tree)
-    return createChildStoreIfNeeded(result, target, operation);
+    return createChildStoreIfNeeded(result, target);
   },
 
   has(target, key) {

@@ -11,16 +11,15 @@ function proxifyIterator(
   iterator: IterableIterator<any>,
   isEntries: boolean,
   parent: object,
-  readOperation: ReadOperationInfo,
 ): IterableIterator<any> {
   const originalNext = iterator.next;
   iterator.next = () => {
     let { done, value } = originalNext.call(iterator);
     if (!done) {
       if (isEntries) {
-        value[1] = createChildStoreIfNeeded(value[1], parent, readOperation);
+        value[1] = createChildStoreIfNeeded(value[1], parent);
       } else {
-        value = createChildStoreIfNeeded(value, parent, readOperation);
+        value = createChildStoreIfNeeded(value, parent);
       }
     }
     return { done, value };
@@ -40,12 +39,10 @@ function get(this: any, key: string) {
   const target = storeToRawMap.get(this);
   const proto = Reflect.getPrototypeOf(this) as Iterable;
 
-  const operation: ReadOperationInfo = { target, key, type: 'get' };
-  handleStoreReadOperation(operation);
+  handleStoreReadOperation({ target, key, type: 'get' });
   return createChildStoreIfNeeded(
     proto.get.apply(target, arguments as any),
     target,
-    operation,
   );
 }
 function add(this: any, key: string) {
@@ -117,7 +114,7 @@ function forEach(this: any, callback: any, ...args: any[]) {
   // swap out the raw values with their observable pairs
   // before passing them to the callback
   const wrappedCallback = (value: any, ...rest: [any]) =>
-    callback(createChildStoreIfNeeded(value, target, operation), ...rest);
+    callback(createChildStoreIfNeeded(value, target), ...rest);
   return proto.forEach.call(target, wrappedCallback, ...args);
 }
 function keys(this: any) {
@@ -132,7 +129,7 @@ function values(this: any) {
   const operation: ReadOperationInfo = { target, type: 'iterate' };
   handleStoreReadOperation(operation);
   const iterator = proto.values.apply(target, arguments as any);
-  return proxifyIterator(iterator, false, target, operation);
+  return proxifyIterator(iterator, false, target);
 }
 function entries(this: any) {
   const target = storeToRawMap.get(this);
@@ -140,7 +137,7 @@ function entries(this: any) {
   const operation: ReadOperationInfo = { target, type: 'iterate' };
   handleStoreReadOperation(operation);
   const iterator = proto.entries.apply(target, arguments as any);
-  return proxifyIterator(iterator, true, target, operation);
+  return proxifyIterator(iterator, true, target);
 }
 
 function symbolIterator(this: any) {
@@ -149,7 +146,7 @@ function symbolIterator(this: any) {
   const operation: ReadOperationInfo = { target, type: 'iterate' };
   handleStoreReadOperation(operation);
   const iterator = proto[Symbol.iterator].apply(target, arguments as any);
-  return proxifyIterator(iterator, target instanceof Map, target, operation);
+  return proxifyIterator(iterator, target instanceof Map, target);
 }
 
 function getSize(this: any): number {

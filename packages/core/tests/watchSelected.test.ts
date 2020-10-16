@@ -44,6 +44,16 @@ describe('watchSingleObservable', () => {
     expect(spy).toBeCalledTimes(1);
   });
 
+  it('should not allow watching selected twice with the same callback', () => {
+    const obj = store({ foo: 1 });
+    const spy = jest.fn(() => obj.foo);
+
+    expect(() => {
+      watchSelected(() => obj, spy);
+      watchSelected(() => obj, spy);
+    }).toThrow();
+  });
+
   it('should watch selected even if its watched by other reaction', () => {
     const obj = store({ foo: 1 });
 

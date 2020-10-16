@@ -1,5 +1,5 @@
 export { getStoreRaw, store, isStore } from './store';
-export { watch, lazyWatch, watchSelected, LazyReaction } from './watch';
+export { watch, manualWatch, watchSelected, LazyReaction } from './watch';
 export {
   batch,
   sync,
@@ -15,12 +15,16 @@ export {
   setDefaultScheduler,
   waitForSchedulersToFlush,
 } from './schedulers';
-export { registerGetCurrentReactionHook } from './reactionsStack';
+export {
+  addInjectReactionHook,
+  injectReaction,
+  InjectedReaction,
+} from './reactionsStack';
 export {
   registerReaction,
   ReactionCallback,
   ReactionOptions,
 } from './reaction';
-export { storeSelector } from './storeSelector';
 export { ReadOperationInfo } from './operations';
-export { allowPublicInternal } from './internal';
+export { allowInternal } from './internal';
+export { selector, selectorFamily, Selector, SelectorFamily } from './selector';
