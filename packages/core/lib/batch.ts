@@ -5,6 +5,7 @@ import {
   reactionSchedulers,
 } from './reaction';
 import { getDefaultScheduler } from './schedulers';
+import { getStoreRaw, isStore } from './store';
 import { createStackCallback, noop } from './utils';
 export type ReactionScheduler = (
   reaction: ReactionCallback,
@@ -129,7 +130,18 @@ export const [selectInStore, readStoreManager] = createStackCallback(noop);
  *
  * It can be called inside part of `watch` callback and such read access will not be registered.
  */
-export const [dontWatch, dontWatchManager] = createStackCallback(noop);
+export const [_dontWatch, dontWatchManager] = createStackCallback(noop);
+
+export function dontWatch<R>(callback: () => R) {
+  // make sure to unwrap direct result of the callback eg dontWatch(() => store); - should return store raw object
+  const result = _dontWatch(callback);
+
+  if (isStore(result)) {
+    return getStoreRaw(result as any);
+  }
+
+  return result;
+}
 
 export const [allowNestedWatch, allowNestedWatchManager] = createStackCallback(
   noop,

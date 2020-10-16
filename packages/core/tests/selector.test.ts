@@ -6,6 +6,7 @@ import {
   selector,
   manualWatch,
 } from '@statek/core/lib';
+import { warmSelectors } from '../lib/selector';
 import { awaitSuspended, manualPromise, watchWarn } from './utils';
 
 describe('selector', () => {
@@ -261,5 +262,91 @@ describe('selector - errors', () => {
     reject(error);
 
     await expect(awaitSuspended(() => sel.value)).rejects.toEqual(error);
+  });
+});
+
+describe('selectors - nested', () => {
+  it('calls nested selectors when needed', () => {
+    const s = store({ size: 1, canBeBig: false });
+    const canBeBigSpy = jest.fn(() => s.canBeBig);
+    const canBeBig = selector(canBeBigSpy);
+
+    const howBigSpy = jest.fn(() => {
+      if (!canBeBig.value) {
+        return 0;
+      }
+      return s.size;
+    });
+    const howBig = selector(howBigSpy);
+
+    const resultSpy = jest.fn(() => {
+      return howBig.value;
+    });
+
+    watch(resultSpy);
+
+    expect(resultSpy).toBeCalledTimes(1);
+    expect(canBeBigSpy).toBeCalledTimes(1);
+    expect(howBigSpy).toBeCalledTimes(1);
+    expect(resultSpy).toHaveLastReturnedWith(0);
+
+    s.size++;
+    s.size++;
+    s.size++;
+    s.size++;
+    s.size++;
+
+    expect(resultSpy).toBeCalledTimes(1);
+    expect(canBeBigSpy).toBeCalledTimes(1);
+    expect(howBigSpy).toBeCalledTimes(1);
+
+    s.canBeBig = true;
+
+    expect(canBeBigSpy).toBeCalledTimes(2);
+    expect(howBigSpy).toBeCalledTimes(2);
+    expect(resultSpy).toBeCalledTimes(2);
+    expect(resultSpy).toHaveLastReturnedWith(6);
+
+    s.size++;
+
+    expect(canBeBigSpy).toBeCalledTimes(2);
+    expect(howBigSpy).toBeCalledTimes(3);
+    expect(resultSpy).toBeCalledTimes(3);
+    expect(resultSpy).toHaveLastReturnedWith(7);
+
+    s.canBeBig = false;
+
+    expect(canBeBigSpy).toBeCalledTimes(3);
+    expect(howBigSpy).toBeCalledTimes(4);
+    expect(resultSpy).toBeCalledTimes(4);
+    expect(resultSpy).toHaveLastReturnedWith(0);
+  });
+});
+
+describe('selector - warm', () => {
+  it('should run lazy selector if warm called', () => {
+    const spy = jest.fn();
+
+    const sel = selector(spy, { lazy: true });
+
+    warmSelectors(sel);
+
+    expect(spy).toBeCalledTimes(1);
+  });
+
+  it('warmed selector is not called again when requested', () => {
+    const spy = jest.fn();
+
+    const sel = selector(spy, { lazy: true });
+
+    warmSelectors(sel);
+
+    expect(spy).toBeCalledTimes(1);
+
+    watch(() => {
+      sel.value;
+    });
+
+    expect(spy).toBeCalledTimes(1);
   });
 });

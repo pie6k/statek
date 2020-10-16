@@ -1,6 +1,9 @@
 type Callback<T> = (value: T) => void;
 
-export async function awaitSuspended<R>(callback: () => R, depth = 0): R {
+export async function awaitSuspended<R>(
+  callback: () => R,
+  depth = 0,
+): Promise<R> {
   if (depth > 5) {
     throw new Error('Await suspended has 5 levels depth. Assuming error');
   }
@@ -20,7 +23,10 @@ export async function awaitSuspended<R>(callback: () => R, depth = 0): R {
   }
 }
 
-export function manualPromise<T>() {
+let promiseId = 0;
+
+export function manualPromise<T = string>() {
+  promiseId++;
   let _resolve: any;
   let _reject: any;
 
@@ -28,6 +34,9 @@ export function manualPromise<T>() {
     _resolve = resolve;
     _reject = reject;
   });
+
+  // @ts-ignore
+  promise._pid = promiseId;
 
   return [promise, _resolve, _reject] as const;
 }

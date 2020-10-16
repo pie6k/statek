@@ -2,20 +2,20 @@ import { serialize } from './utils';
 
 export type SyncValue<T> = T extends Promise<infer U> ? U : T;
 
-export type SingleValueResource<T> = {
+export type Resource<T> = {
   read(): SyncValue<T>;
   forceUpdate(): void;
-  getStatus(): SingleValueResourceStatus<SyncValue<T>>;
+  getStatus(): ResourceStatus<SyncValue<T>>;
 };
 
-export type SingleValueResourceStatus<T> =
+export type ResourceStatus<T> =
   | { state: 'unstarted' }
   | { state: 'pending'; promise: Promise<T> }
   | { state: 'resolved'; value: T }
   | { state: 'rejected'; error: any }
   | { state: 'getterError'; error: any };
 
-interface SingleValueResourceOptions<T> {
+interface ResourceOptions<T> {
   onResolved?: (value: SyncValue<T>) => void;
   onRejected?: (error: any) => void;
   lazy?: boolean;
@@ -23,9 +23,9 @@ interface SingleValueResourceOptions<T> {
 
 export function singleValueResource<T>(
   getter: () => T,
-  options?: SingleValueResourceOptions<T>,
-): SingleValueResource<T> {
-  let status: SingleValueResourceStatus<SyncValue<T>> = { state: 'unstarted' };
+  options?: ResourceOptions<T>,
+): Resource<T> {
+  let status: ResourceStatus<SyncValue<T>> = { state: 'unstarted' };
 
   function getStatus() {
     return status;
@@ -127,16 +127,16 @@ export function singleValueResource<T>(
   };
 }
 
-export type Resource<Args extends any[], R> = {
+export type ResourceFamily<Args extends any[], R> = {
   read(...args: Args): SyncValue<R>;
 };
 
-export function resource<Args extends any[], R>(
+export function resourceFamily<Args extends any[], R>(
   getter: (...args: Args) => R,
-): Resource<Args, R> {
-  const serializedArgsSelectorsMap = new Map<string, SingleValueResource<R>>();
+): ResourceFamily<Args, R> {
+  const serializedArgsSelectorsMap = new Map<string, Resource<R>>();
 
-  function getSingleResource(...args: Args): SingleValueResource<R> {
+  function getSingleResource(...args: Args): Resource<R> {
     const serializedArgs = serialize(args);
     if (serializedArgsSelectorsMap.has(serializedArgs)) {
       return serializedArgsSelectorsMap.get(serializedArgs)!;

@@ -2,7 +2,7 @@ import { dontWatchManager } from './batch';
 import { initializeObjectReadOperationsRegistry } from './operations';
 import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isReaction, ReactionCallback, ReactionsSet } from './reaction';
-import { appendSet } from './utils';
+import { appendSet, isPrimitive } from './utils';
 
 export const storeToRawMap = new WeakMap();
 export const rawToStoreMap = new WeakMap();
@@ -144,7 +144,11 @@ export function createChildStoreIfNeeded(
   return store(storePartRaw);
 }
 
-export function isStore(store: object) {
+export function isStore(store: any): boolean {
+  if (isPrimitive(store)) {
+    return false;
+  }
+
   return storeToRawMap.has(store);
 }
 

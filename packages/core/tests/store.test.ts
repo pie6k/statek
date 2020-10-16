@@ -122,7 +122,6 @@ describe('isStore', () => {
   });
 
   it('should return false if a primitive is passed as argument', () => {
-    // @ts-expect-error
     expect(isStore(12)).toBe(false);
   });
 });

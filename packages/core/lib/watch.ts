@@ -21,6 +21,10 @@ export function watch(
   watchCallback: ReactionCallback,
   options: ReactionOptions = {},
 ): () => void {
+  if (!options.name) {
+    options.name = 'watch';
+  }
+
   if (getRunningReaction() && !allowNestedWatchManager.isRunning()) {
     throw new Error(
       'Cannot start nested watch without explicit call to allowNestedWatch. If you want to start watching inside other reaction, call it like `allowNestedWatch(() => { watch(callback) })`. Remember to stop nested watching when needed to avoid memory leaks.',
@@ -74,8 +78,11 @@ export function watch(
 export function watchSelected(
   selector: () => object,
   callback: ReactionCallback,
-  options?: ReactionOptions,
+  options: ReactionOptions = {},
 ) {
+  if (options.name) {
+    options.name = 'watchSelected';
+  }
   const resolvedObservable = selectInStore(selector);
 
   if (isReaction(callback)) {
@@ -101,8 +108,11 @@ const noop = () => {};
 export function manualWatch<A extends any[], R>(
   lazyWatcher: LazyReactionCallback<A, R>,
   onWatchedChange: () => void = noop,
-  options?: ReactionOptions,
+  options: ReactionOptions = {},
 ): LazyReaction<A, R> {
+  if (options.name) {
+    options.name = 'manualWatch';
+  }
   function reactionCallback(...args: A): R {
     if (isReactionStopped(reactionCallback)) {
       throw new Error(

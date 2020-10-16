@@ -47,4 +47,14 @@ describe('dontWatch', () => {
     expect(isStore(raw)).toBe(false);
     expect(isStore(obsraw)).toBe(true);
   });
+
+  it('will return raw observable itself', () => {
+    const obj = store({
+      a: 1,
+    });
+
+    const raw = dontWatch(() => obj);
+
+    expect(isStore(raw)).toBe(false);
+  });
 });

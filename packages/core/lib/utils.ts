@@ -77,11 +77,12 @@ export function serialize(input: any): string {
     return serializationCache.get(input)!;
   }
 
-  // TODO - validate
+  // Make sure input can be safely serialized without resulting with same output for different input.
   if (process.env.NODE_ENV !== 'production' && !isSerializable(input)) {
     throw new Error('It is not possible to serialize provided value');
   }
 
+  // Dont watch input during serialization!
   return JSON.stringify(dontWatch(() => input));
 }
 
