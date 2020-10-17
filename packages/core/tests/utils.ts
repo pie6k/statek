@@ -13,6 +13,7 @@ export async function awaitSuspended<R>(
     return callback();
   } catch (error) {
     if (error instanceof Promise) {
+      // console.error({ error });
       try {
         await error;
         return await awaitSuspended(callback, depth + 1);
@@ -50,6 +51,22 @@ export function manualPromise<T = string>() {
   promise._pid = promiseId;
 
   return [promise, _resolve, _reject] as const;
+}
+
+export function manualPromiseFactory<T>() {
+  let _resolveLast: (value: T) => Promise<void> = async () => {};
+  let _rejectLast: (value: T) => void = () => {};
+
+  function next() {
+    const [nextPromise, nextResolve, nextReject] = manualPromise<T>();
+
+    _resolveLast = nextResolve;
+    _rejectLast = nextReject;
+
+    return nextPromise;
+  }
+
+  return [next, _resolveLast!, _rejectLast!] as const;
 }
 
 let consoleSpies = new Set<jest.SpyInstance>();

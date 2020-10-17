@@ -1,5 +1,3 @@
-import { isStore } from './store';
-import { ReactionCallback } from './reaction';
 import { dontWatch } from './batch';
 
 export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {

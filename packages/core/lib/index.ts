@@ -7,7 +7,6 @@ export {
   dontWatch,
   selectInStore,
   ReactionScheduler,
-  allowRecursiveReaction,
 } from './batch';
 export {
   syncScheduler,

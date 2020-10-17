@@ -16,11 +16,13 @@ import { callWithReactionsStack, getRunningReaction } from './reactionsStack';
 import { selectInStore, allowNestedWatchManager } from './batch';
 import { allowInternal } from './internal';
 import { callWithSuspense } from './suspense';
+import { injectReactivePromiseThen } from './promiseWrapper';
 
 export function watch(
   watchCallback: ReactionCallback,
   options: ReactionOptions = {},
 ): () => void {
+  injectReactivePromiseThen();
   if (!options.name) {
     options.name = 'watch';
   }
@@ -80,6 +82,7 @@ export function watchSelected(
   callback: ReactionCallback,
   options: ReactionOptions = {},
 ) {
+  injectReactivePromiseThen();
   if (options.name) {
     options.name = 'watchSelected';
   }
@@ -110,6 +113,7 @@ export function manualWatch<A extends any[], R>(
   onWatchedChange: () => void = noop,
   options: ReactionOptions = {},
 ): LazyReaction<A, R> {
+  injectReactivePromiseThen();
   if (options.name) {
     options.name = 'manualWatch';
   }

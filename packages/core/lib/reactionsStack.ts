@@ -127,7 +127,10 @@ function getInjectedRunningReaction() {
   for (let i = hookedReactions.length - 1; i >= 0; i--) {
     hookedReaction = hookedReactions[i];
 
-    if (!hookedReaction.getIsStillRunning()) {
+    if (
+      isReactionStopped(hookedReaction.reaction) ||
+      !hookedReaction.getIsStillRunning()
+    ) {
       continue;
     }
 
@@ -218,4 +221,20 @@ export function addInjectReactionHook(hook: InjectReactionHook) {
 export function injectReaction(injectedReaction: InjectedReaction) {
   warnIfUsingInternal('injectReaction');
   hookedReactions.push(injectedReaction);
+
+  return function removeInjected() {
+    if (hookedReactions.length === 0) {
+      throw new Error(
+        'Cannot remove injected reaction as there are no injected reactions',
+      );
+    }
+
+    if (hookedReactions[hookedReactions.length - 1] !== injectedReaction) {
+      throw new Error(
+        'Calling remove reaction after some other reactions were injected',
+      );
+    }
+
+    hookedReactions.pop();
+  };
 }

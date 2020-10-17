@@ -87,6 +87,10 @@ function suspendReaction(reaction: ReactionCallback, promise: Promise<any>) {
 
 const reactionSuspendRetries = new WeakMap<ReactionCallback, number>();
 
+export function isReactionSuspended(reaction: ReactionCallback) {
+  return reactionSuspendRetries.has(reaction);
+}
+
 const MAX_ALLOWED_SUSPENSE_RETRIES = 5;
 
 export function callWithSuspense<A extends any[], R>(

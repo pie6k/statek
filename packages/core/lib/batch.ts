@@ -1,17 +1,23 @@
 import { ReactNodeArray } from 'react';
 import {
   applyReaction,
+  isLazyReaction,
   ReactionCallback,
   reactionSchedulers,
 } from './reaction';
 import { getDefaultScheduler } from './schedulers';
 import { getStoreRaw, isStore } from './store';
+import { isReactionSuspended } from './suspense';
 import { createStackCallback, noop } from './utils';
 export type ReactionScheduler = (
   reaction: ReactionCallback,
 ) => Promise<void> | void;
 
 export function requestReactionCallNeeded(reaction: ReactionCallback) {
+  // Don't request lazy-reaction re-run while it is suspended.
+  if (isReactionSuspended(reaction) && isLazyReaction(reaction)) {
+    return;
+  }
   /**
    * We are in 'syncEvery' mode. It means we skip both batching and scheduling and call all
    * reactions instantly.
