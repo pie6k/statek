@@ -4,6 +4,15 @@ export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
   return Object.getOwnPropertyNames(obj) as Array<keyof T>;
 }
 
+export function removeArrayElement<T>(array: T[], item: T) {
+  const index = array.indexOf(item);
+  if (index === -1) {
+    return;
+  }
+
+  array.splice(index, 1);
+}
+
 export function isSymbol(t: any): t is Symbol {
   return typeof t === 'symbol';
 }

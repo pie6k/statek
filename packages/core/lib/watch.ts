@@ -16,7 +16,14 @@ import { callWithReactionsStack, getRunningReaction } from './reactionsStack';
 import { selectInStore, allowNestedWatchManager } from './batch';
 import { allowInternal } from './internal';
 import { callWithSuspense } from './suspense';
-import { injectReactivePromiseThen } from './promiseWrapper';
+import {
+  assertNoPendingPhaseRunning,
+  injectReactivePromiseThen,
+  isAsyncReaction,
+  isAsyncReactionCancelledError,
+  assertNoPendingPhaseAfterReactionFinished,
+  cancelPendingPhaseIfNeeded,
+} from './async/promiseWrapper';
 
 export function watch(
   watchCallback: ReactionCallback,
@@ -59,9 +66,30 @@ export function watch(
   // New reaction
 
   function reactionCallback() {
-    callWithSuspense(() => {
+    if (isAsyncReaction(reactionCallback)) {
+      cancelPendingPhaseIfNeeded(reactionCallback);
+      // assertNoPendingPhaseRunning(reactionCallback);
+    }
+
+    const callbackResult = callWithSuspense(() => {
       return callWithReactionsStack(reactionCallback, watchCallback);
     }, reactionCallback);
+
+    if (callbackResult instanceof Promise) {
+      callbackResult
+        .then(() => {
+          assertNoPendingPhaseAfterReactionFinished(reactionCallback);
+        })
+        .catch(error => {
+          if (isAsyncReactionCancelledError(error)) {
+            // This is expected.
+            return;
+            console.log('call error', error);
+          }
+
+          console.warn('Watch async function thrown an error', error);
+        });
+    }
   }
 
   allowInternal(() => {
