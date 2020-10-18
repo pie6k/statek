@@ -2,8 +2,6 @@ import { allowInternal } from '../internal';
 import { ReactionCallback } from '../reaction';
 import { getRunningReaction, injectReaction } from '../reactionsStack';
 
-const _originalThen = Promise.prototype.then;
-
 export const asyncReactions = new WeakSet<ReactionCallback>();
 
 const asyncReactionPendingPhase = new WeakMap<ReactionCallback, PendingPhase>();
@@ -18,6 +16,7 @@ export function assertNoPendingPhaseRunning(
     return;
   }
 
+  // If there is some phase, but it is cancelled - it will not call any changes anyway.
   if (phase.isCancelled) {
     return;
   }
@@ -37,6 +36,7 @@ export function cancelPendingPhaseIfNeeded(
 
   phase.cancel();
 
+  // It is safe to remove it as such phase will not call it's promise callback anyway. It will throw Cancelled error.
   asyncReactionPendingPhase.delete(reaction);
 }
 
@@ -56,11 +56,9 @@ export function isAsyncReaction(reaction: ReactionCallback) {
 interface PendingPhase {
   cancel: () => void;
   isCancelled: boolean;
-  error?: {
-    value: any;
-  };
-  errorListeners: Set<(error: any) => void>;
 }
+
+const _originalThen = Promise.prototype.then;
 
 /**
  * This is modified version of then that will be injected into Promise prototype.
@@ -80,27 +78,26 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
   }
 
   // Try to get running reaction.
-  const runningReaction = getRunningReaction()!;
+  const callerReaction = getRunningReaction()!;
 
   // If then is called outside of reaction - use original then.
-  if (!runningReaction) {
+  if (!callerReaction) {
     return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
   }
 
   // Mark reaction as async.
-  asyncReactions.add(runningReaction);
+  asyncReactions.add(callerReaction);
+
+  assertNoPendingPhaseRunning(callerReaction);
 
   const phase: PendingPhase = {
     cancel() {
       phase.isCancelled = true;
     },
     isCancelled: false,
-    errorListeners: new Set(),
   };
 
-  assertNoPendingPhaseRunning(runningReaction);
-
-  asyncReactionPendingPhase.set(runningReaction, phase);
+  asyncReactionPendingPhase.set(callerReaction, phase);
 
   /**
    * Now we're wrapping onFulfilled callback with the one that will inject reaction that is running now in the moment when this promise will resolve.
@@ -122,7 +119,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     }
 
     // Double check if phase was not changed without canelling this one. This could lead to nasty bugs and should never happen.
-    const phaseNow = asyncReactionPendingPhase.get(runningReaction!);
+    const phaseNow = asyncReactionPendingPhase.get(callerReaction!);
 
     if (!phaseNow || phaseNow !== phase) {
       throw new Error(
@@ -131,16 +128,17 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     }
 
     // Phase is finished. Let's remove it just before calling actual resolve function.
-    asyncReactionPendingPhase.delete(runningReaction);
+    // This is in case callback would create another promise etc. Such promise will expect that no pending phase is running.
+    asyncReactionPendingPhase.delete(callerReaction);
 
     // Now let's re-inject parent reaction, so it'll be active one while fullfill callback is running
-    let isFullfilRunning = true;
+    let isResolveCallbackRunning = true;
     const removeInjectedReaction = allowInternal(() =>
       injectReaction({
-        reaction: runningReaction!,
+        reaction: callerReaction,
         // Mark it as 'alive' only during lifetime of this callback.
         getIsStillRunning() {
-          return isFullfilRunning;
+          return isResolveCallbackRunning;
         },
       }),
     );
@@ -148,25 +146,18 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     // Call actual callback and get it's result.
     // Mark injected reaction as not active anymore and return original result.
     try {
-      const fulfillResult = Reflect.apply(onFulfilled, this, [result]);
-      return fulfillResult;
+      return Reflect.apply(onFulfilled, this, [result]);
     } catch (error) {
-      return Promise.reject(error);
+      return Promise.reject<any>(error);
     } finally {
       // Instantly after callback has finished - remove injected reaction
-
-      isFullfilRunning = false;
+      isResolveCallbackRunning = false;
       removeInjectedReaction();
     }
   };
 
   // Call .then with wrapped callback instead of original one.
-  const result = Reflect.apply(_originalThen, this, [
-    wrappedOnFulfilled,
-    onRejected,
-  ]);
-
-  return result;
+  return Reflect.apply(_originalThen, this, [wrappedOnFulfilled, onRejected]);
 }
 
 let didInject = false;
@@ -179,7 +170,6 @@ export function injectReactivePromiseThen() {
   didInject = true;
 
   Promise.prototype.then = then;
-  Promise.prototype.catch;
 }
 
 export class AsyncReactionCancelledError extends Error {
@@ -187,7 +177,6 @@ export class AsyncReactionCancelledError extends Error {
     super(msg);
     this.name = 'AsyncReactionCancelledError';
   }
-  foo = true;
 }
 
 export function isAsyncReactionCancelledError(

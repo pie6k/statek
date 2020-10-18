@@ -1,24 +1,10 @@
 /**
  * @jest-environment jsdom
  */
-import {
-  store,
-  watch,
-  getStoreRaw,
-  manualWatch,
-  waitForSchedulersToFlush,
-  allowInternal,
-  selector,
-} from '@statek/core/lib';
-import { allowNestedWatch } from '../lib/batch';
+import { selector, store, watch } from '@statek/core/lib';
 import { isReaction } from '../lib/reaction';
 import { getRunningReaction } from '../lib/reactionsStack';
-import {
-  manualPromise,
-  manualPromiseFactory,
-  waitNextTick,
-  watchWarn,
-} from './utils';
+import { manualPromise, waitNextTick } from './utils';
 
 describe('watch - async ', () => {
   it('should observe in one step async function', async () => {
@@ -117,7 +103,6 @@ describe('watch - async ', () => {
   it('should cancel watch on next step and start over if dependency change', async () => {
     const [promise1, resolve1] = manualPromise<string>();
     const [promise2, resolve2] = manualPromise<string>();
-    const [promise3, resolve3] = manualPromise<string>();
 
     const s = store({ foo: 'foo', bar: 'bar', baz: 'baz' });
 
@@ -147,6 +132,71 @@ describe('watch - async ', () => {
     expect(spy).toHaveBeenLastCalledWith('bar');
 
     s.foo = 'foo2';
+
+    await resolve2();
+
+    expect(spy).toBeCalledTimes(5);
+
+    await waitNextTick();
+
+    expect(endSpy).toBeCalledTimes(1);
+    expect(endSpy).toHaveBeenLastCalledWith('foo2');
+  });
+
+  it('should cancel watch on next step and start over if dependency change having async selector', async () => {
+    const [promise1, resolve1] = manualPromise<string>();
+    const [promise2, resolve2] = manualPromise<string>();
+    const [selPromise, resolveSel] = manualPromise<string>();
+
+    const s = store({ foo: 'foo', bar: 'bar', baz: 'baz' });
+
+    const spy = jest.fn((val: any) => {
+      return val;
+    });
+
+    const sel = selector(async () => {
+      const selValue = await selPromise;
+
+      return `${s.foo}${selValue}`;
+    });
+
+    const endSpy = jest.fn();
+
+    watch(async () => {
+      await promise1;
+
+      const initialFoo = s.foo;
+
+      spy(initialFoo);
+
+      await sel.promise;
+
+      spy(s.bar);
+
+      await promise2;
+
+      spy(s.baz);
+      endSpy(`${initialFoo}`);
+    });
+
+    expect(spy).toBeCalledTimes(0);
+
+    await resolve1();
+
+    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenLastCalledWith('foo');
+
+    await resolveSel('sel');
+    await waitNextTick();
+    await waitNextTick();
+
+    expect(spy).toBeCalledTimes(2);
+    expect(spy).toHaveBeenLastCalledWith('bar');
+
+    s.foo = 'foo2';
+
+    await waitNextTick();
+    expect(spy).toBeCalledTimes(4);
 
     await resolve2();
 

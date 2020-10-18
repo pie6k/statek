@@ -1,13 +1,11 @@
 import { allowNestedWatch, dontWatch, syncEvery } from './batch';
 import { ReactionCallback, subscribeToReactionStopped } from './reaction';
 import { getRunningReaction } from './reactionsStack';
-import { singleValueResource, Resource } from './resource';
+import { singleValueResource, Resource, AsyncValue } from './resource';
 import { store } from './store';
 import { addReactionPendingPromise } from './suspense';
 import { createStackCallback, noop, serialize } from './utils';
 import { manualWatch, watch } from './watch';
-
-export type SyncValue<T> = T extends Promise<infer U> ? U : T;
 
 const suspendedPromises = new WeakSet<Promise<any>>();
 
@@ -27,7 +25,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export interface Selector<T> {
-  readonly value: SyncValue<T>;
+  readonly value: T;
+  readonly promise: Promise<T>;
 }
 
 type Writeable<T> = { -readonly [P in keyof T]: T[P] };
@@ -37,7 +36,7 @@ export interface SelectorOptions {
 }
 
 export function selector<V>(
-  getter: () => V,
+  getter: () => Promise<V> | V,
   options: SelectorOptions = {},
 ): Selector<V> {
   let resource: Resource<V>;
@@ -46,6 +45,7 @@ export function selector<V>(
     // We'll initialize this value on first run, but we don't want to read resource now if this selector
     // is lazy
     value: null as any,
+    promise: null as any,
   });
 
   function initResourceIfNeeded() {
@@ -150,8 +150,11 @@ export function selector<V>(
       return selectorValueStore.value;
     },
     // Selector value is readonly. Let's add setter to show proper error message.
-    set value(value: SyncValue<V>) {
+    set value(value: V) {
       throw new Error(`You cannot manually change the value of the selector.`);
+    },
+    get promise() {
+      return resource.promise();
     },
   };
 

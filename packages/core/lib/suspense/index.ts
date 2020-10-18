@@ -98,6 +98,7 @@ export function callWithSuspense<A extends any[], R>(
   reaction: LazyReactionCallback<A, R>,
   ...args: A
 ): R {
+  // console.log('susp start', reaction.name);
   const retries = reactionSuspendRetries.get(reaction) ?? 0;
 
   if (retries > MAX_ALLOWED_SUSPENSE_RETRIES) {
@@ -111,6 +112,10 @@ export function callWithSuspense<A extends any[], R>(
 
   try {
     const result = callback(...args);
+
+    if (result instanceof Promise) {
+    }
+    // console.log('result', result);
     // Did properly resolve. Let's reset suspended retries counter
     reactionSuspendRetries.delete(reaction);
     return result;

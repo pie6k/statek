@@ -24,6 +24,7 @@ import {
   assertNoPendingPhaseAfterReactionFinished,
   cancelPendingPhaseIfNeeded,
 } from './async/promiseWrapper';
+import { isResourcePromise } from './resource';
 
 export function watch(
   watchCallback: ReactionCallback,
@@ -84,10 +85,16 @@ export function watch(
           if (isAsyncReactionCancelledError(error)) {
             // This is expected.
             return;
-            console.log('call error', error);
           }
 
           console.warn('Watch async function thrown an error', error);
+
+          if (isResourcePromise(error)) {
+            console.warn(
+              `Sems you're calling async selector 'read' inside async watch function. Use .read only inside sync functions. In async functions, call 'selector.promise' instead.`,
+            );
+            return;
+          }
         });
     }
   }

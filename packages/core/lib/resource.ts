@@ -1,11 +1,13 @@
 import { serialize } from './utils';
 
 export type SyncValue<T> = T extends Promise<infer U> ? U : T;
+export type AsyncValue<T> = Promise<SyncValue<T>>;
 
 export type Resource<T> = {
-  read(): SyncValue<T>;
+  read(): T;
+  promise(): Promise<T>;
   forceUpdate(): void;
-  getStatus(): ResourceStatus<SyncValue<T>>;
+  getStatus(): ResourceStatus<T>;
 };
 
 export type ResourceStatus<T> =
@@ -16,22 +18,30 @@ export type ResourceStatus<T> =
   | { state: 'getterError'; error: any };
 
 interface ResourceOptions<T> {
-  onResolved?: (value: SyncValue<T>) => void;
+  onResolved?: (value: T) => void;
   onRejected?: (error: any) => void;
   lazy?: boolean;
 }
 
+type InputResult<T> = Promise<T> | T;
+
+const resourcePromises = new WeakSet<Promise<any>>();
+
+export function isResourcePromise(promise: Promise<any>) {
+  return resourcePromises.has(promise);
+}
+
 export function singleValueResource<T>(
-  getter: () => T,
+  getter: () => InputResult<T>,
   options?: ResourceOptions<T>,
 ): Resource<T> {
-  let status: ResourceStatus<SyncValue<T>> = { state: 'unstarted' };
+  let status: ResourceStatus<T> = { state: 'unstarted' };
 
   function getStatus() {
     return status;
   }
 
-  function resolve(value: SyncValue<T>) {
+  function resolve(value: T) {
     status = {
       state: 'resolved',
       value,
@@ -54,7 +64,7 @@ export function singleValueResource<T>(
       throw new Error('Cannot initialize resource twice');
     }
 
-    let getterResult: T;
+    let getterResult: InputResult<T>;
     // Make sure getter error itself is handled
     try {
       getterResult = getter();
@@ -70,7 +80,7 @@ export function singleValueResource<T>(
 
     // Resource is sync. Result instantly and mark as resolved.
     if (!(getterResult instanceof Promise)) {
-      return resolve(getterResult as SyncValue<T>);
+      return resolve(getterResult);
     }
 
     // Resource is a promise.
@@ -78,6 +88,8 @@ export function singleValueResource<T>(
       state: 'pending',
       promise: getterResult,
     };
+
+    resourcePromises.add(getterResult);
 
     // Wait for promise to resolve and instantly update state.
     getterResult
@@ -96,7 +108,7 @@ export function singleValueResource<T>(
     throw getterResult;
   }
 
-  function read(): SyncValue<T> {
+  function read(): T {
     if (status.state === 'pending') {
       throw status.promise;
     }
@@ -120,19 +132,39 @@ export function singleValueResource<T>(
     throw new Error('Invalid resource state');
   }
 
+  async function promise(): Promise<T> {
+    try {
+      const value = read();
+      return value;
+    } catch (error) {
+      const status = getStatus();
+
+      if (status.state === 'pending') {
+        return status.promise;
+      }
+
+      if (status.state === 'rejected') {
+        throw status.error;
+      }
+
+      throw error;
+    }
+  }
+
   return {
     read,
     getStatus,
     forceUpdate,
+    promise,
   };
 }
 
 export type ResourceFamily<Args extends any[], R> = {
-  read(...args: Args): SyncValue<R>;
+  read(...args: Args): R;
 };
 
 export function resourceFamily<Args extends any[], R>(
-  getter: (...args: Args) => R,
+  getter: (...args: Args) => Promise<R> | R,
 ): ResourceFamily<Args, R> {
   const serializedArgsSelectorsMap = new Map<string, Resource<R>>();
 
@@ -149,7 +181,7 @@ export function resourceFamily<Args extends any[], R>(
     return singleResource;
   }
 
-  function read(...args: Args): SyncValue<R> {
+  function read(...args: Args): R {
     const resourceValue = getSingleResource(...args);
 
     return resourceValue.read();

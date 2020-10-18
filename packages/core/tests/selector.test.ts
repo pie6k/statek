@@ -7,7 +7,12 @@ import {
   manualWatch,
 } from '@statek/core/lib';
 import { warmSelectors } from '../lib/selector';
-import { awaitSuspended, manualPromise, watchWarn } from './utils';
+import {
+  awaitSuspended,
+  manualPromise,
+  waitNextTick,
+  watchWarn,
+} from './utils';
 
 describe('selector', () => {
   it('should only run selector watch if its value changed', () => {
@@ -320,6 +325,39 @@ describe('selectors - nested', () => {
     expect(howBigSpy).toBeCalledTimes(4);
     expect(resultSpy).toBeCalledTimes(4);
     expect(resultSpy).toHaveLastReturnedWith(0);
+  });
+
+  it('should warn about reading async selector inside async function instead of awaiting', async () => {
+    const sel = selector(async () => 'foo');
+
+    const warn = watchWarn();
+    watch(async () => {
+      sel.value;
+    });
+
+    await waitNextTick();
+
+    expect(warn.count()).toBe(2);
+    expect(warn.getLast()).toMatchInlineSnapshot(`
+      Array [
+        "Sems you're calling async selector 'read' inside async watch function. Use .read only inside sync functions. In async functions, call 'selector.promise' instead.",
+      ]
+    `);
+  });
+
+  it('should resolve selector.promise properly', async () => {
+    const sel = selector(async () => 'foo');
+
+    const spy = jest.fn();
+    watch(async () => {
+      const result = await sel.promise;
+      spy(result);
+    });
+
+    await waitNextTick();
+
+    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenLastCalledWith('foo');
   });
 });
 
