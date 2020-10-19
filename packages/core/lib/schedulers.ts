@@ -10,7 +10,9 @@ type Task = () => void;
  * @internal
  */
 export async function waitForSchedulersToFlush() {
-  warnIfUsingInternal('waitForSchedulersToFlush');
+  if (process.env.NODE_ENV !== 'production') {
+    warnIfUsingInternal('waitForSchedulersToFlush');
+  }
   await Promise.all(Array.from(flushPromises));
 }
 

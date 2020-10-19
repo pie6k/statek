@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMethod } from './useMethod';
 import { reactWatch } from './scheduler';
-import { store } from '@statek/core';
+import { store, StoreFactory } from '@statek/core';
 
-export function useStore<T>(storeFactory: () => T) {
+export function useStore<T extends object>(storeFactory: StoreFactory<T>): T {
   const [createdStore] = useState(() => {
     return store(storeFactory);
   });

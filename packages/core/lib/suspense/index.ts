@@ -1,8 +1,7 @@
 import { requestReactionCallNeeded } from '../batch';
 import {
-  isLazyReaction,
-  LazyReactionCallback,
-  lazyReactionsCallbacks,
+  isManualReaction,
+  ManualReactionCallback,
   ReactionCallback,
 } from '../reaction';
 
@@ -55,36 +54,6 @@ function getAllPendingReactionsResolvedPromise(
   return Promise.all(alreadyPending);
 }
 
-function suspendReaction(reaction: ReactionCallback, promise: Promise<any>) {
-  let alreadyPending = reactionPendingPromises.get(reaction);
-
-  if (!alreadyPending) {
-    throw promise;
-  }
-
-  alreadyPending.add(promise);
-
-  throw Promise.all(alreadyPending);
-}
-
-// export function callWithSuspenseo(
-//   callback: ReactionCallback,
-//   reaction: ReactionCallback,
-// ) {
-//   try {
-//     callback();
-//   } catch (errorOrPromise) {
-//     if (errorOrPromise instanceof Promise) {
-//       errorOrPromise.then(() => {
-//         requestReactionCallNeeded(reaction);
-//       });
-//     } else {
-//       throw errorOrPromise;
-//     }
-//   } finally {
-//   }
-// }
-
 const reactionSuspendRetries = new WeakMap<ReactionCallback, number>();
 
 export function isReactionSuspended(reaction: ReactionCallback) {
@@ -94,11 +63,10 @@ export function isReactionSuspended(reaction: ReactionCallback) {
 const MAX_ALLOWED_SUSPENSE_RETRIES = 5;
 
 export function callWithSuspense<A extends any[], R>(
-  callback: LazyReactionCallback<A, R>,
-  reaction: LazyReactionCallback<A, R>,
+  callback: ManualReactionCallback<A, R>,
+  reaction: ManualReactionCallback<A, R>,
   ...args: A
 ): R {
-  // console.log('susp start', reaction.name);
   const retries = reactionSuspendRetries.get(reaction) ?? 0;
 
   if (retries > MAX_ALLOWED_SUSPENSE_RETRIES) {
@@ -113,9 +81,6 @@ export function callWithSuspense<A extends any[], R>(
   try {
     const result = callback(...args);
 
-    if (result instanceof Promise) {
-    }
-    // console.log('result', result);
     // Did properly resolve. Let's reset suspended retries counter
     reactionSuspendRetries.delete(reaction);
     return result;
@@ -137,10 +102,10 @@ export function callWithSuspense<A extends any[], R>(
           // since watch is called by itself after suspended and retried - there is no way this error could be catched.
           // As promises it suspended with are provided by user - if they don't have .catch by themselves - it seems ok to
           // result with uncaught promise exception.
-          // ?  qthrow error;
+          // ?  throw error;
         });
 
-      if (isLazyReaction(reaction)) {
+      if (isManualReaction(reaction)) {
         throw allPendingResolvedPromise;
       }
 

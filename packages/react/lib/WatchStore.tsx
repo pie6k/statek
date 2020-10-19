@@ -45,6 +45,29 @@ export const WatchedStoriesContext = createContext<WatchedStoresContextData | nu
   null,
 );
 
+// const watchStoreRegistry = new WeakMap<object, Set<ReactionCallback>>();
+
+// function registerWatchedStores(stores: object[], reaction: ReactionCallback) {
+//   stores.forEach(store => {
+//     let reactions = watchStoreRegistry.get(store);
+
+//     if (!reactions) {
+//       reactions = new Set();
+//       watchStoreRegistry.set(store, reactions);
+//     }
+
+//     reactions.add(reaction);
+//   });
+
+//   function cancel() {
+//     stores.forEach(store => {
+//       let reactions = watchStoreRegistry.get(store)!;
+
+//       reactions.delete(reaction);
+//     });
+//   }
+// }
+
 export function WatchStore({ children, stores }: Props) {
   const storesArray = resolveStoresSelector(stores);
 

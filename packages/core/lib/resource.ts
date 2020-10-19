@@ -6,20 +6,21 @@ export type AsyncValue<T> = Promise<SyncValue<T>>;
 export type Resource<T> = {
   read(): T;
   promise(): Promise<T>;
-  forceUpdate(): void;
+  update(): void;
+  restart(): void;
   getStatus(): ResourceStatus<T>;
 };
 
 export type ResourceStatus<T> =
   | { state: 'unstarted' }
+  | { state: 'updating'; oldValue: T; promise: Promise<T> }
   | { state: 'pending'; promise: Promise<T> }
   | { state: 'resolved'; value: T }
   | { state: 'rejected'; error: any }
   | { state: 'getterError'; error: any };
 
 interface ResourceOptions<T> {
-  onResolved?: (value: T) => void;
-  onRejected?: (error: any) => void;
+  onStatusChange?: (newStatus: ResourceStatus<T>) => void;
   lazy?: boolean;
 }
 
@@ -41,28 +42,33 @@ export function singleValueResource<T>(
     return status;
   }
 
-  function resolve(value: T) {
-    status = {
-      state: 'resolved',
-      value,
-    };
-
-    options?.onResolved?.(value);
-
-    return value;
+  function updateStatus(newStatus: ResourceStatus<T>) {
+    status = newStatus;
+    options?.onStatusChange?.(newStatus);
   }
 
-  function forceUpdate() {
-    status = { state: 'unstarted' };
+  function update() {
     try {
-      getInitial();
+      updateValue();
     } catch (error) {}
   }
 
-  function getInitial() {
-    if (status.state !== 'unstarted') {
-      throw new Error('Cannot initialize resource twice');
+  function restart() {
+    status = { state: 'unstarted' };
+    try {
+      updateValue();
+    } catch (error) {}
+  }
+
+  function updateValue() {
+    if (status.state !== 'resolved' && status.state !== 'unstarted') {
+      throw new Error(
+        'Cannot update resource if its not resolved or unstarted',
+      );
     }
+
+    const previousValue =
+      status.state === 'resolved' ? { value: status.value } : null;
 
     let getterResult: InputResult<T>;
     // Make sure getter error itself is handled
@@ -70,38 +76,52 @@ export function singleValueResource<T>(
       getterResult = getter();
     } catch (error) {
       // getter() function thrown. Mark as rejected
-      status = {
+      updateStatus({
         state: 'getterError',
         error,
-      };
+      });
 
       throw error;
     }
 
     // Resource is sync. Result instantly and mark as resolved.
     if (!(getterResult instanceof Promise)) {
-      return resolve(getterResult);
+      updateStatus({
+        state: 'resolved',
+        value: getterResult,
+      });
+      return getterResult;
     }
 
-    // Resource is a promise.
-    status = {
-      state: 'pending',
-      promise: getterResult,
-    };
+    if (!previousValue) {
+      // Resource is a promise.
+      updateStatus({
+        state: 'pending',
+        promise: getterResult,
+      });
 
-    resourcePromises.add(getterResult);
+      resourcePromises.add(getterResult);
+    } else {
+      updateStatus({
+        state: 'updating',
+        oldValue: previousValue.value,
+        promise: getterResult,
+      });
+    }
 
     // Wait for promise to resolve and instantly update state.
     getterResult
       .then(value => {
-        resolve(value);
+        updateStatus({
+          state: 'resolved',
+          value,
+        });
       })
       .catch(resolveError => {
-        status = {
+        updateStatus({
           state: 'rejected',
           error: resolveError,
-        };
-        options?.onRejected?.(resolveError);
+        });
       });
 
     // Suspend with promise.
@@ -126,7 +146,11 @@ export function singleValueResource<T>(
     }
 
     if (status.state === 'unstarted') {
-      return getInitial();
+      return updateValue();
+    }
+
+    if (status.state === 'updating') {
+      return status.oldValue;
     }
 
     throw new Error('Invalid resource state');
@@ -154,7 +178,8 @@ export function singleValueResource<T>(
   return {
     read,
     getStatus,
-    forceUpdate,
+    update,
+    restart,
     promise,
   };
 }

@@ -1,8 +1,8 @@
 import React, { Suspense } from 'react';
-import { selector, store } from 'statek';
+import { selector, store, waitForSchedulersToFlush } from 'statek';
 import { useView, view } from '@statek/react';
 import {
-  actSync,
+  awaitAct,
   expectContent,
   itRenders,
   render,
@@ -11,26 +11,30 @@ import {
 } from './utils';
 
 describe('selectors', () => {
-  itRenders('re-renders when selected value change', () => {
+  it('re-renders when selected value change', async () => {
     const s = store({ foo: 1 });
     const sel = selector(() => s.foo);
 
     const Test = view(() => {
-      return <>{sel()}</>;
+      return <>{sel.value}</>;
     });
 
     const t = render(<Test />);
 
     expectContent(t, '1');
 
-    actSync(() => {
+    // await waitForSchedulersToFlush();
+
+    await awaitAct(() => {
       s.foo++;
     });
+
+    // await waitForSchedulersToFlush();
 
     expectContent(t, '2');
   });
 
-  itRenders('doesnt call same selector twice', () => {
+  it('doesnt call same selector twice', async () => {
     const s = store({ foo: 1, bar: 1 });
     const spy = jest.fn();
     const sel = selector(() => {
@@ -41,7 +45,7 @@ describe('selectors', () => {
     const Test = view(() => {
       return (
         <>
-          {sel()}
+          {sel.value}
           {s.bar}
         </>
       );
@@ -51,7 +55,7 @@ describe('selectors', () => {
 
     expectContent(t, ['1', '1']);
 
-    actSync(() => {
+    await awaitAct(() => {
       s.bar++;
     });
 

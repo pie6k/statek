@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import { store } from 'statek';
-import { actSync, expectContent, itRenders, render } from './utils';
+import { awaitAct, expectContent, itRenders, render } from './utils';
 
 describe('class without view', () => {
-  itRenders('rerenders on update', () => {
+  it.skip('rerenders on update', async () => {
     const obj = store({ foo: 1 });
     class Test extends Component {
       render() {
@@ -15,7 +15,7 @@ describe('class without view', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo = 2;
     });
 

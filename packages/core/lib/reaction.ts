@@ -1,43 +1,49 @@
 import { ReactionScheduler } from './batch';
 import { warnIfUsingInternal } from './internal';
 import { OperationInfo } from './operations';
+import { EventCallback } from './utils';
 
 export type ReactionsSet = Set<ReactionCallback>;
 export type ReactionsMemberships = Set<ReactionsSet>;
 
 type ReactionStoppedCallback = () => void;
 
-const callbacksReactions = new WeakMap<
+const callbackReaction = new WeakMap<
   // Original reaction callback
   () => void,
   ReactionCallback
 >();
-export const reactionWatchedPropertiesMemberships = new WeakMap<
-  ReactionCallback,
-  ReactionsMemberships
->();
-export const reactionSchedulers = new WeakMap<
-  ReactionCallback,
-  ReactionScheduler
->();
-export const reactionContext = new WeakMap<ReactionCallback, any>();
-const unsubscribedReactions = new WeakSet<ReactionCallback>();
-export const reactionStopSubscribers = new WeakMap<
-  ReactionCallback,
-  Set<ReactionStoppedCallback>
->();
-export const reactionDebugger = new WeakMap<
-  ReactionCallback,
-  ReactionDebugger
->();
 
-export const lazyReactionsCallbacks = new WeakMap<
-  ReactionCallback,
-  ReactionCallback
->();
+// Erased reactions are fully removed from registry. This is to keep track of them and be able to
+// warn user or ignore 1+ calls to erase instead of throwing.
+const erasedReactions = new WeakSet<ReactionCallback>();
 
-export function isLazyReaction(reaction: ReactionCallback) {
-  return lazyReactionsCallbacks.has(reaction);
+export const reactionsRegistry = new WeakMap<ReactionCallback, ReactionEntry>();
+
+interface ReactionEntry {
+  wrappedCallback: ReactionCallback;
+  options: ReactionOptions;
+  stopSubscribers: Set<ReactionStoppedCallback>;
+  manualCallback: ReactionCallback | null;
+  watchedPropertiesMemberships: ReactionsMemberships;
+}
+
+export function getReactionEntry(reaction: ReactionCallback) {
+  const info = reactionsRegistry.get(reaction);
+
+  if (!info) {
+    throw new Error('Trying to get options for non-reaction');
+  }
+
+  return info;
+}
+
+export function getReactionOptions(reaction: ReactionCallback) {
+  return getReactionEntry(reaction).options;
+}
+
+export function isManualReaction(reaction: ReactionCallback) {
+  return !!getReactionEntry(reaction).manualCallback;
 }
 
 /**
@@ -47,15 +53,20 @@ export function registerLazyReactionCallback(
   reaction: ReactionCallback,
   callback: ReactionCallback,
 ) {
-  if (!isReaction(reaction)) {
-    throw new Error('Only reaction can have apply callback');
+  warnIfUsingInternal('registerLazyReactionCallback');
+
+  const entry = getReactionEntry(reaction);
+
+  if (entry.manualCallback) {
+    throw new Error('Reaction already has manual callback');
   }
 
-  lazyReactionsCallbacks.set(reaction, callback);
+  entry.manualCallback = callback;
 }
 
 export function cleanReactionReadData(reaction: ReactionCallback) {
-  const propsMemberships = reactionWatchedPropertiesMemberships.get(reaction)!;
+  const entry = getReactionEntry(reaction);
+  const propsMemberships = entry.watchedPropertiesMemberships;
 
   // Iterate over each list in which this reaction is registered.
   // Each list represents single key of some proxy object that this reaction readed from.
@@ -69,7 +80,7 @@ export function cleanReactionReadData(reaction: ReactionCallback) {
 }
 
 export type ReactionCallback = () => void;
-export type LazyReactionCallback<A extends any[], R> = (...args: A) => R;
+export type ManualReactionCallback<A extends any[], R> = (...args: A) => R;
 export type ReactionDebugger = (operation: OperationInfo) => {};
 
 export interface ReactionOptions {
@@ -77,23 +88,27 @@ export interface ReactionOptions {
   debug?: (operation: OperationInfo) => {};
   context?: any;
   name?: string;
+  onSilentUpdate?: EventCallback<Promise<any>>;
 }
 
 export function getCallbackWrapperReaction(input: ReactionCallback) {
-  return callbacksReactions.get(input);
+  return callbackReaction.get(input);
 }
 
 export function applyReaction(reaction: ReactionCallback) {
-  if (lazyReactionsCallbacks.has(reaction)) {
-    lazyReactionsCallbacks.get(reaction)!();
+  const entry = getReactionEntry(reaction);
+  if (entry.manualCallback) {
+    entry.manualCallback();
     return;
   }
 
-  reaction.apply(reactionContext.get(reaction));
+  const context = getReactionOptions(reaction).context;
+
+  reaction.apply(context);
 }
 
 export function isReaction(reaction: ReactionCallback) {
-  return reactionWatchedPropertiesMemberships.has(reaction);
+  return reactionsRegistry.has(reaction);
 }
 
 /**
@@ -101,40 +116,40 @@ export function isReaction(reaction: ReactionCallback) {
  */
 export function registerReaction(
   reaction: ReactionCallback,
-  originalCallback: ReactionCallback,
+  wrappedCallback: ReactionCallback,
   options: ReactionOptions = {},
 ) {
   warnIfUsingInternal('registerReaction');
 
-  if (callbacksReactions.has(reaction)) {
-    throw new Error('This reactions is already registered');
+  if (reactionsRegistry.has(reaction)) {
+    throw new Error('This reaction is already registered');
   }
 
-  callbacksReactions.set(originalCallback, reaction);
-
-  if (options.context) {
-    reactionContext.set(reaction, options.context);
+  if (callbackReaction.has(wrappedCallback)) {
+    throw new Error('This callback is already wrapped in reaction');
   }
 
-  if (options.scheduler) {
-    reactionSchedulers.set(reaction, options.scheduler);
-  }
-
-  if (options.debug) {
-    reactionDebugger.set(reaction, options.debug);
-  }
+  callbackReaction.set(wrappedCallback, reaction);
 
   if (options.name) {
     Object.defineProperty(reaction, 'name', { value: options.name });
   }
 
-  reactionWatchedPropertiesMemberships.set(reaction, new Set());
+  const entry: ReactionEntry = {
+    manualCallback: null,
+    options,
+    stopSubscribers: new Set(),
+    watchedPropertiesMemberships: new Set(),
+    wrappedCallback,
+  };
+
+  reactionsRegistry.set(reaction, entry);
 
   return reaction;
 }
 
-export function stopReaction(reaction: ReactionCallback) {
-  if (isReactionStopped(reaction)) {
+export function eraseReaction(reaction: ReactionCallback) {
+  if (isReactionErased(reaction)) {
     console.warn(`Stopping the reaction that is already stopped.`);
     return;
   }
@@ -143,21 +158,17 @@ export function stopReaction(reaction: ReactionCallback) {
     throw new Error('Cannot stop function that is not a reaction');
   }
 
-  if (unsubscribedReactions.has(reaction)) {
-    return;
-  }
+  const entry = getReactionEntry(reaction);
 
-  unsubscribedReactions.add(reaction);
   cleanReactionReadData(reaction);
-  callbacksReactions.delete(reaction);
+  erasedReactions.add(reaction);
+  callbackReaction.delete(entry.wrappedCallback);
 
-  const stopSubscribers = reactionStopSubscribers.get(reaction);
+  reactionsRegistry.delete(reaction);
 
-  if (stopSubscribers) {
-    stopSubscribers.forEach(subscriber => {
-      subscriber();
-    });
-  }
+  entry.stopSubscribers.forEach(subscriber => {
+    subscriber();
+  });
 }
 
 export function resetReaction(reaction: ReactionCallback) {
@@ -165,38 +176,41 @@ export function resetReaction(reaction: ReactionCallback) {
     throw new Error('Cannot stop non reaction');
   }
 
-  unsubscribedReactions.delete(reaction);
+  erasedReactions.delete(reaction);
   cleanReactionReadData(reaction);
 }
 
-export function isReactionStopped(reaction: ReactionCallback) {
+export function isReactionErased(reaction: ReactionCallback) {
+  if (erasedReactions.has(reaction)) {
+    return true;
+  }
+
   if (!isReaction(reaction)) {
     throw new Error('Checking if reaction is stopped providing non reaction');
   }
 
-  return unsubscribedReactions.has(reaction);
+  return false;
 }
 
 export function subscribeToReactionStopped(
   reaction: ReactionCallback,
   callback: ReactionStoppedCallback,
 ) {
-  if (!isReaction(reaction)) {
-    throw new Error('Cannot subscribe to stop of non-reaction');
-  }
-
   // If this reaction is already stopped - call callback instantly
-  if (unsubscribedReactions.has(reaction)) {
+  if (erasedReactions.has(reaction)) {
     callback();
     // but still add it to list of listeners in case this reaction is started and stopped again.
   }
 
-  let subscribers = reactionStopSubscribers.get(reaction);
-
-  if (!subscribers) {
-    subscribers = new Set();
-    reactionStopSubscribers.set(reaction, subscribers);
+  if (!isReaction(reaction)) {
+    throw new Error('Cannot subscribe to stop of non-reaction');
   }
 
-  subscribers.add(callback);
+  const { stopSubscribers } = getReactionEntry(reaction);
+
+  stopSubscribers.add(callback);
+
+  return function stop() {
+    stopSubscribers.delete(callback);
+  };
 }

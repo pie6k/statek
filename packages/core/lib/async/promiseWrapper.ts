@@ -1,43 +1,95 @@
 import { allowInternal } from '../internal';
 import { ReactionCallback } from '../reaction';
 import { getRunningReaction, injectReaction } from '../reactionsStack';
+import { warmingManager } from '../selector/warming';
 
 export const asyncReactions = new WeakSet<ReactionCallback>();
 
-const asyncReactionPendingPhase = new WeakMap<ReactionCallback, PendingPhase>();
+const asyncReactionPendingPhases = new WeakMap<
+  ReactionCallback,
+  Set<PendingPhase>
+>();
+
+function addPendingPhaseToReaction(
+  reaction: ReactionCallback,
+  phase: PendingPhase,
+) {
+  let phases = asyncReactionPendingPhases.get(reaction);
+
+  if (!phases) {
+    phases = new Set();
+    asyncReactionPendingPhases.set(reaction, phases);
+  }
+
+  phases.add(phase);
+}
+
+function deletePendingPhaseFromReaction(
+  reaction: ReactionCallback,
+  phase: PendingPhase,
+) {
+  let phases = asyncReactionPendingPhases.get(reaction);
+
+  if (!phases) {
+    throw new Error('Cannot remove phase if no phases were registered');
+  }
+
+  if (!phases.has(phase)) {
+    throw new Error('This phase doesnt exist');
+  }
+
+  phases.delete(phase);
+}
+
+function hasReactionPendingPhase(
+  reaction: ReactionCallback,
+  phase: PendingPhase,
+) {
+  let phases = asyncReactionPendingPhases.get(reaction);
+
+  if (!phases) {
+    return false;
+  }
+
+  return phases.has(phase);
+}
 
 export function assertNoPendingPhaseRunning(
   reaction: ReactionCallback,
   msg?: string,
 ) {
-  const phase = asyncReactionPendingPhase.get(reaction);
+  const phases = asyncReactionPendingPhases.get(reaction);
 
-  if (!phase) {
+  if (!phases) {
     return;
   }
 
-  // If there is some phase, but it is cancelled - it will not call any changes anyway.
-  if (phase.isCancelled) {
-    return;
-  }
+  for (const phase of phases) {
+    // If there is some phase, but it is cancelled - it will not call any changes anyway.
+    if (phase.isCancelled) {
+      continue;
+    }
 
-  throw new Error(msg ?? 'Async reaction has pending phase already');
+    throw new Error(msg ?? 'Async reaction has pending phase already');
+  }
 }
 
-export function cancelPendingPhaseIfNeeded(
+export function cancelPendingPhasesIfNeeded(
   reaction: ReactionCallback,
   msg?: string,
 ) {
-  const phase = asyncReactionPendingPhase.get(reaction);
+  const phases = asyncReactionPendingPhases.get(reaction);
 
-  if (!phase) {
+  if (!phases) {
     return;
   }
 
-  phase.cancel();
+  phases.forEach(phase => {
+    phase.cancel();
+  });
 
   // It is safe to remove it as such phase will not call it's promise callback anyway. It will throw Cancelled error.
-  asyncReactionPendingPhase.delete(reaction);
+  // asyncReactionPendingPhases.delete(reaction);
 }
 
 export function assertNoPendingPhaseAfterReactionFinished(
@@ -85,10 +137,12 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
   }
 
+  if (warmingManager.isRunning()) {
+    return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
+  }
+
   // Mark reaction as async.
   asyncReactions.add(callerReaction);
-
-  assertNoPendingPhaseRunning(callerReaction);
 
   const phase: PendingPhase = {
     cancel() {
@@ -97,7 +151,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     isCancelled: false,
   };
 
-  asyncReactionPendingPhase.set(callerReaction, phase);
+  addPendingPhaseToReaction(callerReaction, phase);
 
   /**
    * Now we're wrapping onFulfilled callback with the one that will inject reaction that is running now in the moment when this promise will resolve.
@@ -106,22 +160,19 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     // If this phase was cancelled before it resolved.
     if (phase.isCancelled) {
       const error = new AsyncReactionCancelledError(
-        'Async reaction called as some of its dependencies changed before it finished.',
+        'Async reaction is cancelled as some of its dependencies changed while it was still running.',
       );
 
       if (onRejected) {
         Reflect.apply(onRejected, this, [error]);
+        return;
       }
 
-      return;
-
-      // return Promise.reject(error);
+      return Promise.reject(error);
     }
 
     // Double check if phase was not changed without canelling this one. This could lead to nasty bugs and should never happen.
-    const phaseNow = asyncReactionPendingPhase.get(callerReaction!);
-
-    if (!phaseNow || phaseNow !== phase) {
+    if (!hasReactionPendingPhase(callerReaction, phase)) {
       throw new Error(
         'Incorrect internal phase state - running phase is not cancelled, but pending phase has changed.',
       );
@@ -129,7 +180,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
 
     // Phase is finished. Let's remove it just before calling actual resolve function.
     // This is in case callback would create another promise etc. Such promise will expect that no pending phase is running.
-    asyncReactionPendingPhase.delete(callerReaction);
+    deletePendingPhaseFromReaction(callerReaction, phase);
 
     // Now let's re-inject parent reaction, so it'll be active one while fullfill callback is running
     let isResolveCallbackRunning = true;
@@ -148,6 +199,9 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     try {
       return Reflect.apply(onFulfilled, this, [result]);
     } catch (error) {
+      if (onRejected) {
+        Reflect.apply(onRejected, this, [error]);
+      }
       return Promise.reject<any>(error);
     } finally {
       // Instantly after callback has finished - remove injected reaction

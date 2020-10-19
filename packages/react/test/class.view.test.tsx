@@ -1,10 +1,10 @@
 import React, { Component } from 'react';
 import { store } from 'statek';
 import { view } from '@statek/react';
-import { actSync, expectContent, itRenders, render } from './utils';
+import { awaitAct, expectContent, itRenders, render } from './utils';
 
 describe('view - class', () => {
-  itRenders('rerenders on update', () => {
+  it('rerenders on update', async () => {
     const obj = store({ foo: 1 });
     class Test extends Component {
       render() {
@@ -18,14 +18,14 @@ describe('view - class', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo = 2;
     });
 
     expectContent(t, '2');
   });
 
-  it('supports props', () => {
+  it('supports props', async () => {
     const obj = store({ foo: 1 });
     class Test extends Component<{ bar: string }> {
       render() {
@@ -44,14 +44,14 @@ describe('view - class', () => {
 
     expectContent(t, ['1', 'bar']);
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo = 2;
     });
 
     expectContent(t, ['2', 'bar']);
   });
 
-  it('lifecycles are properly passed', () => {
+  it('lifecycles are properly passed', async () => {
     const obj = store({ foo: 1 });
     const componentDidUpdateSpy = jest.fn();
     const componentDidMountSpy = jest.fn();
@@ -116,7 +116,7 @@ describe('view - class', () => {
 
     expectContent(t, ['1', '1', '0']);
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo = 2;
     });
 

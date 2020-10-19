@@ -1,5 +1,10 @@
 import React, { Suspense } from 'react';
-import { selector, store } from 'statek';
+import {
+  selector,
+  store,
+  waitForSchedulersToFlush,
+  allowInternal,
+} from 'statek';
 import { useView, view } from '@statek/react';
 import {
   actSync,
@@ -7,18 +12,26 @@ import {
   itRenders,
   render,
   wait,
+  watchWarn,
   manualPromise,
-} from './utils';
+  waitNextTick,
+} from '@statek/testutils';
+
+import { act, create } from 'react-test-renderer';
+
+// view;
 
 describe('async selectors', () => {
-  itRenders('properly suspends with async selector', () => {
+  it('properly suspends with async selector', async () => {
     const [promise, resolve] = manualPromise<string>();
-    const sel = selector(() => promise);
+    const sel = selector(async () => {
+      return await promise;
+    });
     const spy = jest.fn();
 
     const Test = view(() => {
       spy();
-      return <>{sel()}</>;
+      return <>{sel.value}</>;
     });
 
     const t = render(
@@ -29,9 +42,7 @@ describe('async selectors', () => {
 
     expectContent(t, 'Loading...');
 
-    actSync(() => {
-      resolve('foo');
-    });
+    await resolve('foo');
 
     expectContent(t, 'foo');
     expect(spy).toBeCalledTimes(2);

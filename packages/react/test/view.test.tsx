@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { ComponentType } from 'react';
 import { view } from '@statek/react';
 import { store } from 'statek';
-import { actSync, expectContent, itRenders, render, wait } from './utils';
+import { awaitAct, expectContent, itRenders, render, wait } from './utils';
 
 describe.only('view', () => {
-  itRenders('rerenders on update', () => {
+  it('rerenders on update', async () => {
     const obj = store({ foo: 1 });
     const Test = view(() => {
       return <>{obj.foo}</>;
@@ -14,14 +14,14 @@ describe.only('view', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo = 2;
     });
 
     expectContent(t, '2');
   });
 
-  itRenders('dont rerender on unwatched update', () => {
+  it('dont rerender on unwatched update', async () => {
     const obj = store({ foo: 1, bar: 2 });
     const renderSpy = jest.fn();
     const Test = view(() => {
@@ -33,7 +33,7 @@ describe.only('view', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.bar++;
       obj.bar++;
     });
@@ -42,7 +42,7 @@ describe.only('view', () => {
     expect(renderSpy).toBeCalledTimes(1);
   });
 
-  itRenders('rerenders once on multiple updates', () => {
+  it('rerenders once on multiple updates', async () => {
     const obj = store({ foo: 1, bar: 1 });
     const renderSpy = jest.fn();
     const Test = view(() => {
@@ -59,7 +59,7 @@ describe.only('view', () => {
 
     expectContent(t, ['1', '1']);
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.foo++;
       obj.bar++;
     });
@@ -68,46 +68,43 @@ describe.only('view', () => {
     expect(renderSpy).toBeCalledTimes(2);
   });
 
-  itRenders(
-    'rerenders once per async call parts on multiple updates',
-    async () => {
-      const obj = store({ foo: 1, bar: 1 });
-      const renderSpy = jest.fn();
-      const Test = view(() => {
-        renderSpy();
-        return (
-          <>
-            {obj.foo}
-            {obj.bar}
-          </>
-        );
+  it('rerenders once per async call parts on multiple updates', async () => {
+    const obj = store({ foo: 1, bar: 1 });
+    const renderSpy = jest.fn();
+    const Test = view(() => {
+      renderSpy();
+      return (
+        <>
+          {obj.foo}
+          {obj.bar}
+        </>
+      );
+    });
+
+    async function update() {
+      await awaitAct(() => {
+        obj.foo++;
+        obj.bar++;
       });
+      await wait(5);
 
-      async function update() {
-        actSync(() => {
-          obj.foo++;
-          obj.bar++;
-        });
-        await wait(5);
+      await awaitAct(() => {
+        obj.foo++;
+        obj.bar++;
+      });
+    }
 
-        actSync(() => {
-          obj.foo++;
-          obj.bar++;
-        });
-      }
+    const t = render(<Test />);
 
-      const t = render(<Test />);
+    expectContent(t, ['1', '1']);
 
-      expectContent(t, ['1', '1']);
+    await update();
 
-      await update();
+    expectContent(t, ['3', '3']);
+    expect(renderSpy).toBeCalledTimes(3);
+  });
 
-      expectContent(t, ['3', '3']);
-      expect(renderSpy).toBeCalledTimes(3);
-    },
-  );
-
-  itRenders('does not re-render parent on child update', () => {
+  it('does not re-render parent on child update', async () => {
     const obj = store({ foo: 1, bar: 2 });
     const parentSpy = jest.fn();
     const childSpy = jest.fn();
@@ -132,7 +129,7 @@ describe.only('view', () => {
     expect(parentSpy).toBeCalledTimes(1);
     expect(childSpy).toBeCalledTimes(1);
 
-    actSync(() => {
+    await awaitAct(() => {
       obj.bar = 3;
     });
 

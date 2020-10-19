@@ -27,18 +27,14 @@ export function wait(time: number) {
   });
 }
 
-interface RenderTestUtils {
-  expectContent(content: any): void;
-  asyncExpectContent(content: any): void;
-  render(node: ReactNode): void;
-}
-
-export function actSync(callback: () => void) {
-  act(() => {
-    sync(() => {
-      callback();
-    });
+export async function awaitAct<R>(callback: () => R): Promise<R> {
+  let result: R;
+  await act(async () => {
+    result = await callback();
+    await wait(0);
   });
+
+  return result!;
 }
 
 export function render(node: ReactElement) {

@@ -1,5 +1,7 @@
 import { dontWatch } from './batch';
 
+export type EventCallback<T> = (value: T) => void;
+
 export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
   return Object.getOwnPropertyNames(obj) as Array<keyof T>;
 }
@@ -124,3 +126,120 @@ function isSerializable(value: any): boolean {
   }
   return true;
 }
+
+interface ManyToManySide<Left extends object, Right extends object> {
+  add(item: Left, otherSideItem: Right): Right;
+  get(item: Left): Set<Right> | null;
+  remove(item: Left): void;
+}
+
+type NamedManyToMany<
+  Left extends object,
+  Right extends object,
+  LeftName extends string,
+  RightName extends string
+> = {
+  [left in LeftName]: ManyToManySide<Left, Right>;
+} &
+  {
+    [right in RightName]: ManyToManySide<Right, Left>;
+  };
+
+export function manyToMany<Left extends object, Right extends object>() {
+  const leftToRight = new Map<Left, Set<Right>>();
+  const rightToLeft = new Map<Right, Set<Left>>();
+
+  const left: ManyToManySide<Left, Right> = {
+    add(left: Left, right: Right) {
+      let items = leftToRight.get(left);
+
+      if (!items) {
+        (items = new Set()), leftToRight.set(left, items);
+      }
+
+      items.add(right);
+
+      return right;
+    },
+    get(left: Left) {
+      return leftToRight.get(left) ?? null;
+    },
+    remove(left: Left) {
+      const rights = leftToRight.get(left);
+
+      if (!rights) {
+        return;
+      }
+
+      rights.forEach(right => {
+        const rightLefts = rightToLeft.get(right);
+
+        if (!rightLefts) {
+          throw new Error('Incorrect manyToMany state');
+        }
+
+        rightLefts.delete(left);
+      });
+
+      leftToRight.delete(left);
+    },
+  };
+
+  const right: ManyToManySide<Right, Left> = {
+    add(right: Right, left: Left) {
+      let items = rightToLeft.get(right);
+
+      if (!items) {
+        (items = new Set()), rightToLeft.set(right, items);
+      }
+
+      items.add(left);
+
+      return left;
+    },
+    get(right: Right) {
+      return rightToLeft.get(right) ?? null;
+    },
+    remove(right: Right) {
+      const lefts = rightToLeft.get(right);
+
+      if (!lefts) {
+        return;
+      }
+
+      lefts.forEach(left => {
+        const leftRights = leftToRight.get(left);
+
+        if (!leftRights) {
+          throw new Error('Incorrect manyToMany state');
+        }
+
+        leftRights.delete(right);
+      });
+
+      rightToLeft.delete(right);
+    },
+  };
+
+  function create<LeftName extends string, RightName extends string>(
+    leftToRightRelationName: LeftName,
+    rightToLeftRelationName: RightName,
+  ): NamedManyToMany<Left, Right, LeftName, RightName> {
+    return {
+      [leftToRightRelationName]: left,
+      [rightToLeftRelationName]: right,
+    } as NamedManyToMany<Left, Right, LeftName, RightName>;
+  }
+
+  return { create };
+}
+
+interface House {
+  name: string;
+}
+
+interface Person {
+  age: number;
+}
+
+const foo = manyToMany<House, Person>().create('owners', 'houses');

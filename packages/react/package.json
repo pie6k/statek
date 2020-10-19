@@ -9,6 +9,9 @@
   "dependencies": {
     "@statek/core": "0.1.0"
   },
+  "devDependencies": {
+    "@statek/testutils": "0.1.0"
+  },
   "peerDependencies": {
     "react": "*",
     "react-dom": "*"

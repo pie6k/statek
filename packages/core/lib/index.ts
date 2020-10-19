@@ -1,5 +1,6 @@
-export { getStoreRaw, store, isStore } from './store';
-export { watch, manualWatch, watchSelected, LazyReaction } from './watch';
+export { getStoreRaw, store, isStore, StoreFactory } from './store';
+export { watch, manualWatch, watchSelected, ManualReaction } from './watch';
+
 export {
   batch,
   sync,

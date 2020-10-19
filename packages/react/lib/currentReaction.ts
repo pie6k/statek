@@ -7,7 +7,7 @@ import {
   injectReaction,
 } from '@statek/core';
 import { updateClassComponentByFiber } from './classFiberUpdater';
-import { isClassComponent } from './componentTypes';
+import { isClassComponent } from './view/componentTypes';
 import { Fiber, getCurrentFiber, isFiberRunning, readContext } from './fiber';
 import { reactScheduler } from './scheduler';
 import { getComponentTypeNiceName, warnOnce } from './utils';

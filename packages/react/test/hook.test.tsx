@@ -1,7 +1,7 @@
 import React from 'react';
 import { useView } from '@statek/react';
 import { store } from 'statek';
-import { actSync, expectContent, itRenders, render, wait } from './utils';
+import { awaitAct, expectContent, itRenders, render, wait } from './utils';
 
 describe.skip('useObserve', () => {
   itRenders('rerenders on update', () => {
@@ -15,7 +15,7 @@ describe.skip('useObserve', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    awaitAct(() => {
       obj.foo = 2;
     });
 
@@ -35,7 +35,7 @@ describe.skip('useObserve', () => {
 
     expectContent(t, '1');
 
-    actSync(() => {
+    awaitAct(() => {
       obj.bar++;
     });
 
@@ -61,7 +61,7 @@ describe.skip('useObserve', () => {
 
     expectContent(t, ['1', '1']);
 
-    actSync(() => {
+    awaitAct(() => {
       obj.foo++;
       obj.bar++;
     });
@@ -87,14 +87,14 @@ describe.skip('useObserve', () => {
       }
 
       async function update() {
-        actSync(() => {
+        awaitAct(() => {
           obj.foo++;
           obj.bar++;
         });
 
         await wait(5);
 
-        actSync(() => {
+        awaitAct(() => {
           obj.foo++;
           obj.bar++;
         });
@@ -138,7 +138,7 @@ describe.skip('useObserve', () => {
     expect(parentSpy).toBeCalledTimes(1);
     expect(childSpy).toBeCalledTimes(1);
 
-    actSync(() => {
+    awaitAct(() => {
       obj.bar = 3;
     });
 

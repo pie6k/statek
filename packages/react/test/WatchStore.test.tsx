@@ -5,7 +5,7 @@ import { WatchStore } from '@statek/react';
 import { expectContent, itRenders, render } from './utils';
 
 describe('WatchStore', () => {
-  itRenders('WatchStore updates on changes used by children', () => {
+  it('WatchStore updates on changes used by children', () => {
     const obj = store({ foo: 1 });
     function Test() {
       return (

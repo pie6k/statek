@@ -1,51 +1,34 @@
-import { allowNestedWatch, dontWatch, syncEvery } from './batch';
-import { ReactionCallback, subscribeToReactionStopped } from './reaction';
-import { getRunningReaction } from './reactionsStack';
-import { singleValueResource, Resource, AsyncValue } from './resource';
-import { store } from './store';
-import { addReactionPendingPromise } from './suspense';
-import { createStackCallback, noop, serialize } from './utils';
-import { manualWatch, watch } from './watch';
+import { allowNestedWatch, sync } from '../batch';
+import {
+  getReactionOptions,
+  ReactionCallback,
+  subscribeToReactionStopped,
+} from '../reaction';
+import { getRunningReaction } from '../reactionsStack';
+import { Resource, singleValueResource } from '../resource';
+import { store } from '../store';
+import { serialize } from '../utils';
+import { watch } from '../watch';
+import { Selector, SelectorOptions } from './types';
+import { warmingManager } from './warming';
 
-const suspendedPromises = new WeakSet<Promise<any>>();
-
-if (process.env.NODE_ENV !== 'production') {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', errorEvent => {
-      if (
-        errorEvent.error instanceof Promise &&
-        suspendedPromises.has(errorEvent.error)
-      ) {
-        console.error(
-          `Async selector suspended, but it's promise was not caught. If you want to manually resolve selector promise, call selector.getRaw instead. Otherwise - async selector should should be called during render function of React component.`,
-        );
-      }
-    });
-  }
-}
-
-export interface Selector<T> {
-  readonly value: T;
-  readonly promise: Promise<T>;
-}
-
-type Writeable<T> = { -readonly [P in keyof T]: T[P] };
-
-export interface SelectorOptions {
-  lazy?: boolean;
+interface SelectorStore<T> {
+  value: T;
+  promise: Promise<T> | null;
 }
 
 export function selector<V>(
   getter: () => Promise<V> | V,
   options: SelectorOptions = {},
 ): Selector<V> {
+  const updateStrategy = options.updateStrategy ?? 'silent';
   let resource: Resource<V>;
 
-  const selectorValueStore = store<Writeable<Selector<V>>>({
+  const selectorValueStore = store<SelectorStore<V>>({
     // We'll initialize this value on first run, but we don't want to read resource now if this selector
     // is lazy
     value: null as any,
-    promise: null as any,
+    promise: null,
   });
 
   function initResourceIfNeeded() {
@@ -57,22 +40,37 @@ export function selector<V>(
     let didResolveAtLeastOnce = false;
 
     resource = singleValueResource(getter, {
-      // Each time resource value is resolved - instantly set it as selector store value.
-      onResolved(newValue) {
-        didResolveAtLeastOnce = true;
-        selectorValueStore.value = newValue;
-      },
-      onRejected(error) {
-        // Lazy reactions are not called automatically so their error will be passed to caller.
-        if (options.lazy || didResolveAtLeastOnce) {
-          return;
+      onStatusChange(status) {
+        if (status.state === 'resolved') {
+          didResolveAtLeastOnce = true;
+          // Update store value skipping schedulers. It will be up to reactions watching this selector to schedule their updates properly.
+          sync(() => {
+            selectorValueStore.value = status.value;
+            selectorValueStore.promise = null;
+          });
         }
 
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn(
-            `Selector rejected before being used with error:`,
-            error,
-          );
+        if (status.state === 'updating') {
+          sync(() => {
+            selectorValueStore.promise = status.promise;
+          });
+          reactionsWatchingThisSelector.forEach(reaction => {
+            getReactionOptions(reaction).onSilentUpdate?.(status.promise);
+          });
+        }
+
+        if (status.state === 'rejected') {
+          // Lazy reactions are not called automatically so their error will be passed to caller.
+          if (options.lazy || didResolveAtLeastOnce) {
+            return;
+          }
+
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(
+              `Selector rejected before being used with error:`,
+              status.error,
+            );
+          }
         }
       },
     });
@@ -96,7 +94,14 @@ export function selector<V>(
     const stop = allowNestedWatch(() => {
       return watch(
         () => {
-          resource.forceUpdate();
+          if (updateStrategy === 'reset') {
+            resource.restart();
+            sync(() => {
+              selectorValueStore.value = null as any;
+            });
+          } else {
+            resource.update();
+          }
         },
         { name: 'selectorWatch' },
       );
@@ -117,7 +122,7 @@ export function selector<V>(
       if (
         // It cannot be already watching
         !watching &&
-        // Option must be lazy
+        // must be lazy
         options.lazy &&
         // It is not called inside other reaction
         !runningReaction &&
@@ -138,8 +143,8 @@ export function selector<V>(
       // If this selector is lazy - watch if it is accessed during some other reaction.
       // If this is the case - we'll stop this selector watcher when all watching reactions that
       // access this reaction will stop.
-      if (options.lazy && runningReaction) {
-        planStoppingSelectorWhenNotUsedAnymore(runningReaction);
+      if (runningReaction) {
+        handleNewReaction(runningReaction);
       }
 
       // Read resource in order to suspend it or throw if there is some error inside of it.
@@ -174,7 +179,7 @@ export function selector<V>(
   // In this section we're allowing lazy selector to stop itself if nothing is watching it anymore
   const reactionsWatchingThisSelector = new Set<ReactionCallback>();
 
-  function planStoppingSelectorWhenNotUsedAnymore(reaction: ReactionCallback) {
+  function handleNewReaction(reaction: ReactionCallback) {
     // We've already did it for this reaction
     if (reactionsWatchingThisSelector.has(reaction)) {
       return;
@@ -182,6 +187,10 @@ export function selector<V>(
 
     // Register this reaction as watching this selector
     reactionsWatchingThisSelector.add(reaction);
+
+    if (!options.lazy) {
+      return;
+    }
 
     // Add stop subscriber to this reaction
     subscribeToReactionStopped(reaction, () => {
@@ -234,30 +243,4 @@ export function selectorFamily<Args extends any[], R>(
   }
 
   return get;
-}
-
-const [warming, warmingManager] = createStackCallback(noop);
-
-export function warmSelectors(...selectors: Selector<any>[]) {
-  const runningReaction = getRunningReaction();
-
-  warming(() => {
-    selectors.forEach(selector => {
-      try {
-        // request selector value.
-        selector.value;
-        // if it's
-      } catch (errorOrPromise) {
-        // Selectors might suspend during warming, but we still want to warm all of them.
-        // We're however adding all pending promises to this reaction to be able to wait for them all before
-        // re-running if it will be set this way in reaction settings
-        if (runningReaction && errorOrPromise instanceof Promise) {
-          addReactionPendingPromise(runningReaction, errorOrPromise);
-        }
-
-        // We're also not throwing their errors as they would be thrown anyway as soon as value of some
-        // rejected selector is read.
-      }
-    });
-  });
 }

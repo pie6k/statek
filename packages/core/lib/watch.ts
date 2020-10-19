@@ -1,30 +1,28 @@
-import { registerSelectedAnyChangeReaction } from './store';
 import {
-  cleanReactionReadData,
-  getCallbackWrapperReaction,
-  ReactionCallback,
-  ReactionOptions,
-  registerReaction,
-  stopReaction,
-  LazyReactionCallback,
-  registerLazyReactionCallback,
-  resetReaction,
-  isReactionStopped,
-  isReaction,
-} from './reaction';
-import { callWithReactionsStack, getRunningReaction } from './reactionsStack';
-import { selectInStore, allowNestedWatchManager } from './batch';
-import { allowInternal } from './internal';
-import { callWithSuspense } from './suspense';
-import {
-  assertNoPendingPhaseRunning,
+  assertNoPendingPhaseAfterReactionFinished,
+  cancelPendingPhasesIfNeeded,
   injectReactivePromiseThen,
   isAsyncReaction,
   isAsyncReactionCancelledError,
-  assertNoPendingPhaseAfterReactionFinished,
-  cancelPendingPhaseIfNeeded,
 } from './async/promiseWrapper';
+import { allowNestedWatchManager, selectInStore } from './batch';
+import { allowInternal } from './internal';
+import {
+  getCallbackWrapperReaction,
+  isReaction,
+  isReactionErased,
+  ManualReactionCallback,
+  ReactionCallback,
+  ReactionOptions,
+  registerLazyReactionCallback,
+  registerReaction,
+  resetReaction,
+  eraseReaction,
+} from './reaction';
+import { callWithReactionsStack, getRunningReaction } from './reactionsStack';
 import { isResourcePromise } from './resource';
+import { registerSelectedAnyChangeReaction } from './store';
+import { callWithSuspense } from './suspense';
 
 export function watch(
   watchCallback: ReactionCallback,
@@ -42,7 +40,7 @@ export function watch(
   }
   const existingReaction = getCallbackWrapperReaction(watchCallback);
 
-  if (existingReaction && !isReactionStopped(existingReaction)) {
+  if (existingReaction && !isReactionErased(existingReaction)) {
     if (process.env.NODE_ENV !== 'production') {
       console.warn(
         `You're calling watch on callback that is already running. It will have no effect.`,
@@ -50,7 +48,7 @@ export function watch(
     }
 
     return function unsubscribe() {
-      stopReaction(existingReaction);
+      eraseReaction(existingReaction);
     };
   }
 
@@ -60,7 +58,7 @@ export function watch(
     callWithReactionsStack(existingReaction, watchCallback);
 
     return function unsubscribe() {
-      stopReaction(existingReaction);
+      eraseReaction(existingReaction);
     };
   }
 
@@ -68,7 +66,7 @@ export function watch(
 
   function reactionCallback() {
     if (isAsyncReaction(reactionCallback)) {
-      cancelPendingPhaseIfNeeded(reactionCallback);
+      cancelPendingPhasesIfNeeded(reactionCallback);
       // assertNoPendingPhaseRunning(reactionCallback);
     }
 
@@ -83,6 +81,7 @@ export function watch(
         })
         .catch(error => {
           if (isAsyncReactionCancelledError(error)) {
+            // return Promise.resolve('');
             // This is expected.
             return;
           }
@@ -106,7 +105,7 @@ export function watch(
   reactionCallback();
 
   function stop() {
-    stopReaction(reactionCallback);
+    eraseReaction(reactionCallback);
   }
 
   return stop;
@@ -132,51 +131,55 @@ export function watchSelected(
   allowInternal(() => {
     registerReaction(callback, callback, options);
   });
+
   const stop = registerSelectedAnyChangeReaction(resolvedObservable, callback);
 
   return stop;
 }
 
-export type LazyReaction<A extends any[], R> = LazyReactionCallback<A, R> & {
+export type ManualReaction<A extends any[], R> = ManualReactionCallback<
+  A,
+  R
+> & {
   stop(): void;
 };
 
 const noop = () => {};
 
 export function manualWatch<A extends any[], R>(
-  lazyWatcher: LazyReactionCallback<A, R>,
+  lazyWatcher: ManualReactionCallback<A, R>,
   onWatchedChange: () => void = noop,
   options: ReactionOptions = {},
-): LazyReaction<A, R> {
+): ManualReaction<A, R> {
   injectReactivePromiseThen();
-  if (options.name) {
+  if (!options.name) {
     options.name = 'manualWatch';
   }
   function reactionCallback(...args: A): R {
-    if (isReactionStopped(reactionCallback)) {
+    if (isReactionErased(reactionCallback)) {
       throw new Error(
         `Cannot call lazyWatch callback after it has unsubscribed`,
       );
     }
 
-    // return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
-    return callWithSuspense(
+    const result = callWithSuspense(
       (...args: A) => {
         return callWithReactionsStack(reactionCallback, lazyWatcher, ...args);
       },
       reactionCallback,
       ...args,
     );
+
+    return result;
   }
 
   allowInternal(() => {
     registerReaction(reactionCallback, lazyWatcher, options);
+    registerLazyReactionCallback(reactionCallback, onWatchedChange);
   });
 
-  registerLazyReactionCallback(reactionCallback, onWatchedChange);
-
   function stop() {
-    stopReaction(reactionCallback);
+    eraseReaction(reactionCallback);
   }
 
   reactionCallback.stop = stop;

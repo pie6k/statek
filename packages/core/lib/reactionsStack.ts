@@ -4,8 +4,8 @@ import { ReadOperationInfo } from './operations';
 import {
   cleanReactionReadData,
   ReactionCallback,
-  reactionContext,
-  isReactionStopped,
+  getReactionOptions,
+  isReactionErased,
   ReactionsSet,
   isReaction,
 } from './reaction';
@@ -28,9 +28,9 @@ export function callWithReactionsStack<C extends ReactionCallback>(
 
   clearReactionChildren(reactionCallback);
 
-  const context = reactionContext.get(reactionCallback);
+  const context = getReactionOptions(reactionCallback).context;
 
-  if (isReactionStopped(reactionCallback)) {
+  if (isReactionErased(reactionCallback)) {
     throw new Error('Cannot call reaction that is stopped.');
   }
 
@@ -69,7 +69,7 @@ function getLastRunningReactionFromStack() {
     }
 
     if (
-      isReactionStopped(hookedReaction.reaction) ||
+      isReactionErased(hookedReaction.reaction) ||
       !hookedReaction.getIsStillRunning()
     ) {
       continue;

@@ -6,6 +6,7 @@ import {
   selector,
   manualWatch,
 } from '@statek/core/lib';
+import { nextTick } from 'process';
 import { warmSelectors } from '../lib/selector';
 import {
   awaitSuspended,
@@ -384,6 +385,21 @@ describe('selector - warm', () => {
     watch(() => {
       sel.value;
     });
+
+    expect(spy).toBeCalledTimes(1);
+  });
+
+  it('warmed selector can be read inside async watch', async () => {
+    const spy = jest.fn();
+
+    const sel = selector(async () => 'foo', { lazy: true });
+
+    watch(async () => {
+      await warmSelectors(sel);
+      spy(sel.value);
+    });
+
+    await waitNextTick();
 
     expect(spy).toBeCalledTimes(1);
   });

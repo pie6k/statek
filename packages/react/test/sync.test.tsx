@@ -5,7 +5,7 @@ import { act } from 'react-test-renderer';
 import { expectContent, itRenders, render } from './utils';
 
 describe('sync', () => {
-  itRenders('rerenders on update instantly when change is sync', () => {
+  it('rerenders on update instantly when change is sync', () => {
     const obj = store({ foo: 1 });
     const Test = view(() => {
       return <>{obj.foo}</>;
@@ -24,7 +24,7 @@ describe('sync', () => {
     expectContent(t, '2');
   });
 
-  itRenders('sync is batched', () => {
+  it('sync is batched', () => {
     const obj = store({ foo: 1, bar: 1 });
     const spy = jest.fn();
     const Test = view(() => {

@@ -1,9 +1,9 @@
 import { ReactNodeArray } from 'react';
 import {
   applyReaction,
-  isLazyReaction,
+  isManualReaction,
   ReactionCallback,
-  reactionSchedulers,
+  getReactionOptions,
 } from './reaction';
 import { getDefaultScheduler } from './schedulers';
 import { getStoreRaw, isStore } from './store';
@@ -15,7 +15,7 @@ export type ReactionScheduler = (
 
 export function requestReactionCallNeeded(reaction: ReactionCallback) {
   // Don't request lazy-reaction re-run while it is suspended.
-  if (isReactionSuspended(reaction) && isLazyReaction(reaction)) {
+  if (isReactionSuspended(reaction) && isManualReaction(reaction)) {
     return;
   }
   /**
@@ -95,7 +95,8 @@ function sendReactionToScheduler(reaction: ReactionCallback, isSync: boolean) {
     return;
   }
 
-  const scheduler = reactionSchedulers.get(reaction) || getDefaultScheduler();
+  const scheduler =
+    getReactionOptions(reaction).scheduler || getDefaultScheduler();
 
   scheduler(reaction);
 }

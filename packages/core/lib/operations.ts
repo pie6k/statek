@@ -3,8 +3,8 @@ import { requestReactionCallNeeded } from './batch';
 import { getSelectedAnyChangeReactions } from './store';
 import {
   ReactionCallback,
-  reactionDebugger,
-  reactionWatchedPropertiesMemberships,
+  getReactionOptions,
+  getReactionEntry,
 } from './reaction';
 import { detectRunningReactionForOperation } from './reactionsStack';
 import { appendSet } from './utils';
@@ -79,7 +79,9 @@ function registerReactionReadOperation(
   // save the fact that the key is used by the reaction during its current run
   if (!reactionsForKey.has(reaction)) {
     reactionsForKey.add(reaction);
-    reactionWatchedPropertiesMemberships.get(reaction)!.add(reactionsForKey);
+    getReactionEntry(reaction).watchedPropertiesMemberships.add(
+      reactionsForKey,
+    );
   }
 }
 
@@ -150,5 +152,5 @@ function debugOperation(
   reaction: ReactionCallback,
   operation: MutationOperationInfo | ReadOperationInfo,
 ) {
-  reactionDebugger.get(reaction)?.(operation);
+  getReactionOptions(reaction).debug?.(operation);
 }
