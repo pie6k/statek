@@ -1,14 +1,14 @@
 /**
  * @jest-environment jsdom
  */
-import { store, watch, watchSelected } from '@statek/core/lib';
+import { store, watch, watchAllChanges } from '@statek/core/lib';
 
 describe('watchSingleObservable', () => {
   it('should run the passed function once (wrapped by a reaction)', () => {
     const spy = jest.fn(() => {});
     const obj = store({ foo: 1 });
 
-    watchSelected(() => obj, spy);
+    watchAllChanges(obj, spy);
 
     obj.foo++;
 
@@ -21,10 +21,7 @@ describe('watchSingleObservable', () => {
 
   it('should throw when watchSingleObservable non observable', () => {
     expect(() => {
-      watchSelected(
-        () => ({ foo: 1 }),
-        () => {},
-      );
+      watchAllChanges({ foo: 1 }, () => {});
     }).toThrow();
   });
 
@@ -32,7 +29,7 @@ describe('watchSingleObservable', () => {
     const spy = jest.fn(() => {});
     const obj = store({ foo: 1 });
 
-    const stop = watchSelected(() => obj, spy);
+    const stop = watchAllChanges(obj, spy);
 
     obj.foo++;
 
@@ -49,8 +46,8 @@ describe('watchSingleObservable', () => {
     const spy = jest.fn(() => obj.foo);
 
     expect(() => {
-      watchSelected(() => obj, spy);
-      watchSelected(() => obj, spy);
+      watchAllChanges(obj, spy);
+      watchAllChanges(obj, spy);
     }).toThrow();
   });
 
@@ -60,7 +57,7 @@ describe('watchSingleObservable', () => {
     const selectedChangeCallback = jest.fn(() => {});
     const watchSpy = jest.fn(() => obj.foo);
 
-    watchSelected(() => obj, selectedChangeCallback);
+    watchAllChanges(obj, selectedChangeCallback);
     watch(watchSpy);
 
     expect(watchSpy).toBeCalledTimes(1);
@@ -77,8 +74,8 @@ describe('watchSingleObservable', () => {
     const nestedSpy = jest.fn(() => {});
     const obj = store({ foo: 1, bar: { baz: 2 } });
 
-    const stop = watchSelected(() => obj, spy);
-    const stopNested = watchSelected(() => obj.bar, nestedSpy);
+    const stop = watchAllChanges(obj, spy);
+    const stopNested = watchAllChanges(obj.bar, nestedSpy);
 
     obj.foo++;
 
@@ -128,7 +125,7 @@ describe('watchSingleObservable', () => {
 
     const spy = jest.fn(() => {});
 
-    const stop = watchSelected(() => obj, spy);
+    const stop = watchAllChanges(() => obj, spy);
 
     obj.a++;
     expect(spy).toBeCalledTimes(1);

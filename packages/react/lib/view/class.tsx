@@ -1,4 +1,4 @@
-import { dontWatch, manualWatch, store } from '@statek/core';
+import { manualWatch, store } from '@statek/core';
 import {
   Component,
   ComponentClass,
@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { reactScheduler } from '../scheduler';
 import { UpdatesStore, viewsRenderStack } from './stack';
+import { extendablePromise } from './utils';
 
 type InferComponentProps<
   C extends ComponentType<any>
@@ -29,10 +30,9 @@ const staticMethodsToBind = [
   'contextType',
 ] as const;
 
-const unsubscribeSymbol = Symbol('unsubscribe');
-const updatesStoreSymbol = Symbol('unsubscribe');
-const isFirstRenderSymbol = Symbol('unsubscribe');
-const lastRenderResult = Symbol('unsubscribe');
+const unsubscribeSymbol = Symbol('unsubscribeSymbol');
+const updatesStoreSymbol = Symbol('updatesStoreSymbol');
+const silentUpdatesSymbol = Symbol('silentUpdatesSymbol');
 
 export function createClassView<C extends ComponentClass<any, any>>(
   BaseComponent: C,
@@ -52,63 +52,52 @@ export function createClassView<C extends ComponentClass<any, any>>(
 
     private [updatesStoreSymbol] = store<UpdatesStore>({ isUpdating: false });
     private [unsubscribeSymbol] = () => {};
-    private [isFirstRenderSymbol] = false;
-    private [lastRenderResult]: ReactNode = null;
+    private [silentUpdatesSymbol] = extendablePromise();
 
-    constructor(props: Props, context: any) {
+    constructor(props: Props) {
       super(props);
 
-      const baseInstance: any = BaseComponent.apply(this, [props, context]);
+      const baseInstance: any = BaseComponent.apply(this, [props]);
 
       this.state = baseInstance.state;
 
-      const runRender = () => {
-        try {
-          viewsRenderStack.push({
-            type: BaseComponent,
-            updatesStore: this[updatesStoreSymbol],
-          });
-          const renderResult = Reflect.apply(
-            BaseComponent.prototype.render,
-            this,
-            [],
-          );
-          this[lastRenderResult] = renderResult;
-          return renderResult;
-        } catch (errorOrPromise) {
-          if (!(errorOrPromise instanceof Promise)) {
-            throw errorOrPromise;
-          }
-
-          if (this[isFirstRenderSymbol]) {
-            throw errorOrPromise;
-          }
-
-          dontWatch(() => {
-            this[updatesStoreSymbol].isUpdating = true;
-          });
-
-          errorOrPromise.then(() => {
-            this[updatesStoreSymbol].isUpdating = false;
-            this.forceUpdate();
-          });
-
-          return this[lastRenderResult];
-        } finally {
-          viewsRenderStack.pop();
-        }
-      };
-
       const reactiveRender = manualWatch<[], ReactNode>(
-        runRender,
+        () => {
+          try {
+            viewsRenderStack.push({
+              type: BaseComponent,
+              updatesStore: this[updatesStoreSymbol],
+            });
+            return Reflect.apply(BaseComponent.prototype.render, this, []);
+          } catch (errorOrPromise) {
+            throw errorOrPromise;
+          } finally {
+            viewsRenderStack.pop();
+          }
+        },
         () => {
           this.forceUpdate();
         },
-        { context: this, scheduler: reactScheduler },
+        {
+          context: this,
+          scheduler: reactScheduler,
+          onSilentUpdate: async silentUpdatePromise => {
+            this[silentUpdatesSymbol].add(silentUpdatePromise);
+
+            if (this[silentUpdatesSymbol].isAwaiting) {
+              return;
+            }
+
+            this[updatesStoreSymbol].isUpdating = true;
+
+            await this[silentUpdatesSymbol].wait();
+
+            this[updatesStoreSymbol].isUpdating = false;
+          },
+        },
       );
 
       this[unsubscribeSymbol] = reactiveRender.stop;
-
       this.render = reactiveRender;
 
       methodsToBind.forEach(methodToBindName => {

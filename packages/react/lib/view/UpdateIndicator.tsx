@@ -11,14 +11,20 @@ const viewsUpdateIndicatorsCache = new WeakMap<
   ComponentType<UpdateIndicatorProps>
 >();
 
-export function getUpdateIndicatorComponent(): ComponentType<
-  UpdateIndicatorProps
-> {
+export function getUpdateIndicatorComponent(
+  ViewComponent: ComponentType<any>,
+): ComponentType<UpdateIndicatorProps> {
   const renderingView = getRenderingView()!;
 
   if (!renderingView) {
     throw new Error(
       `<UpdateIndicator /> can only be rendered directly inside view component.`,
+    );
+  }
+
+  if (renderingView.type !== ViewComponent) {
+    throw new Error(
+      `<${ViewComponent.displayName}.UpdateIndicator /> can only be used directly inside <${ViewComponent.displayName}/> render method.`,
     );
   }
 

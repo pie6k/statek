@@ -3,66 +3,51 @@ import { ReactionCallback } from '../reaction';
 import { getRunningReaction, injectReaction } from '../reactionsStack';
 import { warmingManager } from '../selector/warming';
 
-export const asyncReactions = new WeakSet<ReactionCallback>();
-
-const asyncReactionPendingPhases = new WeakMap<
+export const asyncReactions = new WeakMap<
   ReactionCallback,
-  Set<PendingPhase>
+  AsyncReactionData
 >();
 
-function addPendingPhaseToReaction(
-  reaction: ReactionCallback,
-  phase: PendingPhase,
-) {
-  let phases = asyncReactionPendingPhases.get(reaction);
-
-  if (!phases) {
-    phases = new Set();
-    asyncReactionPendingPhases.set(reaction, phases);
-  }
-
-  phases.add(phase);
+interface AsyncReactionData {
+  pendingPhases: Set<PendingPhase>;
 }
 
-function deletePendingPhaseFromReaction(
-  reaction: ReactionCallback,
-  phase: PendingPhase,
-) {
-  let phases = asyncReactionPendingPhases.get(reaction);
-
-  if (!phases) {
-    throw new Error('Cannot remove phase if no phases were registered');
+function getAsyncReactionData(reaction: ReactionCallback) {
+  if (!asyncReactions.has(reaction)) {
+    throw new Error('Provided reaction is not async reaction');
   }
 
-  if (!phases.has(phase)) {
-    throw new Error('This phase doesnt exist');
+  return asyncReactions.get(reaction)!;
+}
+
+export function markReactionAsAsync(reaction: ReactionCallback) {
+  const existingData = asyncReactions.get(reaction);
+
+  if (existingData) {
+    return existingData;
   }
 
-  phases.delete(phase);
+  const asyncData: AsyncReactionData = {
+    pendingPhases: new Set(),
+  };
+
+  asyncReactions.set(reaction, asyncData);
+
+  return asyncData;
 }
 
 function hasReactionPendingPhase(
   reaction: ReactionCallback,
   phase: PendingPhase,
 ) {
-  let phases = asyncReactionPendingPhases.get(reaction);
-
-  if (!phases) {
-    return false;
-  }
-
-  return phases.has(phase);
+  return getAsyncReactionData(reaction).pendingPhases.has(phase);
 }
 
 export function assertNoPendingPhaseRunning(
   reaction: ReactionCallback,
   msg?: string,
 ) {
-  const phases = asyncReactionPendingPhases.get(reaction);
-
-  if (!phases) {
-    return;
-  }
+  const phases = getAsyncReactionData(reaction).pendingPhases;
 
   for (const phase of phases) {
     // If there is some phase, but it is cancelled - it will not call any changes anyway.
@@ -74,22 +59,12 @@ export function assertNoPendingPhaseRunning(
   }
 }
 
-export function cancelPendingPhasesIfNeeded(
-  reaction: ReactionCallback,
-  msg?: string,
-) {
-  const phases = asyncReactionPendingPhases.get(reaction);
-
-  if (!phases) {
-    return;
-  }
+export function cancelPendingPhasesIfNeeded(reaction: ReactionCallback) {
+  const phases = getAsyncReactionData(reaction).pendingPhases;
 
   phases.forEach(phase => {
     phase.cancel();
   });
-
-  // It is safe to remove it as such phase will not call it's promise callback anyway. It will throw Cancelled error.
-  // asyncReactionPendingPhases.delete(reaction);
 }
 
 export function assertNoPendingPhaseAfterReactionFinished(
@@ -141,8 +116,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
   }
 
-  // Mark reaction as async.
-  asyncReactions.add(callerReaction);
+  const asyncData = markReactionAsAsync(callerReaction);
 
   const phase: PendingPhase = {
     cancel() {
@@ -151,7 +125,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     isCancelled: false,
   };
 
-  addPendingPhaseToReaction(callerReaction, phase);
+  asyncData.pendingPhases.add(phase);
 
   /**
    * Now we're wrapping onFulfilled callback with the one that will inject reaction that is running now in the moment when this promise will resolve.
@@ -180,7 +154,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
 
     // Phase is finished. Let's remove it just before calling actual resolve function.
     // This is in case callback would create another promise etc. Such promise will expect that no pending phase is running.
-    deletePendingPhaseFromReaction(callerReaction, phase);
+    asyncData.pendingPhases.delete(phase);
 
     // Now let's re-inject parent reaction, so it'll be active one while fullfill callback is running
     let isResolveCallbackRunning = true;

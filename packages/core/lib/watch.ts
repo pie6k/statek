@@ -4,8 +4,9 @@ import {
   injectReactivePromiseThen,
   isAsyncReaction,
   isAsyncReactionCancelledError,
+  markReactionAsAsync,
 } from './async/promiseWrapper';
-import { allowNestedWatchManager, selectInStore } from './batch';
+import { allowNestedWatchManager } from './batch';
 import { allowInternal } from './internal';
 import {
   getCallbackWrapperReaction,
@@ -21,7 +22,7 @@ import {
 } from './reaction';
 import { callWithReactionsStack, getRunningReaction } from './reactionsStack';
 import { isResourcePromise } from './resource';
-import { registerSelectedAnyChangeReaction } from './store';
+import { isStore, registerSelectedAnyChangeReaction } from './store';
 import { callWithSuspense } from './suspense';
 
 export function watch(
@@ -67,7 +68,6 @@ export function watch(
   function reactionCallback() {
     if (isAsyncReaction(reactionCallback)) {
       cancelPendingPhasesIfNeeded(reactionCallback);
-      // assertNoPendingPhaseRunning(reactionCallback);
     }
 
     const callbackResult = callWithSuspense(() => {
@@ -75,13 +75,14 @@ export function watch(
     }, reactionCallback);
 
     if (callbackResult instanceof Promise) {
+      markReactionAsAsync(reactionCallback);
+
       callbackResult
         .then(() => {
           assertNoPendingPhaseAfterReactionFinished(reactionCallback);
         })
         .catch(error => {
           if (isAsyncReactionCancelledError(error)) {
-            // return Promise.resolve('');
             // This is expected.
             return;
           }
@@ -111,8 +112,8 @@ export function watch(
   return stop;
 }
 
-export function watchSelected(
-  selector: () => object,
+export function watchAllChanges(
+  storePart: object,
   callback: ReactionCallback,
   options: ReactionOptions = {},
 ) {
@@ -120,7 +121,10 @@ export function watchSelected(
   if (options.name) {
     options.name = 'watchSelected';
   }
-  const resolvedObservable = selectInStore(selector);
+
+  if (!isStore(storePart)) {
+    throw new Error('watchSelected input must be any part of the store');
+  }
 
   if (isReaction(callback)) {
     throw new Error(
@@ -132,7 +136,7 @@ export function watchSelected(
     registerReaction(callback, callback, options);
   });
 
-  const stop = registerSelectedAnyChangeReaction(resolvedObservable, callback);
+  const stop = registerSelectedAnyChangeReaction(storePart, callback);
 
   return stop;
 }

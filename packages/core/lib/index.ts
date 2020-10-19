@@ -1,14 +1,7 @@
 export { getStoreRaw, store, isStore, StoreFactory } from './store';
-export { watch, manualWatch, watchSelected, ManualReaction } from './watch';
+export { watch, manualWatch, watchAllChanges, ManualReaction } from './watch';
 
-export {
-  batch,
-  sync,
-  syncEvery,
-  dontWatch,
-  selectInStore,
-  ReactionScheduler,
-} from './batch';
+export { batch, sync, syncEvery, dontWatch, ReactionScheduler } from './batch';
 export {
   syncScheduler,
   asyncScheduler,

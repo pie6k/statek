@@ -1,8 +1,8 @@
 import { view } from '@statek/react';
 import { expectContent, render, repeatingPromise } from '@statek/testutils';
-import React, { createContext, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { selector, store } from 'statek';
-import { awaitAct, wait } from './utils';
+import { awaitAct } from './utils';
 
 // view;
 
@@ -43,13 +43,10 @@ describe('UpdateIndicator', () => {
 
     await awaitAct(() => s.i++);
 
-    // await wait(0);
-
     expectContent(t, ['foo 0', 'Updating...']);
 
     await nameVal.resolve('bar');
 
-    // await wait(0);
     expectContent(t, 'bar 1');
   });
 });

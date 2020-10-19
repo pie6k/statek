@@ -508,6 +508,30 @@ describe('watch', () => {
     expect(conditionalSpy).toBeCalledTimes(3);
   });
 
+  it('should not consider write operations as read operations', () => {
+    const s = store({ foo: 'foo' });
+
+    const spy = jest.fn(() => {
+      s.foo = 'bar';
+    });
+    const readSpy = jest.fn(() => {
+      s.foo;
+    });
+
+    watch(readSpy);
+    expect(readSpy).toBeCalledTimes(1);
+
+    watch(spy);
+
+    expect(spy).toBeCalledTimes(1);
+    expect(readSpy).toBeCalledTimes(2);
+
+    s.foo = 'baz';
+
+    expect(spy).toBeCalledTimes(1);
+    expect(readSpy).toBeCalledTimes(3);
+  });
+
   it('should not be triggered by mutating a property, which is used in an inactive branch', () => {
     let dummy: string = '';
     const obj = store({ prop: 'value', run: true });

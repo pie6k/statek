@@ -1,11 +1,11 @@
-import { watchSelected } from '@statek/core';
+import { watchAllChanges } from '@statek/core';
 import { useEffect, useMemo, useRef } from 'react';
 import { reactScheduler } from './scheduler';
 import { useForceUpdate } from './useForceUpdate';
 
 function noop() {}
 
-export function useWatchSelected<T extends object>(storeGetter: () => T) {
+export function useWatchSelected<T extends object>(storePart: T) {
   const forceUpdate = useForceUpdate();
 
   const stopRef = useRef<() => void>(noop);
@@ -16,10 +16,10 @@ export function useWatchSelected<T extends object>(storeGetter: () => T) {
     function forceUpdateCallback() {
       forceUpdate();
     }
-    stopRef.current = watchSelected(storeGetter, forceUpdateCallback, {
+    stopRef.current = watchAllChanges(storePart, forceUpdateCallback, {
       scheduler: reactScheduler,
     });
-  }, [storeGetter]);
+  }, [storePart]);
 
   useEffect(() => {
     return () => {

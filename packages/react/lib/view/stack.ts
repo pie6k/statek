@@ -5,7 +5,6 @@ export interface UpdatesStore {
 }
 
 export interface CurrentView {
-  _i: number;
   type: ComponentType<any>;
   updatesStore: UpdatesStore;
 }

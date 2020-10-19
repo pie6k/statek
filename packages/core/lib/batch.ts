@@ -125,14 +125,6 @@ export const [syncEvery, syncEveryManager] = createStackCallback(
 );
 
 /**
- * By default, when no reaction is watching for some store, it'll not be wrapped in proxies
- * if read.
- *
- * If called inside this hook, however - it'll always wrap stories in proxies
- */
-export const [selectInStore, readStoreManager] = createStackCallback(noop);
-
-/**
  * Escape from watching store access.
  *
  * It can be called inside part of `watch` callback and such read access will not be registered.

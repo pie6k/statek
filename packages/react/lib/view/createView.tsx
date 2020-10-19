@@ -80,7 +80,7 @@ export function view<C extends PropsOrComponent>(
 
   Object.defineProperty(ViewComponent, 'UpdateIndicator', {
     get() {
-      return view(getUpdateIndicatorComponent());
+      return view(getUpdateIndicatorComponent(Comp));
     },
   });
 
