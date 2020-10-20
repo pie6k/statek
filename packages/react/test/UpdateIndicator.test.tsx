@@ -1,10 +1,8 @@
 import { view } from '@statek/react';
+import { selector, store } from 'statek';
 import { expectContent, render, repeatingPromise } from '@statek/testutils';
 import React, { Suspense } from 'react';
-import { selector, store } from 'statek';
 import { awaitAct } from './utils';
-
-// view;
 
 describe('UpdateIndicator', () => {
   it('properly suspends with async selector', async () => {

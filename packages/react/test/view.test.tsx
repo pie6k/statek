@@ -1,7 +1,7 @@
-import React, { ComponentType } from 'react';
 import { view } from '@statek/react';
+import React from 'react';
 import { store } from 'statek';
-import { awaitAct, expectContent, itRenders, render, wait } from './utils';
+import { awaitAct, expectContent, render, wait } from './utils';
 
 describe.only('view', () => {
   it('rerenders on update', async () => {

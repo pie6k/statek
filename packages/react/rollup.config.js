@@ -7,5 +7,5 @@ export default {
     format: 'cjs',
   },
   plugins: [typescript()],
-  external: ['tslib', 'react', 'react-dom', '@statek/core'],
+  external: ['tslib', 'react', 'react-dom', 'statek'],
 };

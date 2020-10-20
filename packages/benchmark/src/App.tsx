@@ -1,5 +1,5 @@
 import React from 'react';
-import { view } from 'statek/lib';
+import { view } from 'statek';
 import { RowComponent } from './Row';
 import { appStore } from './store';
 

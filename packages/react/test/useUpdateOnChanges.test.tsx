@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWatchSelected } from '@statek/react';
+import { useUpdateOnAnyChange } from '@statek/react';
 import { store } from 'statek';
 import { awaitAct, expectContent, itRenders, render } from './utils';
 
@@ -10,7 +10,7 @@ describe('useUpdateOnChanges', () => {
       const obj = store({ foo: 1 });
       const spy = jest.fn();
       function Test() {
-        useWatchSelected(() => obj);
+        useUpdateOnAnyChange(() => obj);
         spy();
         return <>1</>;
       }

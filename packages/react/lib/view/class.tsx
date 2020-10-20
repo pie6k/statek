@@ -1,4 +1,4 @@
-import { manualWatch, store } from '@statek/core';
+import { manualWatch, store } from 'statek';
 import {
   Component,
   ComponentClass,

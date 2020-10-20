@@ -1,4 +1,4 @@
-import { manualWatch } from '@statek/core';
+import { manualWatch } from 'statek';
 import {
   ComponentType,
   FunctionComponent,
@@ -9,7 +9,7 @@ import {
   useReducer,
   useState,
 } from 'react';
-import { useStore } from '../hooks';
+import { useStore } from '../useStore';
 import { reactScheduler } from '../scheduler';
 import { CurrentView, UpdatesStore, viewsRenderStack } from './stack';
 import { extendablePromise } from './utils';

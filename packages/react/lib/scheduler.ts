@@ -1,6 +1,5 @@
-import { createAsyncScheduler, watch, ReactionCallback } from '@statek/core';
 import { unstable_batchedUpdates } from 'react-dom';
-import { act } from 'react-test-renderer';
+import { createAsyncScheduler, ReactionCallback, watch } from 'statek';
 
 export const reactScheduler = createAsyncScheduler(task => {
   unstable_batchedUpdates(() => {

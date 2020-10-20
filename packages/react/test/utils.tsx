@@ -1,13 +1,13 @@
-import { sync, syncEvery, waitForSchedulersToFlush } from '@statek/core';
+import { sync, syncEvery, waitForSchedulersToFlush } from 'statek';
 import { ReactElement, ReactNode } from 'react';
 import ReactTestRenderer, { act, create } from 'react-test-renderer';
 
-type ReactionModule = typeof import('@statek/core/lib/reaction');
+type ReactionModule = typeof import('statek/lib/reaction');
 
 jest.mock(
-  require.resolve('@statek/core/lib/reaction'),
+  require.resolve('statek/lib/reaction'),
   () => {
-    const original: ReactionModule = require('@statek/core/lib/reaction');
+    const original: ReactionModule = require('statek/lib/reaction');
 
     const originalApply = original.applyReaction;
     original.applyReaction = (...args: any) => {

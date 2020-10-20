@@ -1,8 +1,8 @@
-import { sync, store } from 'statek';
-import { useView, view } from '@statek/react';
+import { view } from '@statek/react';
 import React from 'react';
 import { act } from 'react-test-renderer';
-import { expectContent, itRenders, render } from './utils';
+import { store, sync } from 'statek';
+import { expectContent, render } from './utils';
 
 describe('sync', () => {
   it('rerenders on update instantly when change is sync', () => {

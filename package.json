@@ -8,7 +8,7 @@
     ]
   },
   "scripts": {
-    "core": "yarn workspace @statek/core",
+    "core": "yarn workspace statek",
     "react": "yarn workspace @statek/react",
     "benchmark": "yarn workspace @statek/benchmark",
     "clean": "del packages/**/lib/**/*.js",

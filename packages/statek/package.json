@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "main": "./lib",
   "scripts": {
-    "test": "jest --watch"
+    "test": "jest --watch",
+    "benchmark": "parcel ./benchmark/index.html",
+    "build": "rollup --config"
+  },
+  "dependencies": {
+    "tslib": "^2.0.0"
   },
   "devDependencies": {
-    "@statek/core": "0.1.0",
-    "@statek/react": "0.1.0"
-  },
-  "peerDependencies": {
-    "react": "*",
-    "react-dom": "*"
+    "@statek/testutils": "0.1.0"
   }
 }
