@@ -3,32 +3,34 @@ const fs = require('fs');
 console.log(fs);
 
 module.exports = {
-  mainSidebar: {
+  core: {
     Introduction: [
-      'introduction/home',
-      'introduction/motivation',
-      'introduction/installation',
-      'introduction/concepts',
+      'core/introduction/home',
+      'core/introduction/motivation',
+      'core/introduction/installation',
+      'core/introduction/concepts',
     ],
     'Getting Started': [
-      'getting-started/intro',
-      'getting-started/store',
-      'getting-started/watching',
-      'getting-started/selectors',
+      'core/getting-started/intro',
+      'core/getting-started/store',
+      'core/getting-started/watching',
+      'core/getting-started/selectors',
     ],
     Advanced: [
-      'advanced/async-selectors',
-      'advanced/async-watch',
-      'advanced/warm-selectors',
-      'advanced/manual-watch',
-      'advanced/watch-selected',
-      'advanced/optimizations',
-    ],
-    React: [
-      'react/view',
-      'react/use-watch',
-      'react/utility-hooks',
-      'react/3rd-party',
+      'core/advanced/async-selectors',
+      'core/advanced/warm-selectors',
+      'core/advanced/async-watch',
+      'core/advanced/caveats',
+      'core/advanced/manual-watch',
+      'core/advanced/watch-all-changes',
+      'core/advanced/optimizations',
     ],
   },
+  react: [
+    'react/introduction',
+    'react/view',
+    'react/using-selectors',
+    'react/hooks',
+    'react/3rd-party',
+  ],
 };

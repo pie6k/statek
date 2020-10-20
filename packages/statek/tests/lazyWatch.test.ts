@@ -190,11 +190,3 @@ describe('observe', () => {
     expect(dummy).toBe('World');
   });
 });
-
-describe('lazyWatch - options', () => {
-  it('should not run the passed function, if set to true', () => {
-    const fnSpy = jest.fn(() => {});
-    manualWatch(fnSpy);
-    expect(fnSpy).toBeCalledTimes(0);
-  });
-});

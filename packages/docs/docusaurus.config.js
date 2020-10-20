@@ -7,18 +7,17 @@ const themeConfig = {
     },
     items: [
       {
-        to: 'docs/',
-        activeBasePath: 'docs',
+        to: 'docs/core',
+        activeBasePath: 'docs/core',
         label: 'Docs',
         position: 'left',
       },
       {
-        to: 'api/',
-        activeBasePath: 'api',
-        label: 'Api',
+        to: 'docs/react',
+        activeBasePath: 'docs/react',
+        label: 'React',
         position: 'left',
       },
-      { to: 'blog', label: 'Blog', position: 'left' },
       {
         href: 'https://github.com/pie6k/statek',
         label: 'GitHub',
@@ -95,7 +94,9 @@ module.exports = {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl: 'https://github.com/pie6k/statek/packages/docs/',
+          remarkPlugins: [require('@docusaurus/remark-plugin-npm2yarn')],
         },
+
         blog: {
           showReadingTime: true,
           // Please change this to your repo.

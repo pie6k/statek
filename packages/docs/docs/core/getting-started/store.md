@@ -2,18 +2,23 @@
 title: Store
 ---
 
-To create the store, run following code
+We'll start by creating store for our todo list.
 
 ```ts
 import { store } from 'statek';
 
-const firstStore = store({ count: 0 });
+const todos = store({
+  list: [
+    { id: 1, name: 'A', status: 'done', owner: 'Anna' },
+    { id: 2, name: 'B', status: 'todo', owner: 'Tom' },
+  ],
+});
 ```
 
 Store can be used as normal plain JavaScript object.
 
 ```ts
-console.log(firstStore.count); // will output 0
+console.log(todos.list.length); // will output 2
 ```
 
 :::note
