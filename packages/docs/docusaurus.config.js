@@ -7,17 +7,12 @@ const themeConfig = {
     },
     items: [
       {
-        to: 'docs/core',
-        activeBasePath: 'docs/core',
+        to: 'docs',
+        activeBasePath: 'docs',
         label: 'Docs',
         position: 'left',
       },
-      {
-        to: 'docs/react',
-        activeBasePath: 'docs/react',
-        label: 'React',
-        position: 'left',
-      },
+
       {
         href: 'https://github.com/pie6k/statek',
         label: 'GitHub',
@@ -86,7 +81,8 @@ module.exports = {
   organizationName: 'facebook', // Usually your GitHub org/user name.
   projectName: 'docusaurus', // Usually your repo name.
   themeConfig,
-  themes: ['@docusaurus/theme-live-codeblock'],
+  plugins: ['docusaurus-plugin-sass'],
+  // themes: ['@docusaurus/theme-live-codeblock'],
   presets: [
     [
       '@docusaurus/preset-classic',
@@ -107,7 +103,7 @@ module.exports = {
           editUrl: 'https://github.com/pie6k/statek/packages/docs/blog/',
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css'),
+          customCss: require.resolve('./src/css/custom.scss'),
         },
       },
     ],

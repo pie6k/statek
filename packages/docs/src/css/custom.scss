@@ -1,0 +1,113 @@
+/* stylelint-disable docusaurus/copyright-header */
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+@font-face {
+  font-family: 'Kumbh Sans 2';
+  src: url('/static/fonts/KumbhSans-Regular.woff2') format('woff2'),
+    url('/static/fonts/KumbhSans-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kumbh Sans 2';
+  src: url('/static/fonts/KumbhSans-Bold.woff2') format('woff2'),
+    url('/static/fonts/KumbhSans-Bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Kumbh Sans 2';
+  src: url('/static/fonts/KumbhSans-Light.woff2') format('woff2'),
+    url('/static/fonts/KumbhSans-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* @import url('https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Varela&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Mulish:wght@300;700&family=Varela&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Cousine&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap'); */
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #8f61ef;
+  --ifm-color-primary-dark: rgb(33, 175, 144);
+  --ifm-color-primary-darker: rgb(31, 165, 136);
+  --ifm-color-primary-darkest: rgb(26, 136, 112);
+  --ifm-color-primary-light: rgb(70, 203, 174);
+  --ifm-color-primary-lighter: rgb(102, 212, 189);
+  --ifm-color-primary-lightest: rgb(146, 224, 208);
+  --ifm-code-font-size: 95%;
+  /* --ifm-font-family-base: 'Varela', 'Kumbh Sans', sans-serif; */
+  --ifm-font-family-base: 'Kumbh Sans 2', sans-serif;
+  --ifm-font-family-monospace: 'Ubuntu Mono', 'Space Mono', 'Cousine', monospace;
+  --ifm-list-item-margin: 0.5rem;
+  --ifm-toc-border-color: #8881;
+  --ifm-font-size-base: 17px;
+  --ifm-footer-padding-vertical: 4rem;
+  --ifm-alert-border-radius: 15px;
+  --ifm-color-success: #40dc9e2b;
+  --ifm-alert-color: var(--ifm-font-color-base);
+  --ifm-color-warning: #dcaa2e24;
+  --ifm-alert-border-width: 0px;
+  --ifm-alert-background-color: #8282822b;
+  // --ifm-alert-color:
+  // --ifm-alert-background-color:
+  // --ifm-font-color-base
+}
+
+body .alert--secondary {
+  --ifm-alert-color: var(--ifm-font-color-base);
+  --ra-admonition-icon-color: var(--ifm-font-color-base);
+  --ifm-alert-background-color: #8282822b;
+}
+
+.hero--primary {
+  --ifm-hero-text-color: var(--ifm-font-color-base);
+}
+
+html[data-theme='dark'] {
+}
+
+.docusaurus-highlight-code-line {
+  background-color: rgb(72, 77, 91);
+  display: block;
+  margin: 0 calc(-1 * var(--ifm-pre-padding));
+  padding: 0 var(--ifm-pre-padding);
+}
+
+.admonition-icon {
+  margin-right: 0.5em;
+}
+
+.admonition-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.footer__links {
+  margin-bottom: 4rem;
+}
+
+.markdown .prism-code {
+  border-radius: 7px;
+}
+
+.react-toggle-track-x {
+  font-family: sans-serif;
+}
+
+.menu__list-item .menu__link {
+  padding-top: 8px;
+}

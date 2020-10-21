@@ -1,5 +1,7 @@
 ---
-title: 3rd party components
+title: Introduction
+
+slug: /
 ---
 
 You can write content using [GitHub-flavored Markdown syntax](https://github.github.com/gfm/).
@@ -56,7 +58,6 @@ Strikethrough uses two tildes. ~~Scratch this.~~
 ## Links
 
 [I'm an inline-style link](https://www.google.com/)
-[I'm an inline-style link](core/getting-started/selectors)
 
 [I'm an inline-style link with title](https://www.google.com/ "Google's Homepage")
 

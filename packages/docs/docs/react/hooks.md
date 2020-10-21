@@ -1,198 +1,168 @@
 ---
-title: Utility hooks
+title: Hooks
 ---
 
-You can write content using [GitHub-flavored Markdown syntax](https://github.github.com/gfm/).
+### useWatch
 
-## Markdown Syntax
+Works the same way as regular `watch` method, excepts it'll automatically stop listening to changes when component unmounts
 
-To serve as an example page when styling markdown based Docusaurus sites.
+```tsx
+const myStore = store({ count: 1 });
 
-## Headers
-
-# H1 - Create the best documentation
-
-## H2 - Create the best documentation
-
-### H3 - Create the best documentation
-
-#### H4 - Create the best documentation
-
-##### H5 - Create the best documentation
-
-###### H6 - Create the best documentation
-
----
-
-## Emphasis
-
-Emphasis, aka italics, with _asterisks_ or _underscores_.
-
-Strong emphasis, aka bold, with **asterisks** or **underscores**.
-
-Combined emphasis with **asterisks and _underscores_**.
-
-Strikethrough uses two tildes. ~~Scratch this.~~
-
----
-
-## Lists
-
-1. First ordered list item
-1. Another item
-   - Unordered sub-list.
-1. Actual numbers don't matter, just that it's a number
-   1. Ordered sub-list
-1. And another item.
-
-- Unordered list can use asterisks
-
-* Or minuses
-
-- Or pluses
-
----
-
-## Links
-
-[I'm an inline-style link](https://www.google.com/)
-
-[I'm an inline-style link with title](https://www.google.com/ "Google's Homepage")
-
-[I'm a reference-style link][arbitrary case-insensitive reference text]
-
-[You can use numbers for reference-style link definitions][1]
-
-Or leave it empty and use the [link text itself].
-
-URLs and URLs in angle brackets will automatically get turned into links. http://www.example.com/ or <http://www.example.com/> and sometimes example.com (but not on GitHub, for example).
-
-Some text to show that the reference links can follow later.
-
-[arbitrary case-insensitive reference text]: https://www.mozilla.org/
-[1]: http://slashdot.org/
-[link text itself]: http://www.reddit.com/
-
----
-
-## Images
-
-Here's our logo (hover to see the title text):
-
-Inline-style: ![alt text](https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 1')
-
-Reference-style: ![alt text][logo]
-
-[logo]: https://github.com/adam-p/markdown-here/raw/master/src/common/images/icon48.png 'Logo Title Text 2'
-
-Images from any folder can be used by providing path to file. Path should be relative to markdown file.
-
----
-
-## Code
-
-```javascript
-var s = 'JavaScript syntax highlighting';
-alert(s);
+useWatch(() => {
+  console.log(myStore.count);
+});
 ```
 
-```python
-s = "Python syntax highlighting"
-print(s)
-```
+You can also provide 2nd argument will will force watch to be restarted. It works the same way as 2nd argument in `useEffect` hook.
 
-```
-No language indicated, so no syntax highlighting.
-But let's throw in a <b>tag</b>.
-```
-
-```js {2}
-function highlightMe() {
-  console['log']('This line can be highlighted!');
+```tsx
+const myStore = store({ count: 1 });
+function User({ userId }) {
+  useWatch(() => {
+    console.log(`Count is ${myStore.count} and current user is ${userId}`);
+  }, [userId]);
 }
 ```
 
----
-
-## Tables
-
-Colons can be used to align columns.
-
-| Tables        |      Are      |   Cool |
-| ------------- | :-----------: | -----: |
-| col 3 is      | right-aligned | \$1600 |
-| col 2 is      |   centered    |   \$12 |
-| zebra stripes |   are neat    |    \$1 |
-
-There must be at least 3 dashes separating each header cell. The outer pipes (|) are optional, and you don't need to make the raw Markdown line up prettily. You can also use inline Markdown.
-
-| Markdown | Less      | Pretty     |
-| -------- | --------- | ---------- |
-| _Still_  | `renders` | **nicely** |
-| 1        | 2         | 3          |
-
----
-
-## Blockquotes
-
-> Blockquotes are very handy in email to emulate reply text. This line is part of the same quote.
-
-Quote break.
-
-> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can _put_ **Markdown** into a blockquote.
-
----
-
-## Inline HTML
-
-<dl>
-  <dt>Definition list</dt>
-  <dd>Is something people use sometimes.</dd>
-
-  <dt>Markdown in HTML</dt>
-  <dd>Does *not* work **very** well. Use HTML <em>tags</em>.</dd>
-</dl>
-
----
-
-## Line Breaks
-
-Here's a line for us to start with.
-
-This line is separated from the one above by two newlines, so it will be a _separate paragraph_.
-
-This line is also a separate paragraph, but... This line is only separated by a single newline, so it's a separate line in the _same paragraph_.
-
----
-
-## Admonitions
-
 :::note
 
-This is a note
+Use 2nd argument only for values that are not parts of the store.
 
 :::
 
-:::tip
+### useStore
 
-This is a tip
+Creates 'local' version of the store that is memoized between renders.
 
-:::
+```tsx
+function User({ userId }) {
+  const store = useStore(() => ({ count: 1 }));
 
-:::important
+  // use store the same way as if it was created outside of the component
+}
+```
 
-This is important
+### useSelected
 
-:::
+Sometimes you want to re-render component only for specific sort of store updates.
 
-:::caution
+Let's say we have store with todo list and info about which todo is currently opened
 
-This is a caution
+```ts
+const todos = store({
+  list: [], // array of todos
+  openedTodoId: null, // can be null or id of todo
+});
+```
 
-:::
+Now we have component responsible for displaying single todo:
 
-:::warning
+```tsx
+const Todo = view(({ todo }) => {
+  const isOpened = todo.id === todos.openedTodoId;
 
-This is a warning
+  if (isOpened) {
+    // render detailed content
+  }
 
-:::
+  // ...
+});
+```
+
+In such case - Todo component would re-render very time `openedTodoId` is changed, even if it was not opened before and after the change.
+
+We can modify our code:
+
+```tsx
+const Todo = view(({ todo }) => {
+  const isOpened = useSelected(() => todo.id === todos.openedTodoId);
+
+  if (isOpened) {
+    // render detailed content
+  }
+
+  // ...
+});
+```
+
+With this simple change - our component will still check if it is opened now after each `openedTodoId` change, but will re-render only if returned value changes.
+
+### useUpdateOnAnyChange
+
+This hook is useful if we need to provide store value into 3rd party component we cannot wrap with `view`
+
+```tsx
+const DashboardPanel = view(() => {
+
+  return (
+    <>
+      {/** TableComponent is not created by us */}
+      <TableComponent data={store.usersData}>
+    </>
+  );
+})
+
+```
+
+In such case, if `.usersData` changes - `DashboardPanel` will not re-render as it is not using it directly.
+
+`DashboardPanel` will not re-render as well as it is not wrapped with `view`.
+
+In such case we can modify our code:
+
+```tsx
+const DashboardPanel = view(() => {
+  useUpdateOnAnyChange(store.usersData);
+
+  return (
+    <>
+      {/** TableComponent is not created by us */}
+      <TableComponent data={store.usersData}>
+    </>
+  );
+})
+```
+
+Now, every time **any** part of `store.usersData` is changed, `DashboardPanel` will re-render.
+
+### useStatefulWatch
+
+Sometimes we want to keep some sort of local state during watching of the store. Let's say we have store:
+
+```ts
+const myStore = store({ count: 0 });
+```
+
+and we watch it, but we only want to output new information to the console on every 10th change.
+
+We can accomplish it like:
+
+```ts
+// We provide function that returns watching function.
+useStatefulWatch(() => {
+  // Here we initialize our 'state'.
+  // Note that store values read here will not be watched.
+  let updatesSinceReset = 0;
+
+  // here we can start watching the store
+  return () => {
+    updatesSinceReset++;
+    const currentCount = myStore.count;
+    const isCritical = currentCount > 4000;
+
+    if (isCritical) {
+      // log every time count is bigger than 4000.
+      console.log(`Count is critical!`);
+      return;
+    }
+
+    if (updatesSinceReset > 10) {
+      console.log(
+        `Count is normal - ${currentCount}. Will log again after 10 changes.`,
+      );
+      updatesSinceReset = 0;
+    }
+  };
+});
+```
