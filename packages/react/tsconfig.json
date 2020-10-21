@@ -5,6 +5,9 @@
     "esModuleInterop": true,
     "downlevelIteration": true,
     "strict": true,
-    "importHelpers": true
-  }
+    "importHelpers": true,
+    "declaration": true,
+    "declarationDir": "./types"
+  },
+  "include": ["./lib"]
 }
