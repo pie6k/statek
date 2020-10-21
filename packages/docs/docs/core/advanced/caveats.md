@@ -21,6 +21,20 @@ watch(() => {
 
 Code such as above would cause infinite loop of reaction re-running, as it is updating values it just used.
 
+:::note
+
+You can think about it in similar way as trying to modify react component state during the render:
+
+```tsx {4}
+function SomeComponent() {
+  const [state, setState] = useState('foo');
+
+  state = 'bar'; // this is not allowed
+}
+```
+
+:::
+
 :::caution
 
 During watch reaction, modifying values currently used by the same reaction will throw an error.

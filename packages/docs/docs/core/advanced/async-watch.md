@@ -2,13 +2,19 @@
 title: Async watch
 ---
 
+:::note
+
+This feature can be usually replaced with async selectors and it is recommended to do so.
+
+:::
+
 Each `watch` reaction can also be async function.
 
 Let's say, each time user opens new todo, we want to check all attachments and warn user if they contain viruses.
 
 We could write such watch like:
 
-```ts
+```ts {7,11}
 // Selector from our previous example
 const todoAttachments = selectorFamily(async todoId => {
   const attachments = await todoApi.getAttachments(todoId);
@@ -34,8 +40,10 @@ Few notes here.
 - Again, after each `await` phase - reaction will check if any previously used values changed. If this is the case - reaction will instantly cancel next steps and start over
 - We're using `selector.promise` instead of `selector.value`. This is because we're in async function, so there is no need to suspend current reaction on each async read attempt.
 
-:::note
+:::caution
 
-Using `selector.read` for async selectors will throw inside async reactions.
+In async functions always use `const value = await selector.promise` instead of `const value = selector.value`.
+
+Using `selector.read` inside async functions will throw an error.
 
 :::

@@ -157,7 +157,7 @@ todos.list[0].name = 'Foo';
 
 Let's modify our store:
 
-```ts
+```tsx live
 const todos = store({
   list: [], // Same as in previous examples
   // other props...
@@ -174,6 +174,22 @@ const todos = store({
     name && todo.name = name;
     status && todo.status = status;
   },
+});
+```
+
+```tsx live
+const s = store({ count: 1 });
+
+const Comp = view(() => {
+  return (
+    <div
+      onClick={() => {
+        s.count++;
+      }}
+    >
+      elo {s.count}
+    </div>
+  );
 });
 ```
 

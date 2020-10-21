@@ -113,7 +113,7 @@ export function createFunctionalView<C extends FunctionComponent<any>>(
   return MemoizedViewComponent;
 }
 
-const updateReducer = (num: number): number => (num + 1) % 1_000_000;
+const updateReducer = (num: number): number => (num + 1) % 100000;
 
 export function useForceUpdate(): () => void {
   const [, update] = useReducer(updateReducer, 0);

@@ -2,7 +2,7 @@
 title: Store
 ---
 
-We'll start by creating store for our todo list.
+We'll start by creating simple store for our todo list.
 
 ```ts
 import { store } from 'statek';
@@ -15,16 +15,24 @@ const todos = store({
 });
 ```
 
-Store can be used as normal plain JavaScript object.
+Store can be created with any valid JavaScript object.
+
+:::tip
+
+Store can also include JavaScript objects such as `Map`, `Set` etc. For example
+
+````ts
+store({
+  list: new Set()
+});
+:::
+
+### Reading from the store
+
+After store is created, we can read from it as we would do with normal JavaScript object:
 
 ```ts
 console.log(todos.list.length); // will output 2
-```
+````
 
-:::note
-
-In next chapters of this tutorial, we'll skip `import` section in code examples.
-
-:::
-
-Now, as we have the store, we can start watching changes made to it.
+Our store is ready to start watching changes we'll make to it.

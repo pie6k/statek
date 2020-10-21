@@ -10,7 +10,16 @@ Let's say we want to calculate count of finished todos on our list.
 
 Without selectors, we could do something like:
 
-```ts
+```tsx examples
+//// React
+const CompletedTodosCount = view(() => {
+  const completedTodos = todos.list.filter(todo => todo.status === 'done');
+
+  return <div>Count of completed todos is {completedTodos.length}</div>;
+});
+
+//// watch
+
 watch(() => {
   const completedTodos = todos.list.filter(todo => todo.status === 'done');
 
@@ -20,9 +29,22 @@ watch(() => {
 
 This will work just fine, but it is possible that we'll want to use result of the same calculation in another place.
 
-Let's say we want different watch to log how many tasks are left to be done.
+Let's say we want to get remainig todos as well.
 
-```ts
+```tsx examples
+//// React
+const RemainingTodosCount = view(() => {
+  const completedTodos = todos.list.filter(todo => {
+    return todo.status === 'done';
+  }).length;
+
+  const totalTodos = todos.list.length;
+
+  const remainingTodos = totoalTodos - completedTodos;
+
+  return <div>Count of remaining todos is {remainingTodos.length}</div>;
+});
+//// watch
 watch(() => {
   const completedTodos = todos.list.filter(todo => {
     return todo.status === 'done';
@@ -36,7 +58,7 @@ watch(() => {
 });
 ```
 
-As you might see, both 2 above watching reactions will filter completed tasks each time todo list is changed.
+As you might see, in both 2 above cases, we will compute list of completed tasks each time todo list is changed.
 
 Let's try to solve this problem by introducing selector.
 
@@ -48,9 +70,14 @@ const completedTodosCount = selector(() => {
 });
 ```
 
-And now use this selector value in 2 watch reactions we've written above:
+And now use this selector value in 2 code examples we've written above:
 
-```ts
+```tsx examples
+//// React
+const CompletedTodosCount = view(() => {
+  return <div>Count of completed todos is {completedTodosCount.value}</div>;
+});
+//// watch
 watch(() => {
   console.log(`Count of completed todos is ${completedTodosCount.value}`);
 });
@@ -58,7 +85,17 @@ watch(() => {
 
 and...
 
-```ts
+```tsx examples
+//// React
+const RemainingTodosCount = view(() => {
+  return (
+    <div>
+      Count of remaining todos is{' '}
+      {todos.list.length - completedTodosCount.value}
+    </div>
+  );
+});
+//// watch
 watch(() => {
   const remainingTodos = todos.list.length - completedTodosCount.value;
 
@@ -99,6 +136,12 @@ Now, we can start using such selector family like:
 ```ts
 todosByStatus('done').value.length; // will output count of finished tasks
 ```
+
+:::note
+
+Selectors are used the same way in `watch` reactions and `view` components
+
+:::
 
 Selectors are caching their values, so calling
 

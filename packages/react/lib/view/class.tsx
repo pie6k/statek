@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { reactScheduler } from '../scheduler';
 import { UpdatesStore, viewsRenderStack } from './stack';
-import { extendablePromise } from './utils';
+import { extendablePromise, ExtendablePromise } from './utils';
 
 type InferComponentProps<
   C extends ComponentType<any>
@@ -50,9 +50,12 @@ export function createClassView<C extends ComponentClass<any, any>>(
     static getDerivedStateFromError: any;
     static contextType: any;
 
-    private [updatesStoreSymbol] = store<UpdatesStore>({ isUpdating: false });
-    private [unsubscribeSymbol] = () => {};
-    private [silentUpdatesSymbol] = extendablePromise();
+    private [updatesStoreSymbol]: UpdatesStore;
+    private [unsubscribeSymbol]: () => void;
+    private [silentUpdatesSymbol]: ExtendablePromise;
+    // private [updatesStoreSymbol] = store<UpdatesStore>({ isUpdating: false });
+    // private [unsubscribeSymbol] = () => {};
+    // private [silentUpdatesSymbol] = extendablePromise();
 
     constructor(props: Props) {
       super(props);
@@ -97,7 +100,9 @@ export function createClassView<C extends ComponentClass<any, any>>(
         },
       );
 
+      this[updatesStoreSymbol] = store<UpdatesStore>({ isUpdating: false });
       this[unsubscribeSymbol] = reactiveRender.stop;
+      this[silentUpdatesSymbol] = extendablePromise();
       this.render = reactiveRender;
 
       methodsToBind.forEach(methodToBindName => {

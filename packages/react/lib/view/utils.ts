@@ -33,3 +33,5 @@ export function extendablePromise() {
     },
   };
 }
+
+export type ExtendablePromise = ReturnType<typeof extendablePromise>;

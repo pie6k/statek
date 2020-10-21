@@ -29,6 +29,8 @@
   --ifm-toc-border-color: #8881;
   --ifm-font-size-base: 17px;
   --ifm-footer-padding-vertical: 4rem;
+  --ifm-alert-border-radius: 15px;
+  --ifm-color-success: #40dc40;
 }
 
 .docusaurus-highlight-code-line {
@@ -49,4 +51,8 @@
 
 .footer__links {
   margin-bottom: 4rem;
+}
+
+.markdown .prism-code {
+  border-radius: 7px;
 }

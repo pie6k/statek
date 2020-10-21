@@ -86,6 +86,7 @@ module.exports = {
   organizationName: 'facebook', // Usually your GitHub org/user name.
   projectName: 'docusaurus', // Usually your repo name.
   themeConfig,
+  themes: ['@docusaurus/theme-live-codeblock'],
   presets: [
     [
       '@docusaurus/preset-classic',
@@ -94,7 +95,10 @@ module.exports = {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl: 'https://github.com/pie6k/statek/packages/docs/',
-          remarkPlugins: [require('@docusaurus/remark-plugin-npm2yarn')],
+          remarkPlugins: [
+            require('@docusaurus/remark-plugin-npm2yarn'),
+            require('./src/plugins/examples'),
+          ],
         },
 
         blog: {

@@ -1,7 +1,3 @@
-const fs = require('fs');
-
-console.log(fs);
-
 module.exports = {
   core: {
     Introduction: [
@@ -13,6 +9,8 @@ module.exports = {
     'Getting Started': [
       'core/getting-started/intro',
       'core/getting-started/store',
+      'core/getting-started/modifying-store',
+      'core/getting-started/views',
       'core/getting-started/watching',
       'core/getting-started/selectors',
     ],
@@ -20,10 +18,12 @@ module.exports = {
       'core/advanced/async-selectors',
       'core/advanced/warm-selectors',
       'core/advanced/async-watch',
+      // Core: {
       'core/advanced/caveats',
       'core/advanced/manual-watch',
       'core/advanced/watch-all-changes',
       'core/advanced/optimizations',
+      // }
     ],
   },
   react: [
