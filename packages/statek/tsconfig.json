@@ -6,5 +6,9 @@
     "downlevelIteration": true,
     "strict": true,
     "importHelpers": true,
-  }
+    "declaration": true,
+    "declarationDir": "./types"
+  },
+  "include": ["./lib"]
+  
 }

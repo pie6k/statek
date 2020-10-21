@@ -30,6 +30,8 @@
     "react-dom": "^16.13.1",
     "react-test-renderer": "^16.13.1",
     "rollup": "^2.30.0",
+    "rollup-plugin-dts": "^1.4.13",
+    "rollup-plugin-typescript2": "^0.28.0",
     "ts-jest": "^26.4.1",
     "ts-node": "^9.0.0",
     "ts-node-dev": "^1.0.0-pre.63",
