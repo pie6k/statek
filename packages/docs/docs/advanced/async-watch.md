@@ -4,6 +4,12 @@ title: Async watch
 
 :::note
 
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
+:::note Use selectors instead, where possible
+
 This feature can be usually replaced with async selectors and it is recommended to do so.
 
 :::

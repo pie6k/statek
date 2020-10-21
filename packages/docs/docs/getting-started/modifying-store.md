@@ -2,6 +2,12 @@
 title: Modifying the store
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 Before we'll start watching the store, let's add some utility functions to it so it'll be easier to work with.
 
 We can already modify the store calling code like this directly:

@@ -2,6 +2,12 @@
 title: Watching
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 If you've read previous **Views** chapter, you might already have some idea how watching works in Statek, but let's focus on it a bit more
 
 Having the todos store ready, we can start watching it providing reaction function or using it inside react `view` component.

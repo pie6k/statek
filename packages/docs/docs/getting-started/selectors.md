@@ -2,6 +2,12 @@
 title: Selectors
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 ## Selectors without arguments
 
 Selectors allows us to perform some expensive calculations and reuse results multiple times.

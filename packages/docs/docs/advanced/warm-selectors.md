@@ -2,6 +2,12 @@
 title: Selectors 'warming'
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 Quite often it might happen that we want to read value from 2 or more async selectors 'at once'.
 
 For example, we might need both comments and attachments for our opened todo.

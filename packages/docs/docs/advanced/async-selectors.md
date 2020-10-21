@@ -2,6 +2,12 @@
 title: Async selectors
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 :::tip
 
 Welcome to _advanced_ section of Statek docs 🚀!

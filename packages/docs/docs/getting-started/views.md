@@ -2,6 +2,12 @@
 title: Views
 ---
 
+:::note
+
+This section uses parts of the code created in previous tutorial parts.
+
+:::
+
 :::note React only docs section
 
 This section is required only if you use statek with React. If you want to use plain version of statek, feel free to skip this chapter
