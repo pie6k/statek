@@ -86,6 +86,7 @@ export type ReactionDebugger = (operation: OperationInfo) => {};
 
 export interface ReactionOptions {
   scheduler?: SchedulerInput;
+  debug?: (operation: OperationInfo) => {};
   // Will be passed as 'this' argument during watch reaction call
   context?: any;
   // Debug helper

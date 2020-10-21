@@ -2,6 +2,11 @@
   "name": "statek-root",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://statek.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pie6k/statek"
+  },
   "workspaces": {
     "packages": [
       "packages/*"

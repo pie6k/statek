@@ -1,10 +1,9 @@
-import { createChildStoreIfNeeded, storeToRawMap } from '../store';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,
   MutationOperationInfo,
-  ReadOperationInfo,
 } from '../operations';
+import { createChildStoreIfNeeded, storeToRawMap } from '../store';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
