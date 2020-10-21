@@ -14,7 +14,7 @@ Selectors allows us to perform some expensive calculations and reuse results mul
 
 Let's say we want to calculate count of finished todos on our list.
 
-Without selectors, we could do something like:
+### Example without selectors
 
 ```tsx examples
 //// React
@@ -65,6 +65,8 @@ watch(() => {
 ```
 
 As you might see, in both 2 above cases, we will compute list of completed tasks each time todo list is changed.
+
+### Create first selector
 
 Let's try to solve this problem by introducing selector.
 
@@ -194,15 +196,9 @@ const todosForOwner = selectorFamily((owner, status) => {
 });
 ```
 
----
-
-### Note about arguments
-
-:::note
+:::caution Arguments must be serializable
 
 Arguments passed to selectors must be serializable. You can pass any set of arguments that is JSON like - plain objects, arrays, primitives like strings, numbers etc.
-
-:::
 
 ```ts
 const someSelector = selectorFamily(callbackFunction => {
@@ -213,3 +209,5 @@ someSelector(() => 'foo').value; // will throw an error!
 ```
 
 Such selector is incorrect and will throw, when called with function as an argument.
+
+:::

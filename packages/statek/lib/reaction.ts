@@ -86,9 +86,11 @@ export type ReactionDebugger = (operation: OperationInfo) => {};
 
 export interface ReactionOptions {
   scheduler?: SchedulerInput;
-  debug?: (operation: OperationInfo) => {};
+  // Will be passed as 'this' argument during watch reaction call
   context?: any;
+  // Debug helper
   name?: string;
+  // Called every time any selector used during the reaction starts to silently update itself
   onSilentUpdate?: EventCallback<Promise<any>>;
 }
 
@@ -108,6 +110,9 @@ export function applyReaction(reaction: ReactionCallback) {
   reaction.apply(context);
 }
 
+/**
+ * Returns true if provided callback is a reaction
+ */
 export function isReaction(reaction: ReactionCallback) {
   return reactionsRegistry.has(reaction);
 }

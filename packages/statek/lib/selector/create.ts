@@ -17,6 +17,9 @@ interface SelectorStore<T> {
   promise: Promise<T> | null;
 }
 
+/**
+ * Creates new selector
+ */
 export function selector<V>(
   getter: () => Promise<V> | V,
   options: SelectorOptions = {},

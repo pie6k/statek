@@ -99,7 +99,7 @@ Now, let's add new todo:
 todos.add(newTodo);
 ```
 
-Changes will not triger reactions or components to be called again, as `.list` part of the store was never used.
+Changes **will not triger** reactions or components to be called again, as `.list` part of the store was never used.
 
 If we'll however call
 

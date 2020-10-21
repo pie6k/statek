@@ -8,46 +8,76 @@ import styles from './styles.module.css';
 
 const features = [
   {
-    title: 'Easy to Use',
+    title: 'Declarative data',
     imageUrl: 'img/undraw_docusaurus_mountain.svg',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Statek connects reactive data reactions with declarative style of
+        expressing desired results inspired by react.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'Read asyns data using sync functions',
     imageUrl: 'img/undraw_docusaurus_tree.svg',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        It is possible to read async selectors data in sync-like way inside
+        store reactions and react components
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'No boilerplate',
     imageUrl: 'img/undraw_docusaurus_react.svg',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        It is nearly trivial to start working with statek. Data store created
+        with statek works like plain js-object.
+      </>
+    ),
+  },
+  {
+    title: 'Non-react suspense mode',
+    imageUrl: 'img/undraw_docusaurus_react.svg',
+    description: (
+      <>
+        Inspired by react suspense - the same thing is possible inside store
+        change reactions, allowing easy access to async data
+      </>
+    ),
+  },
+  {
+    title: 'Works with or without React',
+    imageUrl: 'img/undraw_docusaurus_react.svg',
+    description: (
+      <>
+        Most of the concepts of Statek works nearly identical inside or outside
+        of react world.
+      </>
+    ),
+  },
+  {
+    title: 'Data (async) selectors',
+    imageUrl: 'img/undraw_docusaurus_react.svg',
+    description: (
+      <>
+        Use selectors to perform expensive calculations or async requestes and
+        reuse results multiple times.
       </>
     ),
   },
 ];
 
-function Feature({imageUrl, title, description}) {
+function Feature({ imageUrl, title, description }) {
   const imgUrl = useBaseUrl(imageUrl);
   return (
     <div className={clsx('col col--4', styles.feature)}>
-      {imgUrl && (
+      {/* {imgUrl && (
         <div className="text--center">
           <img className={styles.featureImage} src={imgUrl} alt={title} />
         </div>
-      )}
+      )} */}
       <h3>{title}</h3>
       <p>{description}</p>
     </div>
@@ -56,13 +86,17 @@ function Feature({imageUrl, title, description}) {
 
 function Home() {
   const context = useDocusaurusContext();
-  const {siteConfig = {}} = context;
+  const logoUrl = useBaseUrl('img/statek-logo-transparent.png');
+
+  const { siteConfig = {} } = context;
   return (
     <Layout
       title={`Hello from ${siteConfig.title}`}
-      description="Description will go into a meta tag in <head />">
+      description="Description will go into a meta tag in <head />"
+    >
       <header className={clsx('hero hero--primary', styles.heroBanner)}>
         <div className="container">
+          <img src={logoUrl} className={clsx(styles.logo)} />
           <h1 className="hero__title">{siteConfig.title}</h1>
           <p className="hero__subtitle">{siteConfig.tagline}</p>
           <div className={styles.buttons}>
@@ -71,7 +105,8 @@ function Home() {
                 'button button--outline button--secondary button--lg',
                 styles.getStarted,
               )}
-              to={useBaseUrl('docs/')}>
+              to={useBaseUrl('docs/')}
+            >
               Get Started
             </Link>
           </div>

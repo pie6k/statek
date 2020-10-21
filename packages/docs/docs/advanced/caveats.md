@@ -21,7 +21,7 @@ watch(() => {
 
 Code such as above would cause infinite loop of reaction re-running, as it is updating values it just used.
 
-:::note
+:::tip
 
 You can think about it in similar way as trying to modify react component state during the render:
 
@@ -113,7 +113,7 @@ Few notes here.
 - Again, after each `await` phase - reaction will check if any previously used values changed. If this is the case - reaction will instantly cancel next steps and start over
 - We're using `selector.promise` instead of `selector.value`. This is because we're in async function, so there is no need to suspend current reaction on each async read attempt.
 
-:::note
+:::caution
 
 Using `selector.read` for async selectors will throw inside async reactions.
 

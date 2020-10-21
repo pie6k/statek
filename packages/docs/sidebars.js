@@ -2,7 +2,7 @@ module.exports = {
   core: {
     Introduction: [
       'introduction/home',
-      'introduction/motivation',
+      // 'introduction/motivation',
       'introduction/installation',
       'introduction/concepts',
     ],

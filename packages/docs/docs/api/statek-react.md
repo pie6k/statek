@@ -3,134 +3,189 @@ title: Api - @statek/react
 sidebar_label: Statek - React
 ---
 
-Quite often it might happen that we want to read value from 2 or more async selectors 'at once'.
+### view
 
-For example, we might need both comments and attachments for our opened todo.
+Returns reactive version of provided component. Returned component has exactly the same props as provided one
 
-In such case, we'll have 2 async selectors
-
-```ts {6-9}
-const todoComments = selectorFamily(async todoId => {
-  const comments = await todoApi.getComments(todoId);
-  return comments;
-});
-
-const todoAttachments = selectorFamily(async todoId => {
-  const attachments = await todoApi.getAttachments(todoId);
-  return attachments;
+```tsx
+const Component = view(props => {
+  // reading from the store is only allowed inside view components
+  return <div>{someStore.value}</div>;
 });
 ```
 
-Now, you might want to use them both at the same time:
+### useStore
 
-```tsx {9} examples
-//// React
-const TodoInfo = view(() => {
-  const { openedTodoId } = todos;
+Creates 'local' version of the store that is memoized between renders.
 
-  if (!openedTodoId) {
-    return;
+```tsx
+function User({ userId }) {
+  const store = useStore(() => ({ count: 1 }));
+
+  // use store the same way as if it was created outside of the component
+}
+```
+
+### useSelected
+
+Watches stores or selectors using provided callback and re-renders only when returned value changes.
+
+Let's say we have store with todo list and info about which todo is currently opened
+
+```tsx
+const Todo = view(({ todo }) => {
+  const isOpened = useSelected(() => todo.id === todos.openedTodoId);
+
+  if (isOpened) {
+    // render detailed content
   }
 
-  const comments = todoComments(openedTodoId).value;
-  const attachments = todoAttachments(openedTodoId).value;
+  // ...
+});
+```
+
+### useUpdateOnAnyChange
+
+Will re-render component every time **any** value of provided store changes
+
+This hook is useful if we need to provide store value into 3rd party component we cannot wrap with `view`
+
+```tsx
+const DashboardPanel = view(() => {
 
   return (
-    <div>
-      We have ${comments.length}) comments and ${attachments.length} attachments
-    </div>
+    <>
+      {/** TableComponent is 3rd party component or we dont want to modify it */}
+      <TableComponent data={store.usersData}>
+    </>
   );
-});
-//// watch
-watch(() => {
-  const { openedTodoId } = todos;
+})
 
-  if (!openedTodoId) {
-    return;
-  }
+```
 
-  const comments = todoComments(openedTodoId).value;
-  const attachments = todoAttachments(openedTodoId).value;
+### useStatefulWatch
 
-  console.log(
-    `We have ${comments.length}) comments and ${attachments.length} attachments`,
-  );
+Allows creating watch effect that can have some internal 'state' in form of variables
+
+Sometimes we want to keep some sort of local state during watching of the store. Let's say we have store:
+
+```ts
+const myStore = store({ count: 0 });
+```
+
+and we watch it, but we only want to output new information to the console on every 10th change.
+
+We can accomplish it like:
+
+```ts
+// We provide function that returns watching function.
+useStatefulWatch(() => {
+  // Here we initialize our 'state'.
+  // Note that store values read here will not be watched.
+  let updatesSinceReset = 0;
+
+  // here we can start watching the store
+  return () => {
+    updatesSinceReset++;
+    const currentCount = myStore.count;
+    const isCritical = currentCount > 4000;
+
+    if (isCritical) {
+      // log every time count is bigger than 4000.
+      console.log(`Count is critical!`);
+      return;
+    }
+
+    if (updatesSinceReset > 10) {
+      console.log(
+        `Count is normal - ${currentCount}. Will log again after 10 changes.`,
+      );
+      updatesSinceReset = 0;
+    }
+  };
 });
 ```
 
-This, however - will make such reaction or render to **suspend** twice. First, when it tries to read comments, and then **after** comments selector resolves, when it tries to read attachments.
+### useWatch
 
-We might want to avoid that and somehow start requesting both values in parrell.
+Works the same way as regular `watch` method, excepts it'll automatically stop listening to changes when component unmounts
 
-This is when `warmSelectors` function comes in handy.
+```tsx
+const myStore = store({ count: 1 });
 
-We can modify our code:
-
-```tsx {11} examples
-//// React
-import { warmSelectors } from 'statek';
-
-const OpenedTodoInfo = view(() => {
-  const { openedTodoId } = todos;
-
-  if (!openedTodoId) {
-    return;
-  }
-
-  // Note we're not calling `.value` on our selectors!
-  warmSelectors(todoComments(openedTodoId), todoAttachments(openedTodoId));
-
-  // Next time this reaction reaches this point,
-  // we're guaranteed both selectors have their values ready to read.
-  const comments = todoComments(openedTodoId).value;
-  const attachments = todoAttachments(openedTodoId).value;
-
-  return (
-    <div>
-      We have ${comments.length}) comments and ${attachments.length} attachments
-    </div>
-  );
-});
-//// watch
-import { warmSelectors } from 'statek';
-
-watch(() => {
-  const { openedTodoId } = todos;
-
-  if (!openedTodoId) {
-    return;
-  }
-
-  // Note we're not calling `.value` on our selectors!
-  warmSelectors(todoComments(openedTodoId), todoAttachments(openedTodoId));
-
-  // Next time this reaction reaches this point,
-  // we're guaranteed both selectors have their values ready to read.
-  const comments = todoComments(openedTodoId).value;
-  const attachments = todoAttachments(openedTodoId).value;
-
-  console.log(
-    `We have ${comments.length}) comments and ${attachments.length} attachments`,
-  );
+useWatch(() => {
+  console.log(myStore.count);
 });
 ```
 
-This way, we let both selectors know that their value is requested **before** we actually try to read it so it'll need to suspend.
+### useView
 
-This way reaction/render will **suspend** only once.
+:::caution
 
-- When it tries to read comments data - it'll suspend,
-- but as we warmed attachments selector as well already, it knows it needs to wait for it as well before trying again.
-- suspended reaction/render again will be restarted when **both** comments and attachments are ready
-
-:::tip
-
-It's important to call `warmSelectors` **before** trying to read any selector value with `selector.value`
+This feature is experimental
 
 :::
 
-:::tip
+Instead of wrapping your functional components with `view`, you can call `useView` before reading any value from the store
 
-We **warm** ☀️ selectors, not **warN**
+```tsx examples
+//// view
+const Component = view(() => {
+  return <div>{store.value}</div>;
+});
+//// useView
+function Component() {
+  useView();
+  return <div>{store.value}</div>;
+}
+```
+
+### WatchContext
+
+:::caution
+
+This feature is experimental
 
 :::
+
+This one is useful when you use 3rd party components or have some large components you don't want to modify.
+
+By default (stable solution) you can use `useUpdateOnAnyChange` described in hooks section.
+
+```tsx
+const DashboardPanel = view(() => {
+  useUpdateOnAnyChange(store.usersData);
+
+  return (
+    <>
+      {/** TableComponent is not created by us */}
+      <TableComponent data={store.usersData}>
+    </>
+  );
+})
+```
+
+:::info
+
+`useUpdateOnAnyChange` is stable and is safe to be used. It is shown here only as an example
+
+:::
+
+This will work just fine, but the downside of it is that it will cause your component to re-render on **any** provided store part change, even if it was never used.
+
+Instead, we can wrap 3rd party or component we dont want to modify with `WatchContext`:
+
+```tsx
+const DashboardPanel = view(() => {
+  return (
+    <>
+      <WatchContext stores=[store.userData]>
+        {/** TableComponent is not created by us */}
+        <TableComponent data={store.usersData}>
+      </WatchContext>
+    </>
+  );
+})
+```
+
+This way, `WatchContext` will re-render only when any value used by any (even deeply nested) child changes.

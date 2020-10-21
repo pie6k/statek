@@ -3,163 +3,229 @@ title: Api - statek
 sidebar_label: Statek
 ---
 
-:::tip
+### batch
 
-Welcome to _advanced_ section of Statek docs 🚀!
-
-:::
-
-Sometimes we need to get additional data in async way. Let's say each of **our todos might have some comments, but we need to fetch those comments from external server.**
-
-Let's extend our store with `openedTodoId` property. We'll then fetch comments for opened todo.
+Will delay informing any reactions or components about write operations during the end of the call
 
 ```ts
-const todos = store({
-  list: [], // from previous examples,
-  // ...all other props
-  openedTodoId: null, // can be null or id of todo
+batch(() => {
+  // Reactions or components watching store.value will be delayed unitl the end of this callback
+  store.value++;
+  store.value++;
 });
 ```
 
-Now, let's create selector family that can fetch comments for requested todo id:
+### dontWatch
+
+Will not watch any read operations during provided callback
 
 ```ts
-const todoComments = selectorFamily(async todoId => {
-  const comments = await todoApi.getComments(todoId);
-  return comments;
+dontWatch(() => {
+  // will not record read operations during this call
+  performExpensiveOperation(store);
 });
 ```
 
-As our selector seems to be ready, and we have information about opened todo in the store, we can try to use the selector
+### sync
 
-```tsx examples
-//// React
-const OpenedTodoComments = view(() => {
-  const { openedTodoId } = todos;
+Will make any store changes performed during the call ignore schedulers of watch reactions, even if they have any
 
-  if (!openedTodoId) {
-    return;
-  }
+```ts
+const myStore = store({ count: 1 });
 
-  const commentsForOpenedTodo = todoComments(openedTodoId).value;
+watch(
+  () => {
+    console.log(myStore.count);
+  },
+  {
+    scheduler: 'async',
+  },
+);
 
-  return (
-    <div>Count of comments for opened todo: {commentsForOpenedTodo.length}</div>
-  );
-});
-
-function App() {
-  return (
-    <Suspense fallback="Loading...">
-      <OpenedTodoComments />
-    </Suspense>
-  );
-}
-//// watch
-watch(() => {
-  const { openedTodoId } = todos;
-
-  if (!openedTodoId) {
-    return;
-  }
-
-  const commentsForOpenedTodo = todoComments(openedTodoId).value;
-
-  console.log(
-    `Count of comments for opened todo: ${commentsForOpenedTodo.length})`,
-  );
+sync(() => {
+  // Will be picked by above reaction ignoring async scheduler
+  myStore.count++;
 });
 ```
-
-Note that **even though our selector is async, we're reading its value in a sync way!**
-
-This happens because we're **suspending** reading values from selectors if they're not ready yet. It means we instantly stop current 'try', wait for selector to be ready and then try again.
 
 :::note
 
-Even if selector is async, you can read its value sync-like inside, watch or other selectors or react components
+Read operations during sync call are still batched
 
 :::
 
-:::note React note
+### syncEvery
 
-Components reading from async selectors must be wrapped inside `Suspense` component.
-
-:::
-
----
-
-Having our code ready to read opened todo comments, if we change our opened todo
+Will flush each change to the store made during this callback instantly, ignoring any reactions schedulers
 
 ```ts
-todos.openedTodoId = 1;
+const myStore = store({ count: 1 });
+
+watch(
+  () => {
+    console.log(myStore.count);
+  },
+  {
+    scheduler: 'async',
+  },
+);
+
+sync(() => {
+  // Above reaction will be instantly called each time we change the value
+  myStore.count++;
+  // Above reaction will be instantly called each time we change the value
+  myStore.count++;
+});
 ```
 
-after a while we'll should see the output:
+### allowNestedWatch
 
-```
-Count of comments for opened todo: 2
-```
-
-### Selectors are cached
-
-Selectors cache their value when it is resolved. They will clear the cache if they use some value from any store and such value changes.
-
-Let's change opened todo id to `2` and then back to `1`
-
-We can then change opened todo `todos.openedTodoId = 2` after a while we'll see informations about the comments of `2` todo.
-
-If we'll, however, change `openedTodoId` back to `1`
+Explicit flag required to call `watch` during another `watch` reaction. If trying to call `watch` inside another `watch` outside of this callback, error will be thrown
 
 ```ts
-todos.openedTodoId = 1;
+import { allowNestedWatch } from 'statek';
+
+watch(() => {
+  // ...some code
+  const stop = allowNestedWatch(() =>
+    watch(() => {
+      // ... some other code
+    }),
+  );
+
+  // !!! Always remember to stop nested reactions when needed!
+});
 ```
 
-We'll see updated results instantly. This is because each selector is caching it's value as long as any store or other selector value it uses changes.
+### createAsyncScheduler
 
-:::tip
+Allows creating custom async scheduler. Useful if we want to wrap all reactions calls inside 3rd party callbacks such as React's batched updates.
 
-Selector values are cached until any store value they used change.
+:::note
+
+By default, all reactions in `@statek/react` are batched and wrapped inside react batched updates so using it manually is not required.
 
 :::
 
----
+### selector
 
-### Store changes while async selector is pending
+#### sync
 
-In the example we've seen previously:
+Creates new selector (which does not accept any input arguments)
+
+```ts
+const myStore = store({ count: 1 });
+
+const isBig = selector(() => myStore.count > 10);
+
+isBig.value; // outputs false
+
+watch(() => {
+  // will be called only when isBig value changes between true and false
+  console.log(isBig.value);
+});
+```
+
+#### async
+
+```ts
+const myStore = store({ count: 1 });
+
+const isBig = selector(async () => {
+  return api.isNumberBig(myStore.count);
+});
+
+isBig.value; // if used outside of reaction or render - will throw selector promise
+
+watch(() => {
+  // will suspend until selector resolves and then call reaction again.
+  console.log(isBig.value);
+});
+
+watch(async () => {
+  // it is not allowed to read .value of async selector inside async reactions.
+  // use selector.promise instead
+  const result = await isBig.promise;
+  console.log(result);
+});
+```
+
+### selectorFamily
+
+Creates new 'family' of selectors which can accept any amount of input arguments
+
+```ts
+const todos = store({
+  list: [
+    { id: 1, name: 'A', status: 'done', owner: 'Anna' },
+    { id: 2, name: 'B', status: 'todo', owner: 'Tom' },
+  ],
+});
+
+const completedTodosCount = selector(() => {
+  return todos.list.filter(todo => todo.status === 'done').length;
+});
+```
+
+And now use this selector value in 2 code examples we've written above:
+
+```tsx examples
+//// React
+const CompletedTodosCount = view(() => {
+  return <div>Count of completed todos is {completedTodosCount.value}</div>;
+});
+//// watch
+watch(() => {
+  console.log(`Count of completed todos is ${completedTodosCount.value}`);
+});
+```
+
+### warmSelectors
+
+Will request all provided selectors to prepare their values if they're not ready yet.
+
+If called during watch reaction or react component render, will also group any async selectors **suspense**'s into single one
 
 ```ts
 const todoComments = selectorFamily(async todoId => {
   const comments = await todoApi.getComments(todoId);
   return comments;
 });
+
+const todoAttachments = selectorFamily(async todoId => {
+  const attachments = await todoApi.getAttachments(todoId);
+  return attachments;
+});
 ```
 
-```tsx {2,8} examples
+```tsx {11} examples
 //// React
-const OpenedTodoComments = view(() => {
+import { warmSelectors } from 'statek';
+
+const OpenedTodoInfo = view(() => {
   const { openedTodoId } = todos;
 
   if (!openedTodoId) {
     return;
   }
 
-  const commentsForOpenedTodo = todoComments(openedTodoId).value;
+  // Both selectors will start fetching their values now and suspend if needed
+  warmSelectors(todoComments(openedTodoId), todoAttachments(openedTodoId));
+
+  // Next time this reaction reaches this point,
+  // we're guaranteed both selectors have their values ready to read.
+  const comments = todoComments(openedTodoId).value;
+  const attachments = todoAttachments(openedTodoId).value;
 
   return (
-    <div>Count of comments for opened todo: {commentsForOpenedTodo.length}</div>
+    <div>
+      We have ${comments.length}) comments and ${attachments.length} attachments
+    </div>
   );
 });
-
-function App() {
-  return (
-    <Suspense fallback="Loading...">
-      <OpenedTodoComments />
-    </Suspense>
-  );
-}
 //// watch
+import { warmSelectors } from 'statek';
+
 watch(() => {
   const { openedTodoId } = todos;
 
@@ -167,118 +233,209 @@ watch(() => {
     return;
   }
 
-  const commentsForOpenedTodo = todoComments(openedTodoId).value;
+  // Note we're not calling `.value` on our selectors!
+  warmSelectors(todoComments(openedTodoId), todoAttachments(openedTodoId));
+
+  // Next time this reaction reaches this point,
+  // we're guaranteed both selectors have their values ready to read.
+  const comments = todoComments(openedTodoId).value;
+  const attachments = todoAttachments(openedTodoId).value;
 
   console.log(
-    `Count of comments for opened todo: ${commentsForOpenedTodo.length})`,
+    `We have ${comments.length}) comments and ${attachments.length} attachments`,
   );
 });
 ```
 
-You've maybe noticed that it's possible that `openedTodoId` will change while we're waiting for `todoApi` to resolve.
-
-It would still work properly, because after **suspended** render or reaction call will run again - it'll get new `openedTodoId` value, so it'll suspend again with new id if needed.
-
-Flow of such reaction or render will be like:
-
-- `openedTodoId` is changed to `1`
-- reaction/render tries to read the value from selector for id `1`, but it is not ready yet
-  - it suspends and waits for selector to resolve before running again.
-  - selector is fetching comments for todo `1`
-- meanwhile, `openedTodoId` is changed to `2`
-  - selector is still fetching comments for todo `1`
-- selector has fetched comments for todo `1`, so our **suspended** watch reaction or render is restared
-- it tries again to read comments from selector,
-  - but now `openedTodoId` is `2`. It means selector will be called with new `id` so it'll suspend again.
-- after it resolved, it'll once again restart reaction or render
-- this time reaction can read the value, as it's ready in the selector, so reaction reaches its end outputs up-to-date result.
-
-All this means, that when watch reaction or render reaches its end, it is guaranteed that it's output corresponds to current value of the state, without any outdated data.
-
-The same principle works for selectors reading from other selectors and so on.
-
-## Async selector with multiple await phases
-
-It is also possible that during some async selector, we'll use `await` multiple times.
-
-Between each `await` **phase** it is possible that store values used previously has changed.
-
-Such case is also properly handled
-
-Considering selector:
+### SelectorOptions
 
 ```ts
-const someSelector = selectorFamily(async input => {
-  const a = store.someValue;
-  await api.getA(a);
-  const b = store.otherValue;
-  await api.getB(b);
-
-  // etc...
-});
+interface SelectorOptions {
+  // Will change selector function name. Might be useful for debugging
+  name?: string;
+  // Decide whether or not selector should instantly start calculating it's value when created
+  // Defaults to false
+  lazy?: boolean;
+  // Either 'silent' or 'reset' - will decide how async selectors will updat it's value
+  // silent - will await new value while keeping old value and then swap them
+  // reset - will remove existing value (causing all reactions using it to reset) and start calculating new one
+  updateStrategy?: UpdateStrategy;
+}
 ```
 
-After each await phase, Statek will check if any of previously used store values changed. If it happens, it'll instantly stop current operation and start over.
-
-Plase note that code like the one above is not recommended. It might be better to write instead:
-
-```ts {2,3}
-const someSelector = selectorFamily(async input => {
-  const { someValue, otherValue } = store.someValue;
-  const [resultA, resultB] = await Promise.all(
-    api.getA(someValue),
-    api.getB(otherValue),
-  );
-});
-```
-
-But in some use-cases - it might be useful to conditionally execute async requests in sequence.
-
-:::tip
-
-If using multiple await phases inside selectors, it is recommended to read all sync data from stores at the beginning of the function, so selector call is cancelled as early as possible, if any of used store values are changed.
-
-:::
-
-:::tip
-
-Under the hood, such async function will throw `AsyncOperationCancelled` error to prevent function from continuing. But you'll only need to handle this error when using `manualWatch` which is covered in next chapters.
-
-:::
-
-### Async selectors reading values from other async selectors.
-
-If we have 2 async selectors or selector families and one of them is using the other one, read the value like below:
-
-```ts {6}
-const selA = selector(async () => {
-  // await and return
-});
-
-const selB = selector(async () => {
-  const valueFromSelectorA = await selA.promise;
-  // await and return
-});
-```
-
-Note we're reading the value like:
+### UpdateStrategy
 
 ```ts
-const valueFromSelectorA = await selA.promise;
+type UpdateStrategy = 'silent' | 'reset';
 ```
 
-instead of
+### getStoreRaw
+
+Will return raw, not observable object corresponding to observable counterpart
 
 ```ts
-const valueFromSelectorA = selA.value;
+const input = { count: 1 };
+
+const myStore = store(input);
+
+getStoreRaw(myStore) === input; // true
 ```
 
-This is because we don't need **suspending** inside async functions.
+### isStore
 
-:::caution
+Will return true if provided object is observable store
 
-In async functions always use `await selector.promise` instead of `selector.value`.
+```ts
+const myStore = store(input);
 
-Using `selector.value` inside async functions will throw an error.
+isStore(myStore); // true
+```
 
-:::
+### store
+
+Will create new observable store or return existing one for provided input.
+
+Input can be either object or function returning object
+
+```ts
+type StoreFactory<T extends object> = T | (() => T);
+
+function store<T>(input: StoreFactory<T>): T;
+```
+
+### manualWatch
+
+```ts
+function manualWatch<A extends any[], R>(
+  lazyWatcher: ManualReactionCallback<A, R>,
+  onWatchedChange?: () => void,
+  options?: ReactionOptions,
+): ManualReaction<A, R>;
+
+type ManualReaction<A extends any[], R> = ManualReactionCallback<A, R> & {
+  stop(): void;
+};
+
+type ManualReactionCallback<A extends any[], R> = (...args: A) => R;
+```
+
+Will create reaction that can be manually called.
+
+First argument is reaction callback that we can manually call.
+
+2nd argument is callback that will be called each time when any store value used in last call changed
+
+```ts
+const callReaction = manualWatch(
+  multiplier => {
+    return myStore.count * multiplier;
+  },
+  () => {
+    // change callback
+    console.log('any store value used by reaction changed!');
+  },
+);
+
+// We have to manually call the reaction for the first time
+callReaction(2);
+```
+
+### watch
+
+Will create new reaction that automatically calls itself each time store values used during last call is changed
+
+```ts
+function watch(
+  watchCallback: ReactionCallback,
+  options?: ReactionOptions,
+): () => void;
+```
+
+```ts
+const myStore = store({ count: 1 });
+
+watch(() => {
+  console.log(myStore.count);
+});
+
+// Changes will cause reaction to call itself again
+myStore.count++;
+myStore.count++;
+myStore.count++;
+```
+
+### watchAllChanges
+
+```ts
+function watchAllChanges(
+  storePart: object,
+  callback: ReactionCallback,
+  options?: ReactionOptions,
+): () => void;
+```
+
+Requires 2 arguments. First is any store (any part of the store is store as well) and 2nd is callback that will be called every time **any** value of provided store changes
+
+### ReactionOptions
+
+```ts
+interface ReactionOptions {
+  // allows changing the moment reaction will be called after store values it uses are changed
+  scheduler?: SchedulerInput;
+  // Will be passed as 'this' argument during watch reaction call
+  context?: any;
+  // Debug helper
+  name?: string;
+  // Called every time any selector used during the reaction starts to silently update itself
+  onSilentUpdate?: EventCallback<Promise<any>>;
+}
+```
+
+### SchedulerInput
+
+```ts
+type SchedulerInput = 'sync' | 'async' | ReactionScheduler;
+```
+
+### SchedulerInput
+
+```ts
+type ReactionScheduler = (
+  reaction: (),
+) => Promise<void> | void;
+```
+
+### createAsyncScheduler
+
+```ts
+function createAsyncScheduler(
+  wrapper?: (task: Task) => Promise<void> | void,
+): ReactionScheduler;
+
+type Task = () => void;
+```
+
+Allows creating custom async scheduler tha
+
+```ts
+import { unstable_batchedUpdates } from 'react-dom';
+
+export const reactScheduler = createAsyncScheduler(task => {
+  // will be called on next frame, calling task() will flush all pending reactions
+  unstable_batchedUpdates(() => {
+    task();
+  });
+});
+```
+
+### ReactionCallback
+
+```ts
+type ReactionCallback = () => void;
+```
+
+### ManualReactionCallback
+
+```ts
+type ManualReactionCallback<A extends any[], R> = (...args: A) => R;
+```

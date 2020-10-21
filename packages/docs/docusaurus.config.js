@@ -27,12 +27,16 @@ const themeConfig = {
         title: 'Docs',
         items: [
           {
-            label: 'Style Guide',
+            label: 'Read the docs',
             to: 'docs/',
           },
           {
-            label: 'Second Doc',
-            to: 'docs/doc2/',
+            label: 'Api reference',
+            to: 'docs/api/statek',
+          },
+          {
+            label: 'Api reference - React',
+            to: 'docs/api/statek-react',
           },
         ],
       },
@@ -45,21 +49,13 @@ const themeConfig = {
           },
           {
             label: 'Discord',
-            href: 'https://discordapp.com/invite/docusaurus',
-          },
-          {
-            label: 'Twitter',
-            href: 'https://twitter.com/docusaurus',
+            href: 'https://discord.gg/HpCJKka',
           },
         ],
       },
       {
-        title: 'More',
+        title: 'Source',
         items: [
-          {
-            label: 'Blog',
-            to: 'blog',
-          },
           {
             label: 'GitHub',
             href: 'https://github.com/pie6k/statek',
@@ -79,7 +75,7 @@ module.exports = {
   onBrokenLinks: 'throw',
   favicon: 'img/statek-logo-transparent.png',
   organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  projectName: 'statek', // Usually your repo name.
   themeConfig,
   plugins: ['docusaurus-plugin-sass'],
   // themes: ['@docusaurus/theme-live-codeblock'],

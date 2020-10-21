@@ -1,11 +1,10 @@
-import { ReactNodeArray } from 'react';
 import {
   applyReaction,
+  getReactionOptions,
   isManualReaction,
   ReactionCallback,
-  getReactionOptions,
 } from './reaction';
-import { getDefaultScheduler, resolveSchedulerInput } from './schedulers';
+import { resolveSchedulerInput } from './schedulers';
 import { getStoreRaw, isStore } from './store';
 import { isReactionSuspended } from './suspense';
 import { createStackCallback, noop } from './utils';
@@ -132,6 +131,11 @@ export const [syncEvery, syncEveryManager] = createStackCallback(
  */
 export const [_dontWatch, dontWatchManager] = createStackCallback(noop);
 
+/**
+ * Will not watch any read operations during provided callback
+ *
+ * Note: Object read from the store during the callback will not be observable!
+ */
 export function dontWatch<R>(callback: () => R) {
   // make sure to unwrap direct result of the callback eg dontWatch(() => store); - should return store raw object
   const result = _dontWatch(callback);
