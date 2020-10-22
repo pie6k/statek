@@ -4,7 +4,7 @@ title: Using selectors
 
 :::note
 
-In this part of the docs, we'll use the same selectors as described [here](/docs/core/getting-started/selectors).
+In this part of the docs, we'll use the same selectors as described [here](/docs/getting-started/selectors).
 
 It is hightly recommended to read it first.
 
