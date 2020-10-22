@@ -5,6 +5,7 @@ const themeConfig = {
   gtag: {
     trackingID: 'G-TQHX49NXGR',
   },
+  image: 'img/ogimage.png',
   navbar: {
     title: 'Statek',
     logo: {
