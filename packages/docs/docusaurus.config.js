@@ -1,4 +1,10 @@
 const themeConfig = {
+  googleAnalytics: {
+    trackingID: 'G-TQHX49NXGR',
+  },
+  gtag: {
+    trackingID: 'G-TQHX49NXGR',
+  },
   navbar: {
     title: 'Statek',
     logo: {

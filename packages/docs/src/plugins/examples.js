@@ -18,8 +18,6 @@ const transformExampleNode = node => {
 
   const defaultTab = tabs[0].value;
 
-  console.log('child meta', node.meta.replace('examples', '').trim());
-
   return [
     {
       type: 'jsx',
