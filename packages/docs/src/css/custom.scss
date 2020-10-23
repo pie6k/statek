@@ -5,34 +5,34 @@
  * work well for content-centric websites.
  */
 
-// @font-face {
-//   font-family: 'Kumbh Sans 2';
-//   src: url('/static/fonts/KumbhSans-Regular.woff2') format('woff2'),
-//     url('/static/fonts/KumbhSans-Regular.woff') format('woff');
-//   font-weight: normal;
-//   font-style: normal;
-//   font-display: swap;
-// }
+@font-face {
+  font-family: 'Kumbh Sans';
+  src: url('/fonts/KumbhSans-Regular.woff2') format('woff2'),
+    url('/fonts/KumbhSans-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
-// @font-face {
-//   font-family: 'Kumbh Sans 2';
-//   src: url('/static/fonts/KumbhSans-Bold.woff2') format('woff2'),
-//     url('/static/fonts/KumbhSans-Bold.woff') format('woff');
-//   font-weight: bold;
-//   font-style: normal;
-//   font-display: swap;
-// }
+@font-face {
+  font-family: 'Kumbh Sans';
+  src: url('/fonts/KumbhSans-Bold.woff2') format('woff2'),
+    url('/fonts/KumbhSans-Bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
 
-// @font-face {
-//   font-family: 'Kumbh Sans 2';
-//   src: url('/static/fonts/KumbhSans-Light.woff2') format('woff2'),
-//     url('/static/fonts/KumbhSans-Light.woff') format('woff');
-//   font-weight: 300;
-//   font-style: normal;
-//   font-display: swap;
-// }
+@font-face {
+  font-family: 'Kumbh Sans';
+  src: url('/fonts/KumbhSans-Light.woff2') format('woff2'),
+    url('/fonts/KumbhSans-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
 
-@import url('https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@300;400;700&display=swap');
+// @import url('https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@300;400;700&display=swap');
 
 /* @import url('https://fonts.googleapis.com/css2?family=Kumbh+Sans:wght@300;400;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Varela&display=swap');
@@ -99,10 +99,6 @@ html[data-theme='dark'] {
   height: 16px;
 }
 
-.footer__links {
-  margin-bottom: 4rem;
-}
-
 .markdown .prism-code {
   border-radius: 7px;
 }
@@ -113,4 +109,9 @@ html[data-theme='dark'] {
 
 .menu__list-item .menu__link {
   padding-top: 8px;
+}
+
+body {
+  -webkit-font-smoothing: subpixel-antialiased;
+  text-rendering: optimizeLegibility;
 }

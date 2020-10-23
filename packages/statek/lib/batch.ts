@@ -5,7 +5,6 @@ import {
   ReactionCallback,
 } from './reaction';
 import { resolveSchedulerInput } from './schedulers';
-import { getStoreRaw, isStore } from './store';
 import { isReactionSuspended } from './suspense';
 import { createStackCallback, noop } from './utils';
 export type ReactionScheduler = (
@@ -123,29 +122,6 @@ export const [sync, syncManager] = createStackCallback(
 export const [syncEvery, syncEveryManager] = createStackCallback(
   reactionsBatchQueue.flush,
 );
-
-/**
- * Escape from watching store access.
- *
- * It can be called inside part of `watch` callback and such read access will not be registered.
- */
-export const [_dontWatch, dontWatchManager] = createStackCallback(noop);
-
-/**
- * Will not watch any read operations during provided callback
- *
- * Note: Object read from the store during the callback will not be observable!
- */
-export function dontWatch<R>(callback: () => R) {
-  // make sure to unwrap direct result of the callback eg dontWatch(() => store); - should return store raw object
-  const result = _dontWatch(callback);
-
-  if (isStore(result)) {
-    return getStoreRaw(result as any);
-  }
-
-  return result;
-}
 
 export const [allowNestedWatch, allowNestedWatchManager] = createStackCallback(
   noop,

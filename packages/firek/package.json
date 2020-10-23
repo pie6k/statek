@@ -1,0 +1,8 @@
+{
+  "name": "firek",
+  "version": "0.0.1",
+  "main": "./lib",
+  "dependencies": {
+    "statek": "0.1.0"
+  }
+}

@@ -1,11 +1,11 @@
 export {
   batch,
-  dontWatch,
   ReactionScheduler,
   sync,
   syncEvery,
   allowNestedWatch,
 } from './batch';
+export { dontWatch } from './dontWatch';
 export { allowInternal } from './internal';
 export {
   ReadOperationInfo,

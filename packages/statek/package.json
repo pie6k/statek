@@ -14,7 +14,6 @@
     "benchmark": "parcel ./benchmark/index.html",
     "build": "rollup --config"
   },
-  "types": "./types/index.d.ts",
   "dependencies": {
     "tslib": "^2.0.0"
   },

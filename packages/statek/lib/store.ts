@@ -1,4 +1,4 @@
-import { dontWatchManager } from './batch';
+import { dontWatchManager, dontWatchList } from './dontWatch';
 import { initializeObjectReadOperationsRegistry } from './operations';
 import { canWrapInProxy, wrapObjectInProxy } from './proxy';
 import { isReaction, ReactionCallback, ReactionsSet } from './reaction';
@@ -96,6 +96,13 @@ export function store<T extends object>(storeFactory: StoreFactory<T>): T {
       `Observable cannot be created from ${inputConstructorName}. Reason - ${canWrapInProxyError}`,
     );
   }
+
+  if (dontWatchList.has(storeInput)) {
+    throw new Error(
+      'This object is marked as dont watch - cannot create store from it',
+    );
+  }
+
   // if it is already an observable or it should not be wrapped, return it
   if (storeToRawMap.has(storeInput)) {
     return storeInput;
@@ -137,6 +144,10 @@ export function createChildStoreIfNeeded(
 
   // If it's not possible to create observable - no point of checking if we should create it.
   if (canWrapInProxy(storePartRaw) !== true) {
+    return storePartRaw;
+  }
+
+  if (dontWatchList.has(storePartRaw)) {
     return storePartRaw;
   }
 
