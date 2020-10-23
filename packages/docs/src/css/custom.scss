@@ -115,3 +115,9 @@ body {
   -webkit-font-smoothing: subpixel-antialiased;
   text-rendering: optimizeLegibility;
 }
+
+input,
+button,
+textarea {
+  font-family: inherit;
+}
