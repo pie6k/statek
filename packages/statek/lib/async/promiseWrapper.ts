@@ -137,6 +137,8 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
         'Async reaction is cancelled as some of its dependencies changed while it was still running.',
       );
 
+      console.log('will throw', callerReaction.name);
+
       if (onRejected) {
         Reflect.apply(onRejected, this, [error]);
         return;

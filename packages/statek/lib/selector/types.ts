@@ -1,6 +1,7 @@
 export type SelectorCallback<T> = (value: T) => void;
 
 export interface Selector<T> {
+  readonly isReady: boolean;
   readonly value: T;
   readonly promise: Promise<T>;
 }

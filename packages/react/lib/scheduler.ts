@@ -1,9 +1,14 @@
 import { unstable_batchedUpdates } from 'react-dom';
-import { createAsyncScheduler, ReactionCallback, watch } from 'statek';
+import { batch, createAsyncScheduler, ReactionCallback, watch } from 'statek';
 
 export const reactScheduler = createAsyncScheduler(task => {
   unstable_batchedUpdates(() => {
-    task();
+    // console.log('>>>>>>> BATCHED START');
+    batch(() => {
+      task();
+    });
+
+    // console.log('>>>>>>> BATCHED END');
   });
 });
 

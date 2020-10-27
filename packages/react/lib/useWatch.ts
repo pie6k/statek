@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { allowNestedWatch } from 'statek';
 import { reactWatch } from './scheduler';
 import { useMethod } from './utils/useMethod';
 
@@ -8,9 +9,11 @@ export function useWatch(
 ) {
   const callbackRef = useMethod(callback);
   useEffect(() => {
-    const clear = reactWatch(() => {
-      callbackRef();
-    });
+    const clear = allowNestedWatch(() =>
+      reactWatch(() => {
+        callbackRef();
+      }),
+    );
 
     return () => {
       clear();

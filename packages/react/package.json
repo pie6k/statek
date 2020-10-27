@@ -9,7 +9,7 @@
     "directory": "./packages/react"
   },
   "keywords": ["javascript", "state", "state-management", "react", "reactive", "proxies", "declarative"],
-  "types": "./types/index.d.ts",
+  
   "scripts": {
     "test": "jest --watch",
     "build": "rollup --config"

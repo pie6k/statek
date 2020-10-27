@@ -1,4 +1,4 @@
-import { dontWatchManager } from './batch';
+import { dontWatchManager } from './dontWatch';
 import { warnIfUsingInternal } from './internal';
 import { ReadOperationInfo } from './operations';
 import {

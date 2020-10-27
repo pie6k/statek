@@ -5,6 +5,7 @@ import {
   ReactionCallback,
   getReactionOptions,
   getReactionEntry,
+  isReactionErased,
 } from './reaction';
 import { detectRunningReactionForOperation } from './reactionsStack';
 import { appendSet } from './utils';
@@ -129,6 +130,10 @@ export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
   const runningReaction = detectRunningReactionForOperation(readOperation);
 
   if (!runningReaction) {
+    return;
+  }
+
+  if (isReactionErased(runningReaction)) {
     return;
   }
 

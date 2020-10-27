@@ -1,3 +1,4 @@
 export { warmSelectors } from './warming';
-export { selector, selectorFamily, SelectorFamily } from './create';
-export { Selector, SelectorOptions, UpdateStrategy } from './types';
+export { selector, selectorFamily } from './create';
+export type { SelectorFamily } from './create';
+export type { Selector, SelectorOptions, UpdateStrategy } from './types';

@@ -1,26 +1,37 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { manualWatch } from 'statek/lib';
+import { reactScheduler } from './scheduler';
 import { useWatch } from './useWatch';
 import {
   DebounceOrThrottleConfig,
   useMaybeDebouncedOrThrottled,
 } from './utils/delayedCallback';
+import { useForceUpdate } from './utils/useForceUpdate';
+import { useMethod } from './utils/useMethod';
 
 interface UseSelectedConfig extends DebounceOrThrottleConfig {}
 
 export function useSelected<T>(getter: () => T, config?: UseSelectedConfig): T {
-  const [value, setValue] = useState(getter);
+  const getterRef = useMethod(getter);
+  const forceUpdate = useForceUpdate();
 
-  const effectCallback = useCallback(() => {
-    const newValue = getter();
-    setValue(newValue);
-  }, [getter]);
-
-  const updateValueCallback = useMaybeDebouncedOrThrottled(
-    effectCallback,
+  const maybeDelayedForceUpdate = useMaybeDebouncedOrThrottled(
+    forceUpdate,
     config,
   );
+  const [watchedGetter] = useState(() => {
+    return manualWatch(getterRef, maybeDelayedForceUpdate, {
+      scheduler: reactScheduler,
+    });
+  });
 
-  useWatch(updateValueCallback, [updateValueCallback]);
+  const result = watchedGetter();
 
-  return value;
+  useEffect(() => {
+    return () => {
+      watchedGetter.stop();
+    };
+  }, []);
+
+  return result;
 }

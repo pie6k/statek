@@ -132,7 +132,7 @@ export function createChildStoreIfNeeded(
   parentRaw: object,
 ) {
   if (dontWatchManager.isRunning()) {
-    return storeToRawMap;
+    return storePartRaw;
   }
 
   const observableObj = rawToStoreMap.get(storePartRaw);

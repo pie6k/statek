@@ -1,4 +1,4 @@
-import { allowNestedWatch, sync } from '../batch';
+import { allowNestedWatch, batch, sync } from '../batch';
 import {
   getReactionOptions,
   ReactionCallback,
@@ -10,10 +10,11 @@ import { store } from '../store';
 import { serialize } from '../utils';
 import { watch } from '../watch';
 import { Selector, SelectorOptions } from './types';
-import { warmingManager } from './warming';
+import { warmingManager, warmSelectors } from './warming';
 
 interface SelectorStore<T> {
   value: T;
+  isReady: boolean;
   promise: Promise<T> | null;
 }
 
@@ -31,6 +32,7 @@ export function selector<V>(
     // We'll initialize this value on first run, but we don't want to read resource now if this selector
     // is lazy
     value: null as any,
+    isReady: false,
     promise: null,
   });
 
@@ -47,14 +49,15 @@ export function selector<V>(
         if (status.state === 'resolved') {
           didResolveAtLeastOnce = true;
           // Update store value skipping schedulers. It will be up to reactions watching this selector to schedule their updates properly.
-          sync(() => {
+          batch(() => {
             selectorValueStore.value = status.value;
+            selectorValueStore.isReady = true;
             selectorValueStore.promise = null;
           });
         }
 
         if (status.state === 'updating') {
-          sync(() => {
+          batch(() => {
             selectorValueStore.promise = status.promise;
           });
           reactionsWatchingThisSelector.forEach(reaction => {
@@ -98,8 +101,8 @@ export function selector<V>(
       return watch(
         () => {
           if (updateStrategy === 'reset') {
-            resource.restart();
-            sync(() => {
+            batch(() => {
+              resource.restart();
               selectorValueStore.value = null as any;
             });
           } else {
@@ -114,6 +117,12 @@ export function selector<V>(
 
   // Object of actual selector
   const selectorWrapper: Selector<V> = {
+    get isReady() {
+      initResourceIfNeeded();
+      warmSelectors(selectorWrapper);
+
+      return selectorValueStore.isReady;
+    },
     // value is readonly. When user tries to get it - it'll initialize resource and watching if needed.
     // it might also suspend.
     get value() {
@@ -221,7 +230,7 @@ export type SelectorFamily<Args extends any[], R> = (
 ) => Selector<R>;
 
 export function selectorFamily<Args extends any[], R>(
-  getter: (...args: Args) => R,
+  getter: (...args: Args) => R | Promise<R>,
   options?: SelectorOptions,
 ): SelectorFamily<Args, R> {
   const serializedArgsSelectorsMap = new Map<string, Selector<R>>();
@@ -243,6 +252,12 @@ export function selectorFamily<Args extends any[], R>(
 
   function get(...args: Args): Selector<R> {
     return getArgsSelector(...args);
+  }
+
+  function unwrap() {
+    return function getRaw(...args: Args): R {
+      return get(...args).value;
+    };
   }
 
   return get;

@@ -1,52 +1,36 @@
-export {
-  batch,
-  ReactionScheduler,
-  sync,
-  syncEvery,
-  allowNestedWatch,
-} from './batch';
+export type { ReactionScheduler } from './batch';
+export { batch, sync, syncEvery, allowNestedWatch } from './batch';
 export { dontWatch } from './dontWatch';
 export { allowInternal } from './internal';
-export {
+export type {
   ReadOperationInfo,
   MutationOperationInfo,
   OperationInfo,
 } from './operations';
-export {
+export { registerReaction, isReaction, isManualReaction } from './reaction';
+export type {
   ReactionCallback,
   ReactionOptions,
-  registerReaction,
-  isReaction,
-  isManualReaction,
   ReactionDebugger,
 } from './reaction';
-export {
-  addInjectReactionHook,
-  InjectedReaction,
-  injectReaction,
-} from './reactionsStack';
+export { addInjectReactionHook, injectReaction } from './reactionsStack';
+export type { InjectedReaction } from './reactionsStack';
 export {
   asyncScheduler,
   createAsyncScheduler,
   setDefaultScheduler,
   syncScheduler,
   waitForSchedulersToFlush,
-  SchedulerInput,
 } from './schedulers';
-export {
-  selector,
+export type { SchedulerInput } from './schedulers';
+export { selector, selectorFamily, warmSelectors } from './selector';
+export type {
   Selector,
-  selectorFamily,
   SelectorFamily,
-  warmSelectors,
   SelectorOptions,
   UpdateStrategy,
 } from './selector';
-export {
-  getStoreRaw,
-  isStore,
-  store,
-  StoreFactory,
-  assertStore,
-} from './store';
-export { ManualReaction, manualWatch, watch, watchAllChanges } from './watch';
+export { getStoreRaw, isStore, store, assertStore } from './store';
+export type { StoreFactory } from './store';
+export { manualWatch, watch, watchAllChanges } from './watch';
+export type { ManualReaction } from './watch';

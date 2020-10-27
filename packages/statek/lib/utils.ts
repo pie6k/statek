@@ -1,4 +1,4 @@
-import { dontWatch } from './batch';
+import { dontWatch } from './dontWatch';
 
 export type EventCallback<T> = (value: T) => void;
 

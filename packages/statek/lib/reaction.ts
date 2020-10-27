@@ -33,6 +33,7 @@ export function getReactionEntry(reaction: ReactionCallback) {
   const info = reactionsRegistry.get(reaction);
 
   if (!info) {
+    console.log(reaction);
     throw new Error('Trying to get options for non-reaction');
   }
 
@@ -100,6 +101,10 @@ export function getCallbackWrapperReaction(input: ReactionCallback) {
 }
 
 export function applyReaction(reaction: ReactionCallback) {
+  if (isReactionErased(reaction)) {
+    return;
+  }
+
   const entry = getReactionEntry(reaction);
   if (entry.manualCallback) {
     entry.manualCallback();

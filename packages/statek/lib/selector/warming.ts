@@ -1,7 +1,7 @@
 import { getRunningReaction } from '../reactionsStack';
 import { addReactionPendingPromise } from '../suspense';
 import { createStackCallback, noop } from '../utils';
-import { Selector } from './types';
+import type { Selector } from './types';
 
 export const [warming, warmingManager] = createStackCallback(noop);
 
