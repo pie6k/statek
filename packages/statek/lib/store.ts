@@ -127,19 +127,12 @@ export function store<T extends object>(storeFactory: StoreFactory<T>): T {
   return newStore;
 }
 
-export function createChildStoreIfNeeded(
-  storePartRaw: object,
-  parentRaw: object,
-) {
-  if (dontWatchManager.isRunning()) {
-    return storePartRaw;
-  }
-
-  const observableObj = rawToStoreMap.get(storePartRaw);
+export function createChildStore(storePartRaw: object, parentRaw: object) {
+  const existingStore = rawToStoreMap.get(storePartRaw);
 
   // If we have observable already created - always return it
-  if (observableObj) {
-    return observableObj;
+  if (existingStore) {
+    return existingStore;
   }
 
   // If it's not possible to create observable - no point of checking if we should create it.
@@ -177,6 +170,16 @@ export function getStoreRaw<T extends object>(store: T): T {
   }
 
   return storeToRawMap.get(store)!;
+}
+
+export function getCreatedStore<T extends object>(raw: T): T {
+  if (!rawToStoreMap.has(raw)) {
+    throw new Error(
+      'trying to get store for raw object that has no corresponding store',
+    );
+  }
+
+  return rawToStoreMap.get(raw)!;
 }
 
 export function resolveStoreFactory<T extends object>(

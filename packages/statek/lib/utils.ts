@@ -1,5 +1,3 @@
-import { dontWatch } from './dontWatch';
-
 export type EventCallback<T> = (value: T) => void;
 
 export function typedOwnPropertyNames<T>(obj: T): Array<keyof T> {
@@ -92,7 +90,7 @@ export function serialize(input: any): string {
   }
 
   // Dont watch input during serialization!
-  return JSON.stringify(dontWatch(() => input));
+  return JSON.stringify(input);
 }
 
 function isShallowSerializable(value: any): boolean {

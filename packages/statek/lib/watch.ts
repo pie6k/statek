@@ -6,7 +6,7 @@ import {
   isAsyncReactionCancelledError,
   markReactionAsAsync,
 } from './async/promiseWrapper';
-import { allowNestedWatchManager } from './batch';
+import { allowNestedWatchManager, batch } from './batch';
 import { allowInternal } from './internal';
 import {
   getCallbackWrapperReaction,

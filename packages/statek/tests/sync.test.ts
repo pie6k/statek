@@ -56,4 +56,34 @@ describe('sync', () => {
 
     expect(spy).toBeCalledTimes(4);
   });
+
+  it('nested sync operations are still batched as one', () => {
+    const obj = store({
+      a: 1,
+      b: 2,
+    });
+
+    const spy = jest.fn(() => {
+      obj.a;
+      obj.b;
+    });
+
+    watch(spy);
+
+    expect(spy).toBeCalledTimes(1);
+
+    obj.a++;
+    obj.b++;
+
+    expect(spy).toBeCalledTimes(3);
+
+    sync(() => {
+      obj.a++;
+      sync(() => {
+        obj.b++;
+      });
+    });
+
+    expect(spy).toBeCalledTimes(4);
+  });
 });

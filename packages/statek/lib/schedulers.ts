@@ -1,5 +1,6 @@
 import { builtinModules } from 'module';
-import { ReactionScheduler } from './batch';
+import { isAsyncReactionCancelledError } from './async/promiseWrapper';
+import { batch, ReactionScheduler } from './batch';
 import { warnIfUsingInternal } from './internal';
 import { applyReaction, ReactionCallback } from './reaction';
 
@@ -14,7 +15,21 @@ export async function waitForSchedulersToFlush() {
   if (process.env.NODE_ENV !== 'production') {
     warnIfUsingInternal('waitForSchedulersToFlush');
   }
-  await Promise.all(Array.from(flushPromises));
+
+  const flushOrFailPromises = Array.from(flushPromises).map(flushPromise => {
+    return new Promise<void>(async resolve => {
+      try {
+        await flushPromise;
+        resolve();
+      } catch (error) {
+        console.log('error', error);
+        resolve();
+        return;
+      }
+    });
+  });
+
+  await Promise.all(flushOrFailPromises);
 }
 
 const flushPromises = new Set<Promise<void>>();
@@ -30,18 +45,31 @@ export function createAsyncScheduler(
     const reactions = Array.from(pendingReactions);
     pendingReactions.clear();
 
-    reactions.forEach(reaction => {
-      applyReaction(reaction);
+    batch(() => {
+      reactions.forEach(reaction => {
+        applyReaction(reaction);
+      });
     });
   }
 
-  async function enqueue() {
+  // TODO write test for enqueue that got cancelled
+
+  async function enqueueWithCancelHandle() {
+    // TODO write test for scheduler that is cancalled
     if (timeout) {
-      await flushPromise;
+      try {
+        await flushPromise;
+      } catch (error) {
+        if (isAsyncReactionCancelledError(error)) {
+          // Scheduled reaction got cancelled as it's dependencies changed while scheduler was waiting.
+        } else {
+          throw error;
+        }
+      }
       return;
     }
 
-    flushPromise = new Promise<void>(resolve => {
+    flushPromise = new Promise<void>((resolve, reject) => {
       timeout = setTimeout(async () => {
         timeout = null;
 
@@ -51,14 +79,23 @@ export function createAsyncScheduler(
           return;
         }
 
-        await wrapper(run);
-        flushPromises.delete(flushPromise!);
-        flushPromise = null;
-        resolve();
+        try {
+          await wrapper(run);
+        } catch (error) {
+          reject(error);
+        } finally {
+          flushPromises.delete(flushPromise!);
+          flushPromise = null;
+          resolve();
+        }
       }, 0);
     });
 
     flushPromises.add(flushPromise);
+  }
+
+  function enqueue() {
+    return enqueueWithCancelHandle();
   }
 
   return async function add(reaction: ReactionCallback) {
@@ -73,7 +110,8 @@ export const syncScheduler: ReactionScheduler = reaction => {
   applyReaction(reaction);
 };
 
-let defaultScheduler = syncScheduler;
+let defaultScheduler =
+  process.env.NODE_ENV === 'test' ? syncScheduler : asyncScheduler;
 
 export function getDefaultScheduler() {
   return defaultScheduler;

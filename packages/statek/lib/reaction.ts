@@ -1,4 +1,3 @@
-import { ReactionScheduler } from './batch';
 import { warnIfUsingInternal } from './internal';
 import { OperationInfo } from './operations';
 import { SchedulerInput } from './schedulers';
@@ -105,7 +104,10 @@ export function applyReaction(reaction: ReactionCallback) {
     return;
   }
 
+  // registerReactionApplied(reaction);
+
   const entry = getReactionEntry(reaction);
+
   if (entry.manualCallback) {
     entry.manualCallback();
     return;

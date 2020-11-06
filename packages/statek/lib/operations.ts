@@ -1,5 +1,5 @@
 export const ITERATION_KEY = Symbol('iteration key');
-import { requestReactionCallNeeded } from './batch';
+import { batch, requestReactionCallNeeded } from './batch';
 import { getSelectedAnyChangeReactions } from './store';
 import {
   ReactionCallback,
@@ -9,6 +9,7 @@ import {
 } from './reaction';
 import { detectRunningReactionForOperation } from './reactionsStack';
 import { appendSet } from './utils';
+import { dontWatchManager } from './dontWatch';
 
 type TargetKey = string | number | Symbol | undefined;
 
@@ -119,12 +120,31 @@ export function getMutationImpactedReactions(
       appendSet(impactedReactions, reactionsForIteration);
   }
 
+  if (dontWatchManager.isRunning()) {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      impactedReactions.size > 0 &&
+      !dontWatchManager.getCurrentData()?.ignoreMutationWarning
+    ) {
+      console.warn(
+        `You're mutating the store during dontWatch call and performed mutation would trigger at least 1 reaction normally, but they are ignored.`,
+        // mutationOperation,
+      );
+    }
+
+    return new Set<ReactionCallback>();
+  }
+
   return impactedReactions;
 }
 
 // register the currently running reaction to be queued again on obj.key mutations
 export function handleStoreReadOperation(readOperation: ReadOperationInfo) {
   readOperationsCount++;
+
+  if (dontWatchManager.isRunning()) {
+    return;
+  }
 
   // get the current reaction from the top of the stack
   const runningReaction = detectRunningReactionForOperation(readOperation);
@@ -146,6 +166,10 @@ export function handleStoreMutationOperation(
 ) {
   // iterate and queue every reaction, which is triggered by obj.key mutation
   const impactedReactions = getMutationImpactedReactions(mutationOperation);
+
+  if (!impactedReactions.size) {
+    return;
+  }
 
   impactedReactions.forEach(reaction => {
     debugOperation(reaction, mutationOperation);

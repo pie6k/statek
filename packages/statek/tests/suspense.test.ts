@@ -40,8 +40,11 @@ describe('suspense', () => {
 
     await waitNextTick();
 
-    expect(warn.getLast()).toEqual([
-      'The same reaction suspended 5 times in a row. Assuming error to avoid infinite loop. Some promise is that is suspending is probably re-created on each call',
-    ]);
+    expect(warn.getLast()).toMatchInlineSnapshot(`
+      Array [
+        "Reaction suspended with promise that has thrown an error:",
+        [Error: The same reaction suspended 5 times in a row. Assuming error to avoid infinite loop. Some promise is that is suspending is probably re-created on each call],
+      ]
+    `);
   });
 });

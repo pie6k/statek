@@ -1,3 +1,4 @@
+import { isAsyncReactionCancelledError } from '../async/promiseWrapper';
 import { allowNestedWatch, batch, sync } from '../batch';
 import {
   getReactionOptions,
@@ -66,6 +67,10 @@ export function selector<V>(
         }
 
         if (status.state === 'rejected') {
+          if (isAsyncReactionCancelledError(status.error)) {
+            resource.restart();
+            return;
+          }
           // Lazy reactions are not called automatically so their error will be passed to caller.
           if (options.lazy || didResolveAtLeastOnce) {
             return;
@@ -100,14 +105,14 @@ export function selector<V>(
     const stop = allowNestedWatch(() => {
       return watch(
         () => {
-          if (updateStrategy === 'reset') {
-            batch(() => {
+          batch(() => {
+            if (updateStrategy === 'reset') {
               resource.restart();
               selectorValueStore.value = null as any;
-            });
-          } else {
-            resource.update();
-          }
+            } else {
+              resource.update();
+            }
+          });
         },
         { name: 'selectorWatch' },
       );

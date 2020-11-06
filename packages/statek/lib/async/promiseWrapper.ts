@@ -1,7 +1,8 @@
 import { allowInternal } from '../internal';
-import { ReactionCallback } from '../reaction';
+import { isReactionErased, ReactionCallback } from '../reaction';
 import { getRunningReaction, injectReaction } from '../reactionsStack';
 import { warmingManager } from '../selector/warming';
+import { isReactionSuspended } from '../suspense';
 
 export const asyncReactions = new WeakMap<
   ReactionCallback,
@@ -112,6 +113,7 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
     return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
   }
 
+  // Warming reactions responses are not used, so continue normally
   if (warmingManager.isRunning()) {
     return Reflect.apply(_originalThen, this, [onFulfilled, onRejected]);
   }
@@ -131,13 +133,23 @@ function then(this: any, onFulfilled?: any, onRejected?: any): any {
    * Now we're wrapping onFulfilled callback with the one that will inject reaction that is running now in the moment when this promise will resolve.
    */
   const wrappedOnFulfilled = (result: any) => {
+    if (isReactionErased(callerReaction)) {
+      const error = new AsyncReactionCancelledError(
+        'Async reaction was stopped while it was resolving.',
+      );
+
+      if (onRejected) {
+        Reflect.apply(onRejected, this, [error]);
+        return;
+      }
+
+      return Promise.reject(error);
+    }
     // If this phase was cancelled before it resolved.
     if (phase.isCancelled) {
       const error = new AsyncReactionCancelledError(
         'Async reaction is cancelled as some of its dependencies changed while it was still running.',
       );
-
-      console.log('will throw', callerReaction.name);
 
       if (onRejected) {
         Reflect.apply(onRejected, this, [error]);

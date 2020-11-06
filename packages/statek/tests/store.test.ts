@@ -139,16 +139,4 @@ describe('getStoreRaw', () => {
     // @ts-expect-error
     expect(() => getStoreRaw(12)).toThrow();
   });
-
-  it('should warn when JSON.stringify store', () => {
-    const s = store({ foo: 2 });
-
-    const warn = watchWarn();
-
-    JSON.stringify(s);
-
-    expect(warn.getLast()).toEqual([
-      "You're calling JSON.stringify on the store. This will read every single, nested field of the store in reactive mode which can have performance impact. Consider calling `JSON.stringify(dontWatch(() => store))` instead.",
-    ]);
-  });
 });

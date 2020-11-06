@@ -3,7 +3,7 @@ import {
   handleStoreReadOperation,
   MutationOperationInfo,
 } from '../operations';
-import { createChildStoreIfNeeded, storeToRawMap } from '../store';
+import { createChildStore, storeToRawMap } from '../store';
 import { isSymbol, typedOwnPropertyNames } from '../utils';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -18,10 +18,8 @@ export const wellKnownSymbols = new Set<Symbol>(
 // intercept get operations on observables to know which reaction uses their properties
 export const basicProxyHandlers: ProxyHandler<object> = {
   get(target, key, receiver) {
-    if (process.env.NODE_ENV !== 'production' && key === 'toJSON') {
-      console.warn(
-        `You're calling JSON.stringify on the store. This will read every single, nested field of the store in reactive mode which can have performance impact. Consider calling \`JSON.stringify(dontWatch(() => store))\` instead.`,
-      );
+    if (key === 'toJSON') {
+      return target;
     }
     const result = Reflect.get(target, key, receiver);
 
@@ -46,7 +44,7 @@ export const basicProxyHandlers: ProxyHandler<object> = {
       return result;
     }
 
-    return createChildStoreIfNeeded(result, target);
+    return createChildStore(result, target);
   },
 
   has(target, key) {

@@ -1,4 +1,4 @@
-import { createChildStoreIfNeeded, storeToRawMap } from '../store';
+import { createChildStore, storeToRawMap } from '../store';
 import {
   handleStoreMutationOperation,
   handleStoreReadOperation,
@@ -18,9 +18,9 @@ function proxifyIterator(
     let { done, value } = originalNext.call(iterator);
     if (!done) {
       if (isEntries) {
-        value[1] = createChildStoreIfNeeded(value[1], parent);
+        value[1] = createChildStore(value[1], parent);
       } else {
-        value = createChildStoreIfNeeded(value, parent);
+        value = createChildStore(value, parent);
       }
     }
     return { done, value };
@@ -41,10 +41,7 @@ function get(this: any, key: string) {
   const proto = Reflect.getPrototypeOf(this) as Iterable;
 
   handleStoreReadOperation({ target, key, type: 'get' });
-  return createChildStoreIfNeeded(
-    proto.get.apply(target, arguments as any),
-    target,
-  );
+  return createChildStore(proto.get.apply(target, arguments as any), target);
 }
 function add(this: any, key: string) {
   const target = storeToRawMap.get(this);
@@ -132,7 +129,7 @@ function forEach(this: any, callback: any, ...args: any[]) {
   // swap out the raw values with their observable pairs
   // before passing them to the callback
   const wrappedCallback = (value: any, ...rest: [any]) =>
-    callback(createChildStoreIfNeeded(value, target), ...rest);
+    callback(createChildStore(value, target), ...rest);
   return proto.forEach.call(target, wrappedCallback, ...args);
 }
 function keys(this: any) {

@@ -1,5 +1,5 @@
 import { handleStoreReadOperation, ReadOperationInfo } from '../operations';
-import { createChildStoreIfNeeded } from '../store';
+import { createChildStore } from '../store';
 import { createStackCallback, noop } from '../utils';
 import { basicProxyHandlers, wellKnownSymbols } from './basic';
 
@@ -71,6 +71,6 @@ export const arrayProxyHandlers: ProxyHandler<object> = {
 
     // if we are inside a reaction and observable.prop is an object wrap it in an observable too
     // this is needed to intercept property access on that object too (dynamic observable tree)
-    return createChildStoreIfNeeded(result, target);
+    return createChildStore(result, target);
   },
 };

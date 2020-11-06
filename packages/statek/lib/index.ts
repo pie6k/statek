@@ -30,7 +30,13 @@ export type {
   SelectorOptions,
   UpdateStrategy,
 } from './selector';
-export { getStoreRaw, isStore, store, assertStore } from './store';
+export {
+  getStoreRaw,
+  isStore,
+  store,
+  assertStore,
+  getCreatedStore,
+} from './store';
 export type { StoreFactory } from './store';
 export { manualWatch, watch, watchAllChanges } from './watch';
 export type { ManualReaction } from './watch';

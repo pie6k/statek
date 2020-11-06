@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 import { store, getStoreRaw, manualWatch, watch } from 'statek';
+import { manualPromise } from './utils';
 
 describe('observe', () => {
   it('should wrap the passed function seamlessly', () => {
@@ -188,5 +189,36 @@ describe('observe', () => {
     expect(dummy).toBe('value');
     obj.prop = 'World';
     expect(dummy).toBe('World');
+  });
+});
+
+describe('manual watch - async', () => {
+  it('should call callback even if reaction is cancelled', async () => {
+    const s = store({ foo: 1, bar: 2 });
+    const [promise, resolve] = manualPromise();
+    const afterPromise = jest.fn();
+    const spy = jest.fn(async () => {
+      s.foo;
+      await promise;
+      afterPromise();
+      s.bar;
+    });
+
+    const cb = jest.fn();
+
+    const run = manualWatch(spy, cb);
+
+    run();
+
+    expect(cb).toBeCalledTimes(0);
+
+    s.foo++;
+
+    expect(cb).toBeCalledTimes(1);
+
+    await resolve('foo');
+
+    expect(afterPromise).toBeCalledTimes(1);
+    expect(cb).toBeCalledTimes(1);
   });
 });

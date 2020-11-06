@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { manualWatch } from 'statek/lib';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { dontWatch, manualWatch } from 'statek/lib';
 import { reactScheduler } from './scheduler';
 import { useWatch } from './useWatch';
 import {
@@ -19,11 +19,11 @@ export function useSelected<T>(getter: () => T, config?: UseSelectedConfig): T {
     forceUpdate,
     config,
   );
-  const [watchedGetter] = useState(() => {
+  const watchedGetter = useMemo(() => {
     return manualWatch(getterRef, maybeDelayedForceUpdate, {
       scheduler: reactScheduler,
     });
-  });
+  }, []);
 
   const result = watchedGetter();
 
@@ -31,7 +31,17 @@ export function useSelected<T>(getter: () => T, config?: UseSelectedConfig): T {
     return () => {
       watchedGetter.stop();
     };
-  }, []);
+  }, [watchedGetter]);
 
   return result;
+}
+
+export function useInitialSelected<T>(getter: () => T): T {
+  const [value] = useState(() => {
+    return dontWatch(() => {
+      return getter();
+    });
+  });
+
+  return value;
 }

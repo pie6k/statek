@@ -6,12 +6,18 @@ export type ReactionScheduler = (
   reaction: ReactionCallback,
 ) => Promise<void> | void;
 
+interface DontWatchConfig {
+  ignoreMutationWarning?: boolean;
+}
+
 /**
  * Escape from watching store access.
  *
  * It can be called inside part of `watch` callback and such read access will not be registered.
  */
-export const [_dontWatch, dontWatchManager] = createStackCallback(noop);
+export const [_dontWatch, dontWatchManager] = createStackCallback<
+  DontWatchConfig
+>(noop);
 
 export const dontWatchList = new WeakSet<object>();
 
@@ -22,10 +28,11 @@ export const dontWatchList = new WeakSet<object>();
  */
 export function dontWatch<C extends (() => any) | object>(
   callbackOrObject: C,
+  config?: DontWatchConfig,
 ): C extends () => infer R ? R : () => {} {
   if (typeof callbackOrObject === 'function') {
     // make sure to unwrap direct result of the callback eg dontWatch(() => store); - should return store raw object
-    const result = _dontWatch(callbackOrObject as () => any);
+    const result = _dontWatch(callbackOrObject as () => any, [], config);
 
     if (isStore(result)) {
       return getStoreRaw(result as any);

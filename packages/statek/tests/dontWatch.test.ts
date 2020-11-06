@@ -1,4 +1,5 @@
 import { dontWatch, isStore, store, watch } from 'statek';
+import { watchWarn } from './utils';
 
 describe('dontWatch', () => {
   it('will ignore read access inside dontWatch', () => {
@@ -56,5 +57,56 @@ describe('dontWatch', () => {
     const raw = dontWatch(() => obj);
 
     expect(isStore(raw)).toBe(false);
+  });
+
+  it('will not trigger mutation operations called inside dontWatch', () => {
+    const s = store({
+      foo: 1,
+    });
+
+    const watchSpy = jest.fn(() => {
+      s.foo;
+    });
+
+    watch(watchSpy);
+
+    const warn = watchWarn();
+
+    expect(watchSpy).toBeCalledTimes(1);
+    dontWatch(() => {
+      s.foo++;
+    });
+    expect(watchSpy).toBeCalledTimes(1);
+
+    expect(warn.getLast()).toMatchInlineSnapshot(`
+      Array [
+        "You're mutating the store during dontWatch call and performed mutation would trigger at least 1 reaction normally, but they are ignored.",
+      ]
+    `);
+  });
+
+  it('will not warn if explicit said to ignore dontWatch mutations warning', () => {
+    const s = store({
+      foo: 1,
+    });
+
+    const watchSpy = jest.fn(() => {
+      s.foo;
+    });
+
+    watch(watchSpy);
+
+    const warn = watchWarn();
+
+    expect(watchSpy).toBeCalledTimes(1);
+    dontWatch(
+      () => {
+        s.foo++;
+      },
+      { ignoreMutationWarning: true },
+    );
+    expect(watchSpy).toBeCalledTimes(1);
+
+    expect(warn.getLast()).toBe(null);
   });
 });

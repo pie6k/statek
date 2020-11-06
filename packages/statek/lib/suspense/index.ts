@@ -1,3 +1,4 @@
+import { isAsyncReactionCancelledError } from '../async/promiseWrapper';
 import { requestReactionCallNeeded } from '../batch';
 import {
   isManualReaction,
@@ -99,10 +100,33 @@ export function callWithSuspense<A extends any[], R>(
           requestReactionCallNeeded(reaction);
         })
         .catch(error => {
-          // since watch is called by itself after suspended and retried - there is no way this error could be catched.
-          // As promises it suspended with are provided by user - if they don't have .catch by themselves - it seems ok to
-          // result with uncaught promise exception.
-          // ?  throw error;
+          /**
+           * Following in as edge case that can happen when using async selectors that suspend.
+           *
+           * Scenario:
+           * 1. Some watch is using value from async selector
+           * 2. Async selector suspends and tries to get the data
+           * 3. It means selector promise is thrown here and we're waiting for it
+           * 4. However, while waiting, some store used by selector or watch changes
+           * 5. It means that when selector tries to continue, AsyncReactionCancelledError is thrown.
+           * 6. Therefore promise that suspended throws an error which we catch here.
+           * 7. As we know this error requires reaction to re-run, we're doing so here.
+           */
+          if (isAsyncReactionCancelledError(error)) {
+            requestReactionCallNeeded(reaction);
+            return;
+          }
+
+          /**
+           * Suspended promise has thrown an error. We cannot re-throw this error, as this is us who
+           * has called as try to re-run reaction, so user code cannot wrap this call in try-catch.
+           *
+           * Let's warn user about the error instead.
+           */
+          console.warn(
+            'Reaction suspended with promise that has thrown an error:',
+            error,
+          );
         });
 
       if (isManualReaction(reaction)) {
